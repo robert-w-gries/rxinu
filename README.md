@@ -3,14 +3,19 @@ Rust implementation of Xinu
 
 ## Dependencies
 
+### Required
 ```
-* rustup - for rust nightly compiler
-* cargo - rust build tool
-* make
-* clang
-* ld
-* qemu - for testing the kernel
-* grub - if you want to build iso
+rustup - for rust nightly compiler
+cargo - rust build tool
+ld
+make
+```
+
+### Optional
+```
+clang - for easy cross-compilation
+qemu - for testing the kernel
+grub - if you want to build iso
 ```
 
 ## Compilation
