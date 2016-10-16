@@ -82,7 +82,6 @@ _start:
   # stack since (pushed 0 bytes so far) and the alignment is thus
   # preserved and the call is well defined.
   call rust_main
-  mov dword ptr [0xb8000], 0x2f4b2f4f
 
   # If the system has nothing more to do, put the computer into an
   # infinite loop. To do that:
