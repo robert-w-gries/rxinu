@@ -60,10 +60,7 @@ _start:
   # To set up a stack, we set the esp register to point to the top of our
   # stack (as it grows downwards on x86 systems). This is necessarily done
   # in assembly as languages such as C cannot function without a stack.
-  # TODO: figure out why i can't use stack_top directly and remove
-  # hardcoded value
-  #mov esp, stack_top
-  mov esp, 0x105000
+  mov esp, offset stack_top
   
   # This is a good place to initialize crucial processor state before the
   # high-level kernel is entered. It's best to minimize the early
