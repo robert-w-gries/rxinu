@@ -3,8 +3,8 @@ arch ?= x86
 target ?= i386
 
 # kernel binaries
-kernel := build/kernel-$(arch)-$(target).bin
-iso := build/os-$(arch)-$(target).iso
+kernel := build/rxinu-$(arch)-$(target).bin
+iso := build/rxinu-$(arch)-$(target).iso
 
 rust_arch := $(target)
 ifeq ($(target),i386)
