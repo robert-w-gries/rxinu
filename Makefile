@@ -13,7 +13,7 @@ endif
 
 # rust binaries
 rust_target ?= $(rust_arch)-unknown-linux-gnu
-rust_os := target/$(rust_target)/release/librxinu.a
+rust_os := target/$(rust_target)/debug/librxinu.a
 
 # Source files
 linker_script := src/arch/$(arch)/linker.ld
@@ -22,7 +22,7 @@ assembly_source_files := $(wildcard src/arch/$(arch)/*.S)
 assembly_object_files := $(patsubst src/arch/$(arch)/%.S, \
 	build/arch/$(arch)/%.o, $(assembly_source_files))
 
-CFLAGS := --target=$(target)-pc-none-elf
+CFLAGS := --target=$(target)-pc-none-elf -g
 CFLAGS += -fno-builtin -ffunction-sections -fwrapv
 ASFLAGS := -fno-integrated-as -masm=intel
 LDFLAGS := --gc-sections -melf_$(target)
@@ -32,7 +32,7 @@ LDFLAGS := --gc-sections -melf_$(target)
 all: $(kernel)
 
 cargo:
-	@cargo build --release --target $(rust_target)
+	@cargo build --target $(rust_target)
 
 clean:
 	@rm -rf build
