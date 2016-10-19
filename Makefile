@@ -3,36 +3,40 @@ arch ?= x86
 target ?= i386
 
 # kernel binaries
-kernel := build/kernel-$(arch)-$(target).bin
-iso := build/os-$(arch)-$(target).iso
+kernel := build/rxinu-$(arch)-$(target).bin
+iso := build/rxinu-$(arch)-$(target).iso
 
+# Rust target
 rust_arch := $(target)
 ifeq ($(target),i386)
 	rust_arch := i686
 endif
 
-# rust binaries
+# Rust Binaries
 rust_target ?= $(rust_arch)-unknown-linux-gnu
-rust_os := target/$(rust_target)/release/librxinu.a
+rust_os := target/$(rust_target)/debug/librxinu.a
 
 # Source files
 linker_script := src/arch/$(arch)/linker.ld
 grub_cfg := src/arch/$(arch)/grub.cfg
-assembly_source_files := $(wildcard src/arch/$(arch)/*.S)
-assembly_object_files := $(patsubst src/arch/$(arch)/%.S, \
-	build/arch/$(arch)/%.o, $(assembly_source_files))
+ASM_SRC := $(wildcard src/arch/$(arch)/*.S) \
+	$(wildcard src/arch/$(arch)/$(target)/*.S)
 
-CFLAGS := --target=$(target)-pc-none-elf
+# Object files
+ASM_OBJ := $(patsubst src/arch/$(arch)/%.S, build/arch/$(arch)/%.o, $(ASM_SRC))
+
+# Flags
+CFLAGS := --target=$(target)-pc-none-elf -g
 CFLAGS += -fno-builtin -ffunction-sections -fwrapv
 ASFLAGS := -fno-integrated-as -masm=intel
 LDFLAGS := --gc-sections -melf_$(target)
 
-.PHONY: all clean run iso
+.PHONY: all cargo clean run iso
 
 all: $(kernel)
 
 cargo:
-	@cargo build --release --target $(rust_target)
+	@cargo build --target $(rust_target)
 
 clean:
 	@rm -rf build
@@ -51,11 +55,11 @@ $(iso): $(kernel) $(grub_cfg)
 	@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
 	@rm -rf build/isofiles
 
-$(kernel):  cargo $(rust_os) $(assembly_object_files) $(linker_script)
+$(kernel):  cargo $(rust_os) $(ASM_OBJ) $(linker_script)
 	@echo "Building $(kernel)"
-	@ld $(LDFLAGS) -T $(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
+	@ld $(LDFLAGS) -T $(linker_script) -o $(kernel) $(ASM_OBJ) $(rust_os)
 
-# compile assembly files
+# compile architecture specific files
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.S
 	@mkdir -p $(shell dirname $@)
 	@echo "  Assembling $<"

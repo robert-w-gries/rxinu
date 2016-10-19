@@ -13,7 +13,9 @@ mod vga_buffer;
 #[no_mangle]
 pub extern fn rust_main() {
     vga_buffer::clear_screen();
-    println!("Hello World{} {}", "!", "3");
+    for i in 0..100 {
+        println!("Hello World{} {}", "!", i);
+    }
     loop{}
 }
 
