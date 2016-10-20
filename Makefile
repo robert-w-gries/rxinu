@@ -29,7 +29,7 @@ ASM_OBJ := $(patsubst src/arch/$(arch)/%.S, build/arch/$(arch)/%.o, $(ASM_SRC))
 CFLAGS := --target=$(target)-pc-none-elf -g
 CFLAGS += -fno-builtin -ffunction-sections -fwrapv
 ASFLAGS := -fno-integrated-as -masm=intel
-LDFLAGS := --gc-sections -melf_$(target)
+LDFLAGS := -n --gc-sections -melf_$(target)
 
 .PHONY: all cargo clean run iso
 
