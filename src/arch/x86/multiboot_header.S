@@ -1,4 +1,5 @@
 .intel_syntax noprefix
+.code32
 
 .set MAGIC,       0xe85250d6
 .set ARCH,        0
