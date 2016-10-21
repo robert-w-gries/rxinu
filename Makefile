@@ -43,7 +43,7 @@ clean:
 	@cargo clean
 
 run: $(kernel)
-	@qemu-system-x86_64 -kernel $(kernel) -curses
+	@qemu-system-x86_64 -cdrom $(iso)
 
 iso: $(iso)
 
