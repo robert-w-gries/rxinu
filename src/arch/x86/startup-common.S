@@ -1,6 +1,7 @@
 # http://wiki.osdev.org/Bare_Bones
 
 .intel_syntax noprefix
+.code32
 
 .extern init_sse
 
@@ -39,6 +40,9 @@ startup:
   # stack (as it grows downwards on x86 systems). This is necessarily done
   # in assembly as languages such as C cannot function without a stack.
   mov esp, offset stack_top
+
+  call check_multiboot
+  call check_cpuid
 
   # TODO: determine which of these init functions are necessary
   # call init_fpu
