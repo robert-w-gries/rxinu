@@ -1,6 +1,7 @@
 # http://wiki.osdev.org/SSE
 
 .intel_syntax noprefix
+.code32
 
 .section .text
 .global init_sse
@@ -24,4 +25,5 @@ init_sse:
 
   ret
 .no_sse:
-  hlt
+  mov al, 2
+  jmp error

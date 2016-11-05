@@ -26,10 +26,10 @@ ASM_SRC := $(wildcard src/arch/$(arch)/*.S) \
 ASM_OBJ := $(patsubst src/arch/$(arch)/%.S, build/arch/$(arch)/%.o, $(ASM_SRC))
 
 # Flags
-CFLAGS := --target=$(target)-pc-none-elf -g
+CFLAGS := --target=$(target)-pc-none-elf
 CFLAGS += -fno-builtin -ffunction-sections -fwrapv
 ASFLAGS := -fno-integrated-as -masm=intel
-LDFLAGS := --gc-sections -melf_$(target)
+LDFLAGS := -n --gc-sections -melf_$(target)
 
 .PHONY: all cargo clean run iso
 
@@ -42,8 +42,8 @@ clean:
 	@rm -rf build
 	@cargo clean
 
-run: $(kernel)
-	@qemu-system-x86_64 -kernel $(kernel) -curses
+run: $(iso)
+	@qemu-system-x86_64 -cdrom $(iso)
 
 iso: $(iso)
 
