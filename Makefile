@@ -1,6 +1,7 @@
 # Target and build files
 arch ?= x86
 target ?= i386
+system ?= linux
 
 # kernel binaries
 kernel := build/rxinu-$(arch)-$(target).bin
@@ -13,7 +14,15 @@ ifeq ($(target),i386)
 endif
 
 # Rust Binaries
-rust_target ?= $(rust_arch)-unknown-linux-gnu
+
+# Target
+ifeq ($(system),linux)
+	rust_target ?= $(rust_arch)-unknown-linux-gnu
+endif
+ifeq ($(system),apple)
+	rust_target ?= $(rust_arch)-apple-darwin
+endif
+
 rust_os := target/$(rust_target)/debug/librxinu.a
 
 # Source files
