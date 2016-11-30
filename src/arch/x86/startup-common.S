@@ -18,7 +18,7 @@
 .section .bss
 .align 16
 stack_bottom:
-.skip 16384 # 16 KiB
+.skip 4096 # one page
 stack_top:
 
 .section .text
@@ -40,6 +40,9 @@ startup:
   # stack (as it grows downwards on x86 systems). This is necessarily done
   # in assembly as languages such as C cannot function without a stack.
   mov esp, offset stack_top
+
+  # Save Multiboot information to register
+  mov edi, ebx
 
   call check_multiboot
   call check_cpuid
