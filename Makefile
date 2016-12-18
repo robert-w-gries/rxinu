@@ -7,7 +7,7 @@ build ?= debug
 # Flags
 CFLAGS := --target=$(target)-unknown-none-elf -ffreestanding
 ASFLAGS := -masm=intel
-LDFLAGS := -nostdlib --gc-sections -melf_$(target)
+LDFLAGS := -n -nostdlib --gc-sections -melf_$(target)
 
 # Rust target
 rust_arch := $(target)
