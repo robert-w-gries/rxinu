@@ -12,3 +12,7 @@ script:
   - cargo fmt -- --write-mode=diff
   - make clean; make
   - make clean; make target=x86_64
+matrix:
+  include:
+    - env: TARGET=i686-unknown-linux-gnu
+    - env: TARGET=x86_64-unknown-linux-gnu
