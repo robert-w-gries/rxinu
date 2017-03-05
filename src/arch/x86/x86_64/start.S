@@ -15,8 +15,11 @@ _start:
   call enable_paging
 
 flush_gdt:
+  lea eax, complete_flush
+  push dword ptr 0x08
+  push eax
   lgdt [gdtr]
-  jmp 0x08:complete_flush
+  retf
 
 complete_flush:
   mov eax, 0x10

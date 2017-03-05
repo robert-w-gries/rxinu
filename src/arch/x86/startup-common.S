@@ -40,7 +40,7 @@ startup:
   # To set up a stack, we set the esp register to point to the top of our
   # stack (as it grows downwards on x86 systems). This is necessarily done
   # in assembly as languages such as C cannot function without a stack.
-  mov esp, offset stack_top
+  lea esp, stack_top
 
   # Save Multiboot information to register
   mov edi, ebx
