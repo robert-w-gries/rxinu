@@ -11,12 +11,13 @@ addons:
     packages: ['clang-3.8']
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y clang qemu xorriso
+  - sudo apt-get install -y qemu xorriso
   - curl https://sh.rustup.rs -sSf | bash -s -- -y
+  - sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-3.8 100
 before_script:
-  - rustup install nightly
-  - rustup default nightly
-  - rustup target add $TARGET
+  - ~/.cargo/rustup install nightly
+  - ~/.cargo/rustup default nightly
+  - ~/.cargo/rustup target add $TARGET
   - export PATH="$PATH:$HOME/.cargo/bin"
   - which rustfmt || cargo install rustfmt
 script:
