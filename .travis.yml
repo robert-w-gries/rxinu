@@ -1,10 +1,8 @@
 language: rust
 cache: cargo
-rust:
-  - nightly
 env:
-  - ['target=i386', 'TARGET=i686-unknown-linux-gnu', 'COMPILER=clang-3.8']
-  - ['target=x86_64', 'TARGET=x86_64-unknown-linux-gnu', 'COMPILER=clang-3.8']
+  - ['target=i386', 'TARGET=i686-unknown-linux-gnu', 'ASM=clang-3.8']
+  - ['target=x86_64', 'TARGET=x86_64-unknown-linux-gnu', 'ASM=clang-3.8']
 addons:
   apt:
     sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
@@ -14,9 +12,7 @@ before_install:
   - sudo apt-get install -y qemu xorriso
   - curl https://sh.rustup.rs -sSf | bash -s -- -y
 before_script:
-  - sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-3.8 100
-  - export CARGO="$HOME/.cargo/bin/cargo"
-  - export PATH="$PATH:$HOME/.cargo/bin"
+  - export PATH="$HOME/.cargo/bin:$PATH"
   - rustup install nightly
   - rustup default nightly
   - rustup target add $TARGET || true
