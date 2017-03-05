@@ -12,8 +12,9 @@ addons:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y clang qemu xorriso
-  - curl https://sh.rustup.rs -sSf | sh
+  - curl https://sh.rustup.rs -sSf | bash -s -- -y
 before_script:
+  - rustup install nightly
   - rustup default nightly
   - rustup target add $TARGET
   - export PATH="$PATH:$HOME/.cargo/bin"
