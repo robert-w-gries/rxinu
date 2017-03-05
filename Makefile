@@ -1,16 +1,28 @@
 # Target and build files
 arch ?= x86
 target ?= i386
+build ?= debug
+
+# Flags
+CFLAGS := --target=$(target)-unknown-none-elf -ffreestanding
+ASFLAGS := -masm=intel
+LDFLAGS := -n --gc-sections -melf_$(target)
+
+# Rust target
+rust_arch := $(target)
+ifeq ($(rust_arch),i386)
+	rust_arch := i686
+endif
+
+# Debug flags
+ifeq ($(build),debug)
+	CFLAGS += -g
+	LDFLAGS += -g
+endif
 
 # kernel binaries
 kernel := build/rxinu-$(arch)-$(target).bin
 iso := build/rxinu-$(arch)-$(target).iso
-
-# Rust target
-rust_arch := $(target)
-ifeq ($(target),i386)
-	rust_arch := i686
-endif
 
 # Rust Binaries
 rust_target ?= $(rust_arch)-unknown-linux-gnu
@@ -24,12 +36,6 @@ ASM_SRC := $(wildcard src/arch/$(arch)/*.S) \
 
 # Object files
 ASM_OBJ := $(patsubst src/arch/$(arch)/%.S, build/arch/$(arch)/%.o, $(ASM_SRC))
-
-# Flags
-CFLAGS := --target=$(target)-pc-none-elf
-CFLAGS += -fno-builtin -ffunction-sections -fwrapv
-ASFLAGS := -fno-integrated-as -masm=intel
-LDFLAGS := -n --gc-sections -melf_$(target)
 
 .PHONY: all cargo clean run iso
 

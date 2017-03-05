@@ -17,12 +17,12 @@ p2_table:
 .type setup_page_tables, @function
 setup_page_tables:
   # map first P4 entry to P3 table
-  mov eax, offset p3_table
+  lea eax, p3_table
   or eax, 0b11 # present + writable
   mov [p4_table], eax
 
   # map first P3 entry to P2 table
-  mov eax, offset p2_table
+  lea eax, p2_table
   or eax, 0b11 # present + writable
   mov [p3_table], eax
 
