@@ -19,6 +19,7 @@
 .align 16
 stack_bottom:
 .skip 4096 # one page
+#.skip 4096 # one page
 stack_top:
 
 .section .text

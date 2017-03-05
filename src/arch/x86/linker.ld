@@ -16,19 +16,24 @@ SECTIONS
 	.text BLOCK(4K) : ALIGN(4K)
 	{
 		KEEP(*(.multiboot_header))
-		*(.text)
+		*(.text .text.*)
 	}
 
 	/* Read-only data. */
 	.rodata BLOCK(4K) : ALIGN(4K)
 	{
-		*(.rodata)
+		*(.rodata .rodata.*)
 	}
 
 	/* Read-write data (initialized) */
 	.data BLOCK(4K) : ALIGN(4K)
 	{
-		*(.data)
+		*(.data .data.*)
+	}
+
+	.data.rel.ro BLOCK(4K) : ALIGN(4K)
+	{
+		*(.data.rel.ro.local*) *(.data.rel.ro .data.rel.ro.*)
 	}
 
 	/* Read-write data (uninitialized) and stack */
