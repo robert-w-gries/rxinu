@@ -3,16 +3,21 @@ cache: cargo
 rust:
   - nightly
 env:
-  - target=i386
-  - target=x86_64
+  - ['target=i386', 'TARGET=i686-unknown-linux-gnu', 'COMPILER=clang-3.8']
+  - ['target=x86_64', 'TARGET=x86_64-unknown-linux-gnu', 'COMPILER=clang-3.8']
+addons:
+  apt:
+    sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
+    packages: ['clang-3.8']
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y clang qemu xorriso
+  - curl https://sh.rustup.rs -sSf | sh
 before_script:
+  - rustup default nightly
+  - rustup target add $TARGET
   - export PATH="$PATH:$HOME/.cargo/bin"
   - which rustfmt || cargo install rustfmt
-  - rustup target add i686-unknown-linux-gnu
-  - rustup target add x86_64-unknown-linux-gnu
 script:
   - cargo fmt -- --write-mode=diff
   - make
