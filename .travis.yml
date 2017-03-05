@@ -17,7 +17,7 @@ before_install:
 before_script:
   - ~/.cargo/bin/rustup install nightly
   - ~/.cargo/bin/rustup default nightly
-  - ~/.cargo/bin/rustup target add $TARGET
+  - ~/.cargo/bin/rustup target add $TARGET || true
   - export PATH="$PATH:$HOME/.cargo/bin"
   - which rustfmt || cargo install rustfmt
 script:

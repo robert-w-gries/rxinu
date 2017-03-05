@@ -1,3 +1,8 @@
+# Tools
+CARGO ?= cargo
+ASM ?= clang
+LD ?= ld
+
 # Target and build files
 arch ?= x86
 target ?= i386
@@ -42,11 +47,11 @@ ASM_OBJ := $(patsubst src/arch/$(arch)/%.S, build/arch/$(arch)/%.o, $(ASM_SRC))
 all: $(kernel)
 
 cargo:
-	@cargo build --target $(rust_target)
+	@$(CARGO) build --target $(rust_target)
 
 clean:
 	@rm -rf build
-	@cargo clean
+	@$(CARGO) clean
 
 run: $(iso)
 	@qemu-system-x86_64 -cdrom $(iso)
@@ -61,12 +66,12 @@ $(iso): $(kernel) $(grub_cfg)
 	@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
 	@rm -rf build/isofiles
 
-$(kernel):  cargo $(rust_os) $(ASM_OBJ) $(linker_script)
+$(kernel):  $(CARGO) $(rust_os) $(ASM_OBJ) $(linker_script)
 	@echo "Building $(kernel)"
-	@ld $(LDFLAGS) -T $(linker_script) -o $(kernel) $(ASM_OBJ) $(rust_os)
+	@$(LD) $(LDFLAGS) -T $(linker_script) -o $(kernel) $(ASM_OBJ) $(rust_os)
 
 # compile architecture specific files
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.S
 	@mkdir -p $(shell dirname $@)
 	@echo "  Assembling $<"
-	@clang $(ASFLAGS) $(CFLAGS) -c $< -o $@
+	@$(ASM) $(ASFLAGS) $(CFLAGS) -c $< -o $@
