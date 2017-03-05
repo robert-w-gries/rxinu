@@ -1,20 +1,17 @@
 # Target and build files
 arch ?= x86
 target ?= i386
-system ?= linux
 build ?= debug
 
 # Flags
 CFLAGS := --target=$(target)-unknown-none-elf -ffreestanding
 ASFLAGS := -masm=intel
-LDFLAGS := -n -nostdlib --gc-sections -melf_$(target)
+LDFLAGS := -n --gc-sections -melf_$(target)
 
 # Rust target
 rust_arch := $(target)
 ifeq ($(rust_arch),i386)
 	rust_arch := i686
-else
-	CFLAGS += -mno-red-zone
 endif
 
 # Debug flags
@@ -28,15 +25,7 @@ kernel := build/rxinu-$(arch)-$(target).bin
 iso := build/rxinu-$(arch)-$(target).iso
 
 # Rust Binaries
-
-# Target
-ifeq ($(system),linux)
-	rust_target ?= $(rust_arch)-unknown-linux-gnu
-endif
-ifeq ($(system),apple)
-	rust_target ?= $(rust_arch)-apple-darwin
-endif
-
+rust_target ?= $(rust_arch)-unknown-linux-gnu
 rust_os := target/$(rust_target)/debug/librxinu.a
 
 # Source files

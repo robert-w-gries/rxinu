@@ -3,6 +3,9 @@
 #![feature(unique)]
 #![no_std]
 
+#![feature(compiler_builtins_lib)]
+extern crate compiler_builtins;
+
 extern crate rlibc;
 extern crate spin;
 extern crate volatile;
@@ -20,7 +23,8 @@ pub extern fn rust_main() {
 }
 
 #[lang = "eh_personality"] extern fn eh_personality() {}
-#[lang = "panic_fmt"] extern fn panic_fmt() -> ! {loop{}}
+
+#[lang = "panic_fmt"] #[no_mangle] extern fn panic_fmt() -> ! {loop{}}
 
 #[allow(non_snake_case)]
 #[no_mangle]
