@@ -32,7 +32,7 @@ impl Writer {
     }
 
     fn buffer(&mut self) -> &mut buffer::Buffer {
-        unsafe{ self.buffer.get_mut() }
+        unsafe { self.buffer.get_mut() }
     }
 
     fn new_line(&mut self) {
@@ -43,7 +43,7 @@ impl Writer {
                 buffer.chars[row - 1][col].write(character);
             }
         }
-        self.clear_row(buffer::MAX_HEIGHT-1);
+        self.clear_row(buffer::MAX_HEIGHT - 1);
         self.column_position = 0;
     }
 
@@ -62,7 +62,7 @@ impl Writer {
 impl ::core::fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> ::core::fmt::Result {
         for byte in s.as_bytes() {
-          self.write_byte(byte)
+            self.write_byte(byte)
         }
 
         Ok(())
