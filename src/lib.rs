@@ -20,7 +20,7 @@ pub mod memory;
 mod vga_buffer;
 
 #[no_mangle]
-pub extern fn rust_main(multiboot_information_address: usize) {
+pub extern "C" fn rust_main(multiboot_information_address: usize) {
     vga_buffer::clear_screen();
     let boot_info = unsafe{ multiboot2::load(multiboot_information_address) };
 
@@ -64,12 +64,13 @@ pub extern fn rust_main(multiboot_information_address: usize) {
 
 #[cfg(not(test))]
 #[lang = "eh_personality"]
-extern fn eh_personality() {}
+#[no_mangle]
+extern "C" fn eh_personality() {}
 
 #[cfg(not(test))]
 #[lang = "panic_fmt"]
 #[no_mangle]
-pub extern fn panic_fmt(fmt: core::fmt::Arguments, file: &str, line: u32) -> ! {
+extern "C" fn panic_fmt(fmt: core::fmt::Arguments, file: &str, line: u32) -> ! {
     println!("\n\nPANIC in {} at line {}:", file, line);
     println!("    {}", fmt);
     loop{}
@@ -78,5 +79,5 @@ pub extern fn panic_fmt(fmt: core::fmt::Arguments, file: &str, line: u32) -> ! {
 #[allow(non_snake_case)]
 #[no_mangle]
 pub extern "C" fn _Unwind_Resume() -> ! {
-        loop {}
+    loop {}
 }
