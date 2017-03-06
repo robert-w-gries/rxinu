@@ -23,6 +23,7 @@ pub extern "C" fn rust_main() {
 }
 
 #[lang = "eh_personality"]
+#[no_mangle]
 extern "C" fn eh_personality() {}
 
 #[lang = "panic_fmt"]
