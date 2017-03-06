@@ -22,7 +22,7 @@ setup_page_tables:
   mov [p4_table], eax
 
   # map P4 table recursively
-  mov eax, offset p4_table
+  lea eax, p4_table
   or eax, 0b11 # present + writable
   mov [p4_table + 511 * 8], eax
 

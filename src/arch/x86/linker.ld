@@ -13,16 +13,17 @@ SECTIONS
 	/* First put the multiboot header, as it is required to be put very early
 	   early in the image or the bootloader won't recognize the file format.
 	   Next we'll put the .text section. */
-	.text BLOCK(4K) : ALIGN(4K)
-	{
-		KEEP(*(.multiboot_header))
-		*(.text .text.*)
-	}
 
 	/* Read-only data. */
 	.rodata BLOCK(4K) : ALIGN(4K)
 	{
+		KEEP(*(.multiboot_header))
 		*(.rodata .rodata.*)
+	}
+
+	.text BLOCK(4K) : ALIGN(4K)
+	{
+		*(.text .text.*)
 	}
 
 	/* Read-write data (initialized) */
@@ -31,16 +32,25 @@ SECTIONS
 		*(.data .data.*)
 	}
 
-	.data.rel.ro BLOCK(4K) : ALIGN(4K)
-	{
-		*(.data.rel.ro.local*) *(.data.rel.ro .data.rel.ro.*)
-	}
-
 	/* Read-write data (uninitialized) and stack */
 	.bss BLOCK(4K) : ALIGN(4K)
 	{
-		*(COMMON)
-		*(.bss)
+		*(.bss .bss.*)
+	}
+
+	.got BLOCK(4K) : ALIGN(4K)
+	{
+		*(.got)
+	}
+
+	.got.plt BLOCK(4K) : ALIGN(4K)
+	{
+		*(.got.plt)
+	}
+
+	.data.rel.ro BLOCK(4K) : ALIGN(4K)
+	{
+		*(.data.rel.ro.local*) *(.data.rel.ro .data.rel.ro.*)
 	}
 
 	/* The compiler may produce other sections, by default it will put them in
