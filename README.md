@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/robert-w-gries/rxinu.svg?branch=master)](https://travis-ci.org/robert-w-gries/rxinu)
+
 # rxinu
 Rust implementation of [Xinu](https://github.com/xinu-os/xinu)
 
@@ -28,6 +30,7 @@ rustup target add i686-unknown-linux-gnu
   * [`lld`](http://lld.llvm.org/) can replace `ld` if desired
 * clang
   * Recommended for easy cross-compilation
+  * Required version >= 3.5
 * qemu
   * Used in Makefile for testing the kernel
 * grub
