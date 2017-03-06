@@ -14,20 +14,26 @@ extern crate volatile;
 mod vga_buffer;
 
 #[no_mangle]
-pub extern fn rust_main() {
+pub extern "C" fn rust_main() {
     vga_buffer::clear_screen();
     for i in 0..100 {
         println!("Hello World{} {}", "!", i);
     }
-    loop{}
+    loop {}
 }
 
-#[lang = "eh_personality"] extern fn eh_personality() {}
+#[lang = "eh_personality"]
+#[no_mangle]
+extern "C" fn eh_personality() {}
 
-#[lang = "panic_fmt"] #[no_mangle] extern fn panic_fmt() -> ! {loop{}}
+#[lang = "panic_fmt"]
+#[no_mangle]
+extern "C" fn panic_fmt() -> ! {
+    loop {}
+}
 
 #[allow(non_snake_case)]
 #[no_mangle]
 pub extern "C" fn _Unwind_Resume() -> ! {
-        loop {}
+    loop {}
 }
