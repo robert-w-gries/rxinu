@@ -2,7 +2,7 @@ use core::ops::{Deref, DerefMut};
 use multiboot2::BootInformation;
 
 use memory::{Frame, FrameAllocator};
-use self::entry::{PRESENT, WRITABLE};
+use self::entry::{EntryFlags, PRESENT, WRITABLE};
 use self::mapper::Mapper;
 use self::page::Page;
 use self::temporary_page::TemporaryPage;
@@ -14,7 +14,7 @@ pub const PAGE_SIZE: usize = 4096;
 const PHYS_ADDR_MASK: usize = 0x0;
 
 #[cfg(target_arch = "x86_64")]
-const PHYS_ADDR_MASK: usize = 0x000fffff_fffff000;
+const PHYS_ADDR_MASK: usize = 0x000f_ffff_ffff_f000;
 
 pub type PhysicalAddress = usize;
 pub type VirtualAddress = usize;
@@ -46,6 +46,18 @@ impl DerefMut for ActivePageTable {
 impl ActivePageTable {
     unsafe fn new() -> ActivePageTable {
         ActivePageTable { mapper: Mapper::new() }
+    }
+
+    pub fn switch(&mut self, new_table: InactivePageTable) -> InactivePageTable {
+        use x86::shared::control_regs;
+
+        let old_table = InactivePageTable {
+            p4_frame: Frame::containing_address(unsafe { control_regs::cr3() } as usize),
+        };
+        unsafe {
+            control_regs::cr3_write(new_table.p4_frame.start_address());
+        }
+        old_table
     }
 
     pub fn with<F>(&mut self,
@@ -100,31 +112,6 @@ impl InactivePageTable {
     }
 }
 
-pub fn test_paging<A>(allocator: &mut A)
-    where A: FrameAllocator
-{
-    let page_table = unsafe { ActivePageTable::new() };
-
-    // address 0 is mapped
-    assert!(page_table.mapper.translate(0).is_some());
-
-    // second P1 entry
-    assert!(page_table.mapper.translate(4096).is_some());
-
-    // second P2 entry
-    assert!(page_table.mapper.translate(512 * 4096).is_some());
-
-    // 300th P2 entry
-    assert!(page_table.mapper.translate(300 * 512 * 4096).is_some());
-
-    // second P3 entry
-    assert!(page_table.mapper.translate(512 * 512 * 4096).is_none());
-
-    // last mapped byte
-    assert!(page_table.mapper.translate(512 * 512 * 4096 - 1).is_some());
-
-}
-
 pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation)
     where A: FrameAllocator
 {
@@ -141,8 +128,6 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation)
             .expect("Memory map tag required");
 
         for section in elf_sections_tag.sections() {
-            use self::entry::WRITABLE;
-
             if !section.is_allocated() {
                 // section is not loaded to memory
                 continue;
@@ -154,7 +139,7 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation)
                      section.addr,
                      section.size);
 
-            let flags = WRITABLE; // TODO use real section flags
+            let flags = EntryFlags::from_elf_section_flags(section);
 
             let start_frame = Frame::containing_address(section.start_address());
             let end_frame = Frame::containing_address(section.end_address() - 1);
@@ -162,5 +147,21 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation)
                 mapper.identity_map(frame, flags, allocator);
             }
         }
+        // identity map the VGA text buffer
+        let vga_buffer_frame = Frame::containing_address(0xb8000);
+        mapper.identity_map(vga_buffer_frame, WRITABLE, allocator);
+
+        let multiboot_start = Frame::containing_address(boot_info.start_address());
+        let multiboot_end = Frame::containing_address(boot_info.end_address() - 1);
+        for frame in Frame::range_inclusive(multiboot_start, multiboot_end) {
+            mapper.identity_map(frame, PRESENT, allocator);
+        }
     });
+
+    let old_table = active_table.switch(new_table);
+
+    // turn the old p4 page into a guard page
+    let old_p4_page = Page::containing_address(old_table.p4_frame.start_address());
+    active_table.unmap(old_p4_page, allocator);
+    println!("guard page at {:#x}", old_p4_page.start_address());
 }

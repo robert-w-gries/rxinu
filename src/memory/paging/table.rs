@@ -2,10 +2,10 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
 use memory::FrameAllocator;
-use super::{ENTRY_COUNT, PHYS_ADDR_MASK};
+use super::ENTRY_COUNT;
 use super::entry::{Entry, HUGE_PAGE, PRESENT, WRITABLE};
 
-pub const P4: *mut Table<Level4> = 0xffffffff_fffff000 as *mut _;
+pub const P4: *mut Table<Level4> = 0xffff_ffff_ffff_f000 as *mut _;
 
 pub struct Table<L: TableLevel> {
     entries: [Entry; ENTRY_COUNT],
@@ -95,7 +95,7 @@ impl TableLevel for Level3 {}
 impl TableLevel for Level2 {}
 impl TableLevel for Level1 {}
 
-trait HierarchicalLevel: TableLevel {
+pub trait HierarchicalLevel: TableLevel {
     type NextLevel: TableLevel;
 }
 

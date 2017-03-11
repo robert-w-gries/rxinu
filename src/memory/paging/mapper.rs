@@ -4,7 +4,7 @@ use memory::{Frame, FrameAllocator};
 use super::{PhysicalAddress, VirtualAddress, ENTRY_COUNT, PAGE_SIZE};
 use super::entry::{EntryFlags, PRESENT, HUGE_PAGE};
 use super::page::Page;
-use super::table::{self, Table, Level4, P4};
+use super::table::{self, Table, Level4};
 
 pub struct Mapper {
     p4: Unique<Table<Level4>>,
@@ -12,7 +12,7 @@ pub struct Mapper {
 
 impl Mapper {
     pub unsafe fn new() -> Mapper {
-        Mapper { p4: Unique::new(P4) }
+        Mapper { p4: Unique::new(table::P4) }
     }
 
     pub fn identity_map<A>(&mut self, frame: Frame, flags: EntryFlags, allocator: &mut A)
@@ -55,7 +55,7 @@ impl Mapper {
     }
 
     pub fn translate_page(&self, page: Page) -> Option<Frame> {
-        let p3 = unsafe { &*P4 }.next_table(page.p4_index());
+        let p3 = self.p4().next_table(page.p4_index());
 
         let huge_page = || {
             p3.and_then(|p3| {
@@ -92,6 +92,7 @@ impl Mapper {
             .or_else(huge_page)
     }
 
+    #[allow(unused)]
     pub fn unmap<A>(&mut self, page: Page, allocator: &mut A)
         where A: FrameAllocator
     {
@@ -108,7 +109,7 @@ impl Mapper {
             ::x86::shared::tlb::flush(page.start_address());
         }
         // TODO free p(1,2,3) table if empty
-        allocator.deallocate_frame(frame);
+        //allocator.deallocate_frame(frame);
     }
 }
 
@@ -118,6 +119,9 @@ mod tests {
 
     #[test]
     fn map() {
+        use memory::paging::page::Page;
+        use memory::paging::entry::EntryFlags;
+
         let page_table = unsafe { Mapper::new() };
 
         let addr = 42 * 512 * 512 * 4096; // 42th P3 entry
@@ -128,7 +132,7 @@ mod tests {
         assert!(page_table.translate(addr).is_none());
 
         // Test: First frame returned by frame allocator is 0
-        assert_eq!(frame, 0);
+        assert_eq!(frame.number, 0);
 
         // Test: Map page to Some frame
         page_table.map_to(page, frame, EntryFlags::empty(), allocator);
@@ -136,12 +140,13 @@ mod tests {
 
         // Test: Mapping code needs to create a P2 and P1 table
         //       Next returned frame is frame 3
-        assert_eq!(allocator.allocate_frame(), 3);
+        assert_eq!(allocator.allocate_frame().expect("no more frames").number,
+                   3);
     }
 
     #[test]
     fn translate() {
-        let page_table = unsafe { Mapper::new() };
+        let mut page_table = unsafe { Mapper::new() };
 
         // address 0 is mapped
         assert!(page_table.translate(0).is_some());
@@ -160,11 +165,14 @@ mod tests {
 
         // last mapped byte
         assert!(page_table.translate(512 * 512 * 4096 - 1).is_some());
+
     }
 
     #[test]
-    #[should_panic]
     fn unmap() {
+        use memory::paging::page::Page;
+        use memory::paging::entry::EntryFlags;
+
         let page_table = unsafe { Mapper::new() };
 
         let addr = 42 * 512 * 512 * 4096; // 42th P3 entry
@@ -174,7 +182,7 @@ mod tests {
         page_table.translate(addr).is_none();
         page_table.map_to(page, frame, EntryFlags::empty(), allocator);
 
-        // Test: should panic
         page_table.unmap(Page::containing_address(addr), allocator);
+        assert!(page_table.translate(addr).is_none());
     }
 }

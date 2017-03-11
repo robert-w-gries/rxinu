@@ -2,6 +2,7 @@
 CARGO ?= cargo
 ASM ?= clang
 LD ?= ld
+GDB ?= ~/Software/rust-os-gdb/bin/rust-gdb
 
 # Target and build files
 arch ?= x86
@@ -42,7 +43,7 @@ ASM_SRC := $(wildcard src/arch/$(arch)/*.S) \
 # Object files
 ASM_OBJ := $(patsubst src/arch/$(arch)/%.S, build/arch/$(arch)/%.o, $(ASM_SRC))
 
-.PHONY: all cargo clean run iso
+.PHONY: all cargo clean debug gdb iso run
 
 all: $(kernel)
 
@@ -53,10 +54,16 @@ clean:
 	@rm -rf build
 	@$(CARGO) clean
 
-run: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso)
+debug: $(iso)
+	@qemu-system-x86_64 -cdrom $(iso) -s -S
+
+gdb: $(kernel)
+	@$(GDB) "$(kernel)" -ex "target remote :1234"
 
 iso: $(iso)
+
+run: $(iso)
+	@qemu-system-x86_64 -cdrom $(iso)
 
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub

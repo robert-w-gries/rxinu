@@ -35,9 +35,9 @@ setup_page_tables:
   mov ecx, 0  # counter variable
 .map_p2_table:
   # map ecx-th P2 entry to a huge page that starts at address 2MiB*ecx
-  mov eax, 0x200000  # 2MiB
-  mul ecx            # start address of ecx-th page
-  or eax, 0b10000011 # present + writable + huge
+  mov eax, 0x200000             # 2MiB
+  mul ecx                       # start address of ecx-th page
+  or eax, 0b10000011            # present + writable + huge
   mov [p2_table + ecx * 8], eax # map ecx-th entry
 
   inc ecx            # increase counter
@@ -50,7 +50,7 @@ setup_page_tables:
 .type enable_paging, @function
 enable_paging:
   # load P4 to cr3 register (cpu uses this to access the P4 table)
-  mov eax, p4_table
+  lea eax, p4_table
   mov cr3, eax
 
   # enable PAE-flag in cr4 (Physical Address Extension)
