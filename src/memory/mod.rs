@@ -54,3 +54,16 @@ impl Iterator for FrameIter {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    #[should_panic]
+    // Stack overflow test that could corrupt memory below stack
+    // Issue: Use stack probes to check required stack pages before function
+    // Tracking: https://github.com/rust-lang/rust/issues/16012
+    fn stack_overflow() {
+        let x = [0; 99999];
+    }
+}
