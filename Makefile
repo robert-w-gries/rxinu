@@ -35,13 +35,13 @@ rust_target ?= $(rust_arch)-unknown-linux-gnu
 rust_os := target/$(rust_target)/debug/librxinu.a
 
 # Source files
-linker_script := src/arch/$(arch)/linker.ld
-grub_cfg := src/arch/$(arch)/grub.cfg
-ASM_SRC := $(wildcard src/arch/$(arch)/*.S) \
-	$(wildcard src/arch/$(arch)/$(target)/*.S)
+linker_script := src/arch/$(arch)/asm/linker.ld
+grub_cfg := src/arch/$(arch)/asm/grub.cfg
+ASM_SRC := $(wildcard src/arch/$(arch)/asm/*.S) \
+	$(wildcard src/arch/$(arch)/asm/$(target)/*.S)
 
 # Object files
-ASM_OBJ := $(patsubst src/arch/$(arch)/%.S, build/arch/$(arch)/%.o, $(ASM_SRC))
+ASM_OBJ := $(patsubst src/arch/$(arch)/asm/%.S, build/arch/$(arch)/asm/%.o, $(ASM_SRC))
 
 .PHONY: all cargo clean debug gdb iso run
 
@@ -78,7 +78,7 @@ $(kernel):  $(CARGO) $(rust_os) $(ASM_OBJ) $(linker_script)
 	@$(LD) $(LDFLAGS) -T $(linker_script) -o $(kernel) $(ASM_OBJ) $(rust_os)
 
 # compile architecture specific files
-build/arch/$(arch)/%.o: src/arch/$(arch)/%.S
+build/arch/$(arch)/asm/%.o: src/arch/$(arch)/asm/%.S
 	@mkdir -p $(shell dirname $@)
 	@echo "  Assembling $<"
 	@$(ASM) $(ASFLAGS) $(CFLAGS) -c $< -o $@
