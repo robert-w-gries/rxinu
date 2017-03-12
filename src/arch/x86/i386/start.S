@@ -6,6 +6,9 @@
 .section .text
 .global _start
 _start:
+  call setup_page_tables
+  call enable_paging
+
   # Pass Multiboot info pointer to main function
   push edi
 

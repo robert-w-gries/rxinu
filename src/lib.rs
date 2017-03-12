@@ -51,6 +51,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 
     enable_nxe_bit();
     enable_write_protect_bit();
+/*
 
     let mut frame_allocator = memory::AreaFrameAllocator::new(kernel_start as usize,
                                                               kernel_end as usize,
@@ -59,7 +60,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
                                                               memory_map_tag.memory_areas());
 
     memory::remap_the_kernel(&mut frame_allocator, boot_info);
-
+*/
     println!("It did not crash!");
 
     loop {}
