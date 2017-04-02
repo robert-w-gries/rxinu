@@ -6,12 +6,15 @@
 #![feature(compiler_builtins_lib)]
 extern crate compiler_builtins;
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[cfg(target_arch = "x86")]
 #[macro_use]
-extern crate arch_x86 as arch;
+extern crate arch_i686 as arch;
+
+#[cfg(target_arch = "x86_64")]
+#[macro_use]
+extern crate arch_x86_64 as arch;
 
 extern crate multiboot2;
-extern crate x86;
 
 #[no_mangle]
 pub extern "C" fn rust_main(multiboot_information_address: usize) {

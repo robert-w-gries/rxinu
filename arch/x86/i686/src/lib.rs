@@ -14,10 +14,6 @@ extern crate spin;
 extern crate volatile;
 extern crate x86;
 
-pub mod console;
-mod device;
-pub mod memory;
-
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
@@ -48,3 +44,7 @@ fn enable_write_protect_bit() {
 
     unsafe { cr0_write(cr0() | CR0_WRITE_PROTECT) };
 }
+
+pub mod console;
+mod device;
+pub mod memory;

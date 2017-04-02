@@ -24,7 +24,6 @@ pub fn init(boot_info: &BootInformation) {
         .filter(|s| s.is_allocated()).map(|s| s.addr + s.size).max()
         .unwrap();
 
-/*
     println!("kernel start: {:#x}, kernel end: {:#x}",
              kernel_start,
              kernel_end);
@@ -38,7 +37,6 @@ pub fn init(boot_info: &BootInformation) {
         memory_map_tag.memory_areas());
 
     paging::remap_the_kernel(&mut frame_allocator, boot_info);
-*/
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]

@@ -6,19 +6,21 @@ GDB ?= ~/Software/rust-os-gdb/bin/rust-gdb
 
 # Target and build files
 arch ?= x86
-target ?= i386
+target ?= x86_64
 build ?= debug
+
+ld_target := $(target)
+ifeq ($(target),i686)
+	ld_target := i386
+endif
 
 # Flags
 CFLAGS := --target=$(target)-unknown-none-elf -ffreestanding
 ASFLAGS := -masm=intel
-LDFLAGS := -n --gc-sections -melf_$(target)
+LDFLAGS := -n --gc-sections -melf_$(ld_target)
 
 # Rust target
 rust_arch := $(target)
-ifeq ($(rust_arch),i386)
-	rust_arch := i686
-endif
 
 # Debug flags
 ifeq ($(build),debug)

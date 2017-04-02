@@ -16,10 +16,10 @@ version = "0.8.0"
 default-features = false
 
 [target.'cfg(target_arch = "x86")'.dependencies]
-arch_x86 = { path = "arch/x86" }
+arch_i686 = { path = "arch/x86/i686" }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-arch_x86 = { path = "arch/x86" }
+arch_x86_64 = { path = "arch/x86/x86_64" }
 
 # The development profile, used for `cargo build`.
 [profile.dev]

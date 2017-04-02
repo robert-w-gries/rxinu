@@ -1,15 +1,15 @@
 use core::ptr::Unique;
-use core::fmt;
 use spin::Mutex;
 use volatile::Volatile;
 
 const MAX_HEIGHT: usize = 25;
 const MAX_WIDTH: usize = 80;
+pub const VGA_ADDR: usize = 0xb8000;
 
 pub static VGA: Mutex<Writer> = Mutex::new(Writer {
     column_position: 0,
     color_code: ColorCode::new(Color::LightGreen, Color::Black),
-    buffer: unsafe { Unique::new(0xb8000 as *mut _) },
+    buffer: unsafe { Unique::new(VGA_ADDR as *mut _) },
 });
 
 pub struct Writer {
