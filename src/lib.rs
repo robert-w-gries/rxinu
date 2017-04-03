@@ -1,3 +1,4 @@
+#![feature(alloc, collections)]
 #![feature(const_fn)]
 #![feature(lang_items)]
 #![feature(unique)]
@@ -14,7 +15,11 @@ extern crate arch_i686 as arch;
 #[macro_use]
 extern crate arch_x86_64 as arch;
 
+extern crate alloc;
 extern crate multiboot2;
+
+#[macro_use]
+extern crate collections;
 
 #[no_mangle]
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
@@ -23,7 +28,23 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     let boot_info = unsafe { multiboot2::load(multiboot_information_address) };
     arch::memory::init(boot_info);
 
-    println!("It did not crash!");
+    use alloc::boxed::Box;
+    let mut heap_test = Box::new(42);
+    *heap_test -= 15;
+    let heap_test2 = Box::new("hello");
+    println!("{:?} {:?}", heap_test, heap_test2);
+
+    let mut vec_test = vec![1,2,3,4,5,6,7];
+    vec_test[3] = 42;
+    for i in &vec_test {
+            print!("{} ", i);
+    }
+
+    for i in 0..10000 {
+            format!("Some String");
+    }
+
+    println!("\nIt did not crash!");
 
     loop {}
 }

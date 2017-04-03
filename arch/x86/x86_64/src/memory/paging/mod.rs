@@ -19,9 +19,9 @@ const PHYS_ADDR_MASK: usize = 0x000f_ffff_ffff_f000;
 pub type PhysicalAddress = usize;
 pub type VirtualAddress = usize;
 
-mod entry;
+pub mod entry;
 mod mapper;
-mod page;
+pub mod page;
 mod table;
 mod temporary_page;
 
@@ -112,7 +112,7 @@ impl InactivePageTable {
     }
 }
 
-pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation)
+pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> ActivePageTable
     where A: FrameAllocator
 {
     let mut temporary_page = TemporaryPage::new(Page { number: 0xdeadbeef }, allocator);
@@ -164,4 +164,5 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation)
     let old_p4_page = Page::containing_address(old_table.p4_frame.start_address());
     active_table.unmap(old_p4_page, allocator);
     println!("guard page at {:#x}", old_p4_page.start_address());
+    active_table
 }

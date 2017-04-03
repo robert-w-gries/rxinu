@@ -8,6 +8,8 @@ extern crate bitflags;
 #[macro_use]
 extern crate once;
 
+extern crate hole_list_allocator;
+
 extern crate multiboot2;
 extern crate rlibc;
 extern crate spin;
