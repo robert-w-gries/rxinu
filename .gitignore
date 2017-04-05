@@ -3,3 +3,6 @@ Cargo.lock
 build/
 target/
 *.swp
+
+# Rust
+*.bk

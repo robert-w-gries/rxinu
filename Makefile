@@ -2,22 +2,25 @@
 CARGO ?= cargo
 ASM ?= clang
 LD ?= ld
+GDB ?= ~/Software/rust-os-gdb/bin/rust-gdb
 
 # Target and build files
 arch ?= x86
-target ?= i386
+target ?= x86_64
 build ?= debug
+
+ld_target := $(target)
+ifeq ($(target),i686)
+	ld_target := i386
+endif
 
 # Flags
 CFLAGS := --target=$(target)-unknown-none-elf -ffreestanding
 ASFLAGS := -masm=intel
-LDFLAGS := -n --gc-sections -melf_$(target)
+LDFLAGS := -n --gc-sections -melf_$(ld_target)
 
 # Rust target
 rust_arch := $(target)
-ifeq ($(rust_arch),i386)
-	rust_arch := i686
-endif
 
 # Debug flags
 ifeq ($(build),debug)
@@ -34,15 +37,15 @@ rust_target ?= $(rust_arch)-unknown-linux-gnu
 rust_os := target/$(rust_target)/debug/librxinu.a
 
 # Source files
-linker_script := src/arch/$(arch)/linker.ld
-grub_cfg := src/arch/$(arch)/grub.cfg
-ASM_SRC := $(wildcard src/arch/$(arch)/*.S) \
-	$(wildcard src/arch/$(arch)/$(target)/*.S)
+linker_script := arch/$(arch)/asm/linker.ld
+grub_cfg := arch/$(arch)/asm/grub.cfg
+ASM_SRC := $(wildcard arch/$(arch)/asm/*.S) \
+	$(wildcard arch/$(arch)/asm/$(target)/*.S)
 
 # Object files
-ASM_OBJ := $(patsubst src/arch/$(arch)/%.S, build/arch/$(arch)/%.o, $(ASM_SRC))
+ASM_OBJ := $(patsubst arch/$(arch)/asm/%.S, build/arch/$(arch)/asm/%.o, $(ASM_SRC))
 
-.PHONY: all cargo clean run iso
+.PHONY: all cargo clean debug gdb iso run
 
 all: $(kernel)
 
@@ -53,10 +56,16 @@ clean:
 	@rm -rf build
 	@$(CARGO) clean
 
-run: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso)
+debug: $(iso)
+	@qemu-system-x86_64 -cdrom $(iso) -s -S
+
+gdb: $(kernel)
+	@$(GDB) "$(kernel)" -ex "target remote :1234"
 
 iso: $(iso)
+
+run: $(iso)
+	@qemu-system-x86_64 -cdrom $(iso)
 
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub
@@ -71,7 +80,7 @@ $(kernel):  $(CARGO) $(rust_os) $(ASM_OBJ) $(linker_script)
 	@$(LD) $(LDFLAGS) -T $(linker_script) -o $(kernel) $(ASM_OBJ) $(rust_os)
 
 # compile architecture specific files
-build/arch/$(arch)/%.o: src/arch/$(arch)/%.S
+build/arch/$(arch)/asm/%.o: arch/$(arch)/asm/%.S
 	@mkdir -p $(shell dirname $@)
 	@echo "  Assembling $<"
 	@$(ASM) $(ASFLAGS) $(CFLAGS) -c $< -o $@

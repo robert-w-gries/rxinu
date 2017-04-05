@@ -9,9 +9,17 @@ crate-type = ["staticlib"]
 
 [dependencies]
 compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
-rlibc = "1.0.0"
-spin = "0.3.4"
-volatile = "0.1.0"
+multiboot2 = "0.3.1"
+
+[dependencies.x86]
+version = "0.8.0"
+default-features = false
+
+[target.'cfg(target_arch = "x86")'.dependencies]
+arch_i686 = { path = "arch/x86/i686" }
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+arch_x86_64 = { path = "arch/x86/x86_64" }
 
 # The development profile, used for `cargo build`.
 [profile.dev]
