@@ -1,3 +1,4 @@
+#![feature(abi_x86_interrupt)]
 #![feature(const_fn)]
 #![feature(unique)]
 #![no_std]
@@ -6,15 +7,18 @@
 extern crate bitflags;
 
 #[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
 extern crate once;
 
 extern crate hole_list_allocator;
-
 extern crate multiboot2;
 extern crate rlibc;
 extern crate spin;
 extern crate volatile;
 extern crate x86;
+extern crate x86_64;
 
 #[macro_export]
 macro_rules! print {
@@ -50,5 +54,5 @@ fn enable_write_protect_bit() {
 // declare modules after exporting print macros
 pub mod console;
 mod device;
+pub mod interrupts;
 pub mod memory;
-
