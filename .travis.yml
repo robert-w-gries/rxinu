@@ -1,22 +1,23 @@
 language: rust
 cache: cargo
 env:
-  - ['target=i686', 'TARGET=i686-unknown-linux-gnu', 'ASM=clang-3.8']
-  - ['target=x86_64', 'TARGET=x86_64-unknown-linux-gnu', 'ASM=clang-3.8']
+  - ['target=i686', 'ASM=clang-3.8']
+  - ['target=x86_64', 'ASM=clang-3.8']
 addons:
   apt:
     sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
     packages: ['clang-3.8']
-before_install:
+before_script:
   - sudo apt-get -qq update
   - sudo apt-get install -y qemu xorriso
-  - curl https://sh.rustup.rs -sSf | bash -s -- -y
-before_script:
-  - export PATH="$HOME/.cargo/bin:$PATH"
-  - rustup install nightly
-  - rustup default nightly
-  - rustup target add $TARGET || true
-  - which rustfmt || cargo install rustfmt
+  - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=$TRAVIS_RUST_VERSION -y
+  - source ~/.cargo/env
+  - rustup component add rust-src
+  - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
+  - (test -x $HOME/.cargo/bin/rustfmt || cargo install rustfmt)
+  - (test -x $HOME/.cargo/bin/xargo || cargo install xargo)
+  - cargo install-update -a
 script:
-  - cargo fmt -- --write-mode=diff
+  # Can't run cargo fmt for now. rust-lang-nursery/rustftm#1375
+  # - cargo fmt -- --write-mode=diff
   - make

@@ -4,21 +4,18 @@ version = "0.1.0"
 authors = [ "robert.w.gries@gmail.com" ]
 
 [dependencies]
+bit_field = "0.7.0"
 bitflags = "0.7.0"
 multiboot2 = "0.3.1"
 once = "0.3.2"
 rlibc = "1.0.0"
-spin = "0.3.4"
+spin = "0.4.5"
 volatile = "0.1.0"
 x86_64 = "0.1.0"
 
 [dependencies.lazy_static]
 version = "0.2.4"
 features = ["spin_no_std"]
-
-[dependencies.x86]
-version = "0.8.0"
-default-features = false
 
 [dependencies.bump_allocator]
 path = "../../../allocator/bump_allocator"

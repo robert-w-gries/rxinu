@@ -1,5 +1,5 @@
 # Tools
-CARGO ?= cargo
+CARGO ?= xargo
 ASM ?= clang
 LD ?= ld
 GDB ?= ~/Software/rust-os-gdb/bin/rust-gdb
@@ -33,7 +33,7 @@ kernel := build/rxinu-$(arch)-$(target).bin
 iso := build/rxinu-$(arch)-$(target).iso
 
 # Rust Binaries
-rust_target ?= $(rust_arch)-unknown-linux-gnu
+rust_target ?= $(rust_arch)-rxinu
 rust_os := target/$(rust_target)/debug/librxinu.a
 
 # Source files
@@ -49,7 +49,7 @@ ASM_OBJ := $(patsubst arch/$(arch)/asm/%.S, build/arch/$(arch)/asm/%.o, $(ASM_SR
 
 all: $(kernel)
 
-cargo:
+xargo:
 	@$(CARGO) build --target $(rust_target)
 
 clean:
@@ -57,7 +57,7 @@ clean:
 	@$(CARGO) clean
 
 debug: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso) -s -S
+	@qemu-system-x86_64 -cdrom $(iso) -d int -s -S
 
 gdb: $(kernel)
 	@$(GDB) "$(kernel)" -ex "target remote :1234"

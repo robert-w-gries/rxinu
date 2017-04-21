@@ -39,6 +39,6 @@ gdtr:
 .quad gdt
 gdt:
 .quad 0 # zero entry
-.quad 0x209A0000000000 # code segment
-.quad 0x920000000000   # data segment
+.word 0xFFFF, 0x0000, 0x9A00, 0x00AF
+.word 0xFFFF, 0x0000, 0x9200, 0x00CF
 gdt_end:

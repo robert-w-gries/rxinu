@@ -1,0 +1,7 @@
+[target.i686-rxinu.dependencies]
+collections = {}
+compiler_builtins = {}
+
+[target.x86_64-rxinu.dependencies]
+collections = {}
+compiler_builtins = {}

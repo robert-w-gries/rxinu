@@ -8,7 +8,6 @@ authors = [ "robert.w.gries@gmail.com" ]
 crate-type = ["staticlib"]
 
 [dependencies]
-compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
 multiboot2 = "0.3.1"
 
 [dependencies.x86]
