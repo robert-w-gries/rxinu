@@ -1,7 +1,6 @@
 #![feature(alloc, collections)]
 #![feature(const_fn)]
 #![feature(lang_items)]
-#![feature(unique)]
 #![no_std]
 
 #![feature(compiler_builtins_lib)]
@@ -33,7 +32,6 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::interrupts::init(&mut memory_controller);
 
     println!("\nIt did not crash!");
-    //arch::device::serial::COM1.lock().write_str("Test");
 
     loop {}
 }

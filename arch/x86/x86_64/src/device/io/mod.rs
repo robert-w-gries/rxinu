@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use core::cmp::PartialEq;
 
 pub mod port;

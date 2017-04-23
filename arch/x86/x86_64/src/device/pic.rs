@@ -69,6 +69,8 @@ impl Pic {
 }
 
 /// Initialization Command Word 1
+#[allow(dead_code)]
+#[allow(non_camel_case_types)]
 enum ICW1 {
 	ICW4_NOT_NEEDED = 0x01,
 	SINGLE_CASCADE_MODE = 0x02,
@@ -78,6 +80,8 @@ enum ICW1 {
 }
 
 /// Initialization Command Word 4
+#[allow(dead_code)]
+#[allow(non_camel_case_types)]
 enum ICW4 {
 	MODE_8086 = 0x01,
 	AUTO_EOI = 0x02,

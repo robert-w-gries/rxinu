@@ -22,3 +22,7 @@ path = "../../../allocator/bump_allocator"
 
 [dependencies.hole_list_allocator]
 path = "../../../allocator/hole_list_allocator"
+
+[features]
+serial = []
+vga = []

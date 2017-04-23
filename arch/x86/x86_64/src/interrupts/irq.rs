@@ -1,3 +1,5 @@
+#![allow(unused_variables)]
+
 use x86_64::structures::idt::ExceptionStackFrame;
 
 use device::pic;

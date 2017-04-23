@@ -1,8 +1,10 @@
 use core::fmt::{self, Write};
 use spin::Mutex;
 
-use super::io::{Io, ReadOnly, WriteOnly};
+use super::io::{Io, ReadOnly};
 use super::io::port::Port;
+
+const MAX_HEIGHT: usize = 25;
 
 pub static COM1: Mutex<SerialPort> = Mutex::new(SerialPort::new(0x3F8));
 pub static COM2: Mutex<SerialPort> = Mutex::new(SerialPort::new(0x2F8));
@@ -21,6 +23,7 @@ pub fn init() {
     COM2.lock().init();
 }
 
+#[allow(dead_code)]
 pub struct SerialPort {
     data: Port<u8>,
     int_en: Port<u8>,
@@ -43,6 +46,12 @@ impl SerialPort {
             modem_sts: ReadOnly::new(Port::new(base + 6))
         }
 	}
+
+    pub fn clear_screen(&mut self) {
+        for _ in 0..MAX_HEIGHT {
+            self.send(b'\n')
+        }
+    }
 
 	fn init(&mut self) {
 		self.int_en.write(0x00);	    // disable interrupts
