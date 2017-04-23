@@ -1,5 +1,8 @@
 language: rust
+rust:
+  - nightly
 cache: cargo
+
 env:
   - ['target=i686', 'ASM=clang-3.8']
   - ['target=x86_64', 'ASM=clang-3.8']
@@ -7,6 +10,7 @@ addons:
   apt:
     sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
     packages: ['clang-3.8']
+
 before_script:
   - sudo apt-get -qq update
   - sudo apt-get install -y qemu xorriso
@@ -17,7 +21,10 @@ before_script:
   - (test -x $HOME/.cargo/bin/rustfmt || cargo install rustfmt)
   - (test -x $HOME/.cargo/bin/xargo || cargo install xargo)
   - cargo install-update -a
+
+sudo: false
+
 script:
   # Can't run cargo fmt for now. rust-lang-nursery/rustftm#1375
   # - cargo fmt -- --write-mode=diff
-  - make
+  - make CARGO=xargo
