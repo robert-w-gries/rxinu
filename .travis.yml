@@ -12,8 +12,8 @@ addons:
     packages: ['clang-3.8']
 
 before_script:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y qemu xorriso
+  #- sudo apt-get -qq update
+  #- sudo apt-get install -y qemu xorriso
   - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=$TRAVIS_RUST_VERSION -y
   - source ~/.cargo/env
   - rustup component add rust-src
