@@ -27,4 +27,4 @@ sudo: false
 script:
   # Can't run cargo fmt for now. rust-lang-nursery/rustftm#1375
   # - cargo fmt -- --write-mode=diff
-  - make CARGO=xargo
+  - make
