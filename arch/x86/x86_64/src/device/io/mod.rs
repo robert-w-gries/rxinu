@@ -8,7 +8,7 @@ pub trait Io {
     type Value: Copy + PartialEq;
 
     fn read(&self) -> Self::Value;
-	fn write(&mut self, value: Self::Value);
+    fn write(&mut self, value: Self::Value);
 }
 
 pub struct ReadOnly<I: Io> {
@@ -24,7 +24,7 @@ impl<I: Io> ReadOnly<I> {
 
     pub fn read(&self) -> I::Value {
         self.inner.read()
-	}
+    }
 }
 
 pub struct WriteOnly<I: Io> {
@@ -40,5 +40,5 @@ impl<I: Io> WriteOnly<I> {
 
     pub fn write(&mut self, value: I::Value) {
         self.inner.write(value)
-	}
+    }
 }

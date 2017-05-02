@@ -31,7 +31,7 @@ pub fn init() {
 
     // Ack remaining interrupts
     MASTER.lock().ack();
-	SLAVE.lock().ack();
+    SLAVE.lock().ack();
 }
 
 pub struct Pic {
@@ -49,7 +49,7 @@ impl Pic {
 
     pub fn ack(&mut self) {
         self.cmd.write(0x20);
-	}
+    }
 
     pub fn mask_set(&mut self, irq: u8) {
         assert!(irq < 8);
@@ -65,16 +65,16 @@ impl Pic {
         let mut mask = self.data.read();
         mask &= !(1 << irq);
         self.data.write(mask);
-	}
+    }
 }
 
 /// Initialization Command Word 1
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 enum ICW1 {
-	ICW4_NOT_NEEDED = 0x01,
-	SINGLE_CASCADE_MODE = 0x02,
-	INTERVAL4 = 0x04,
+    ICW4_NOT_NEEDED = 0x01,
+    SINGLE_CASCADE_MODE = 0x02,
+    INTERVAL4 = 0x04,
     LEVEL_TRIGGERED_MODE = 0x08,
     INIT = 0x10,
 }
@@ -83,9 +83,9 @@ enum ICW1 {
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 enum ICW4 {
-	MODE_8086 = 0x01,
-	AUTO_EOI = 0x02,
-	BUF_SLAVE = 0x08,
-	BUF_MASTER = 0x0C,
-	SFNM = 0x10,
+    MODE_8086 = 0x01,
+    AUTO_EOI = 0x02,
+    BUF_SLAVE = 0x08,
+    BUF_MASTER = 0x0C,
+    SFNM = 0x10,
 }

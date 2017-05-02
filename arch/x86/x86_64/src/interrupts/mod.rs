@@ -16,8 +16,8 @@ lazy_static! {
         idt.invalid_opcode.set_handler_fn(invalid_opcode_handler);
         idt.page_fault.set_handler_fn(page_fault_handler);
 
-		/// The set_stack_index method is unsafe because the caller must ensure
-		/// that the used index is valid and not already used for another exception.
+        /// The set_stack_index method is unsafe because the caller must ensure
+        /// that the used index is valid and not already used for another exception.
         unsafe {
             idt.double_fault.set_handler_fn(double_fault_handler)
                 .set_stack_index(DOUBLE_FAULT_IST_INDEX as u16);
@@ -61,12 +61,12 @@ pub fn init(memory_controller: &mut MemoryController) {
     gdt.load();
 
     unsafe {
-    	// reload code segment register and load TSS
+        // reload code segment register and load TSS
         set_cs(code_selector);
         load_tss(tss_selector);
     }
 
-	IDT.load();
+    IDT.load();
 }
 
 extern "x86-interrupt" fn breakpoint_handler(

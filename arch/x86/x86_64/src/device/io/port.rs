@@ -35,8 +35,8 @@ impl Io for Port<u8> {
     fn write(&mut self, value: u8) {
         unsafe {
             asm!("out $1, $0" : : "{al}"(value), "{dx}"(self.port) : "memory" : "intel", "volatile");
-    	}
-	}
+        }
+    }
 }
 
 /// Read/Write for word
@@ -74,5 +74,5 @@ impl Io for Port<u32> {
         unsafe {
             asm!("out $1, $0" : : "{eax}"(value), "{dx}"(self.port) : "memory" : "intel", "volatile");
         }
-	}
+    }
 }
