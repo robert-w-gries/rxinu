@@ -48,5 +48,5 @@ fn enable_write_protect_bit() {
 }
 
 pub mod console;
-mod device;
+pub mod device;
 pub mod memory;

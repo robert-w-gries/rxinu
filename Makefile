@@ -50,7 +50,7 @@ ASM_OBJ := $(patsubst arch/$(arch)/asm/%.S, build/arch/$(arch)/asm/%.o, $(ASM_SR
 all: $(kernel)
 
 cargo:
-	@xargo build --target $(rust_target) --verbose
+	@xargo build --target $(rust_target)
 
 clean:
 	@cargo clean

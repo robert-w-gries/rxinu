@@ -29,6 +29,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 
     let mut memory_controller = arch::memory::init(boot_info);
 
+    #[cfg(target_arch = "x86_64")]
     arch::interrupts::init(&mut memory_controller);
 
     println!("\nIt did not crash!");
