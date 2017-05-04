@@ -18,11 +18,11 @@ pub struct Writer {
 }
 
 impl Writer {
-	pub fn clear_screen(&mut self) {
-	    for row in 0..MAX_HEIGHT {
-			self.clear_row(row);
-	    }
-	}
+    pub fn clear_screen(&mut self) {
+        for row in 0..MAX_HEIGHT {
+            self.clear_row(row);
+        }
+    }
 
     fn write_byte(&mut self, byte: &u8) {
         match *byte {

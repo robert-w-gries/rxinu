@@ -3,6 +3,8 @@
 .intel_syntax noprefix
 .code32
 
+.extern check_cpuid
+.extern check_multiboot
 .extern init_sse
 
 # The multiboot standard does not define the value of the stack pointer register
@@ -16,8 +18,12 @@
 # stack is properly aligned and failure to align the stack will result in
 # undefined behavior.
 .section .bss
-.align 16
+.align 4096
 stack_bottom:
+.skip 4096 # one page
+.skip 4096 # one page
+.skip 4096 # one page
+.skip 4096 # one page
 .skip 4096 # one page
 .skip 4096 # one page
 stack_top:

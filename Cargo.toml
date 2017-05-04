@@ -8,18 +8,13 @@ authors = [ "robert.w.gries@gmail.com" ]
 crate-type = ["staticlib"]
 
 [dependencies]
-compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
 multiboot2 = "0.3.1"
-
-[dependencies.x86]
-version = "0.8.0"
-default-features = false
 
 [target.'cfg(target_arch = "x86")'.dependencies]
 arch_i686 = { path = "arch/x86/i686" }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-arch_x86_64 = { path = "arch/x86/x86_64" }
+arch_x86_64 = { path = "arch/x86/x86_64", features = ["serial"] }
 
 # The development profile, used for `cargo build`.
 [profile.dev]

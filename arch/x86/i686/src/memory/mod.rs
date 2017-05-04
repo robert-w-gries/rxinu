@@ -47,7 +47,7 @@ pub fn init(boot_info: &BootInformation) {
 
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
         active_table.map(page, paging::entry::WRITABLE, &mut frame_allocator);
-	}
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]

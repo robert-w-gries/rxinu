@@ -1,5 +1,5 @@
 # Tools
-CARGO ?= cargo
+CARGO ?= xargo
 ASM ?= clang
 LD ?= ld
 GDB ?= ~/Software/rust-os-gdb/bin/rust-gdb
@@ -33,7 +33,7 @@ kernel := build/rxinu-$(arch)-$(target).bin
 iso := build/rxinu-$(arch)-$(target).iso
 
 # Rust Binaries
-rust_target ?= $(rust_arch)-unknown-linux-gnu
+rust_target ?= $(rust_arch)-rxinu
 rust_os := target/$(rust_target)/debug/librxinu.a
 
 # Source files
@@ -50,14 +50,14 @@ ASM_OBJ := $(patsubst arch/$(arch)/asm/%.S, build/arch/$(arch)/asm/%.o, $(ASM_SR
 all: $(kernel)
 
 cargo:
-	@$(CARGO) build --target $(rust_target)
+	@xargo build --target $(rust_target)
 
 clean:
+	@cargo clean
 	@rm -rf build
-	@$(CARGO) clean
 
 debug: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso) -s -S
+	@qemu-system-x86_64 -cdrom $(iso) -d int -s -S
 
 gdb: $(kernel)
 	@$(GDB) "$(kernel)" -ex "target remote :1234"
@@ -65,7 +65,7 @@ gdb: $(kernel)
 iso: $(iso)
 
 run: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso)
+	@qemu-system-x86_64 -cdrom $(iso) -s
 
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub
@@ -75,7 +75,7 @@ $(iso): $(kernel) $(grub_cfg)
 	@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
 	@rm -rf build/isofiles
 
-$(kernel):  $(CARGO) $(rust_os) $(ASM_OBJ) $(linker_script)
+$(kernel): cargo $(rust_os) $(ASM_OBJ) $(linker_script)
 	@echo "Building $(kernel)"
 	@$(LD) $(LDFLAGS) -T $(linker_script) -o $(kernel) $(ASM_OBJ) $(rust_os)
 
