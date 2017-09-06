@@ -7,12 +7,14 @@ Rust implementation of [Xinu](https://github.com/xinu-os/xinu)
   
 ### Quick Start
 ```bash
-sudo apt-get install binutils clang qemu xorriso -y
+sudo apt-get install binutils clang curl grub qemu xorriso -y
 curl https://sh.rustup.rs -sSf | sh
+source $HOME/.cargo/env
+# add $HOME/.cargo/bin to PATH env variable
 rustup install nightly
 rustup default nightly
-rustup target add x86_64-unknown-linux-gnu
-rustup target add i686-unknown-linux-gnu
+cargo install xargo
+rustup component add rust-src
 ```
 
 ### Required
