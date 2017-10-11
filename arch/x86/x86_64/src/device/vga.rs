@@ -8,7 +8,7 @@ const MAX_WIDTH: usize = 80;
 pub static VGA: Mutex<Writer> = Mutex::new(Writer {
     column_position: 0,
     color_code: ColorCode::new(Color::LightGreen, Color::Black),
-    buffer: unsafe { Unique::new(0xb8000 as *mut _) },
+    buffer: unsafe { Unique::new_unchecked(0xb8000 as *mut _) },
 });
 
 pub struct Writer {
@@ -46,7 +46,7 @@ impl Writer {
     }
 
     fn buffer(&mut self) -> &mut Buffer {
-        unsafe { self.buffer.get_mut() }
+        unsafe { self.buffer.as_mut() }
     }
 
     fn new_line(&mut self) {

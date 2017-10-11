@@ -1,8 +1,7 @@
-#![feature(alloc, collections)]
+#![feature(alloc)]
 #![feature(const_fn)]
 #![feature(lang_items)]
 #![no_std]
-
 #![feature(compiler_builtins_lib)]
 extern crate compiler_builtins;
 
@@ -14,11 +13,9 @@ extern crate arch_i686 as arch;
 #[macro_use]
 extern crate arch_x86_64 as arch;
 
+#[macro_use]
 extern crate alloc;
 extern crate multiboot2;
-
-#[macro_use]
-extern crate collections;
 
 #[no_mangle]
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
