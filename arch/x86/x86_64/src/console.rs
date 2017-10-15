@@ -23,6 +23,6 @@ pub fn init() {
     #[cfg(feature = "vga")]
     device::vga::VGA.lock().clear_screen();
 
-    //#[cfg(feature = "serial")]
-    //device::serial::COM1.lock().clear_screen();
+    #[cfg(feature = "serial")]
+    device::serial::COM1.lock().clear_screen();
 }
