@@ -1,5 +1,6 @@
 #![feature(const_fn)]
 #![feature(unique)]
+#![feature(const_unique_new)]
 #![no_std]
 
 #[macro_use]
@@ -8,7 +9,7 @@ extern crate bitflags;
 #[macro_use]
 extern crate once;
 
-extern crate hole_list_allocator;
+extern crate hole_list_allocator as allocator;
 
 extern crate multiboot2;
 extern crate rlibc;
@@ -28,17 +29,6 @@ macro_rules! print {
 macro_rules! println {
     ($fmt:expr) => (print!(concat!($fmt, "\n")));
     ($fmt:expr, $($arg:tt)*) => (print!(concat!($fmt, "\n"), $($arg)*));
-}
-
-
-fn enable_nxe_bit() {
-    use x86::shared::msr::{IA32_EFER, rdmsr, wrmsr};
-
-    let nxe_bit = 1 << 11;
-    unsafe {
-        let efer = rdmsr(IA32_EFER);
-        wrmsr(IA32_EFER, efer | nxe_bit);
-    }
 }
 
 fn enable_write_protect_bit() {

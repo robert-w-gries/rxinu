@@ -12,7 +12,7 @@ pub struct Mapper {
 
 impl Mapper {
     pub unsafe fn new() -> Mapper {
-        Mapper { p2: Unique::new(table::P2) }
+        Mapper { p2: Unique::new_unchecked(table::P2) }
     }
 
     pub fn identity_map<A>(&mut self, frame: Frame, flags: EntryFlags, allocator: &mut A)
@@ -23,11 +23,11 @@ impl Mapper {
     }
 
     pub fn p2(&self) -> &Table<Level2> {
-        unsafe { self.p2.get() }
+        unsafe { self.p2.as_ref() }
     }
 
     pub fn p2_mut(&mut self) -> &mut Table<Level2> {
-        unsafe { self.p2.get_mut() }
+        unsafe { self.p2.as_mut() }
     }
 
     pub fn map_to<A>(&mut self, page: Page, frame: Frame, flags: EntryFlags, allocator: &mut A)

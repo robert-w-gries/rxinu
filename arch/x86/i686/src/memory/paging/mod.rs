@@ -110,7 +110,7 @@ impl InactivePageTable {
 pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> ActivePageTable
     where A: FrameAllocator
 {
-    let mut temporary_page = TemporaryPage::new(Page { number: 0xdeadbeef }, allocator);
+    let mut temporary_page = TemporaryPage::new(Page { number: 0x0000beef }, allocator);
 
     let mut active_table = unsafe { ActivePageTable::new() };
     let mut new_table = {
@@ -127,12 +127,12 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> Ac
                 // section is not loaded to memory
                 continue;
             }
-            assert!(section.addr as usize % PAGE_SIZE == 0,
+            assert!(section.start_address() as usize % PAGE_SIZE == 0,
                     "sections need to be page aligned");
 
             println!("mapping section at addr: {:#x}, size: {:#x}",
-                     section.addr,
-                     section.size);
+                     section.start_address(),
+                     section.size());
 
             let flags = EntryFlags::from_elf_section_flags(section);
 

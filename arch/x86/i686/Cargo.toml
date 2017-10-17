@@ -4,19 +4,16 @@ version = "0.1.0"
 authors = [ "robert.w.gries@gmail.com" ]
 
 [dependencies]
-bitflags = "0.7.0"
-multiboot2 = "0.3.1"
+bitflags = "0.9.1"
+multiboot2 = { git = "https://github.com/phil-opp/multiboot2-elf64", features = ["elf32"] }
 once = "0.3.2"
 rlibc = "1.0.0"
-spin = "0.3.4"
+spin = "0.4.5"
 volatile = "0.1.0"
 
 [dependencies.x86]
 version = "0.8.0"
 default-features = false
-
-[dependencies.bump_allocator]
-path = "../../../allocator/bump_allocator"
 
 [dependencies.hole_list_allocator]
 path = "../../../allocator/hole_list_allocator"

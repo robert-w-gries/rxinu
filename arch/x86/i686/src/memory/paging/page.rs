@@ -1,3 +1,4 @@
+use core::ops::{Add, Deref, DerefMut};
 use super::{VirtualAddress, PAGE_SIZE};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -30,6 +31,15 @@ impl Page {
     }
 }
 
+impl Add<usize> for Page {
+    type Output = Page;
+
+    fn add(self, rhs: usize) -> Page {
+        Page { number: self.number + rhs }
+    }
+}
+
+#[derive(Clone)]
 pub struct PageIter { 
     start: Page,
     end: Page,

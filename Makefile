@@ -2,7 +2,7 @@
 CARGO ?= xargo
 ASM ?= nasm
 LD ?= ld
-GDB ?= ~/Software/rust-os-gdb/bin/rust-gdb
+GDB ?= ~/rust-os-gdb/bin/rust-gdb
 
 # Target and build files
 arch ?= x86
