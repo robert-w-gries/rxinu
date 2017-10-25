@@ -134,7 +134,7 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> Ac
                      section.start_address(),
                      section.size());
 
-            let flags = EntryFlags::from_elf_section_flags(section);
+            let flags = EntryFlags::from_elf_section_flags(&section);
 
             let start_frame = Frame::containing_address(section.start_address());
             let end_frame = Frame::containing_address(section.end_address() - 1);

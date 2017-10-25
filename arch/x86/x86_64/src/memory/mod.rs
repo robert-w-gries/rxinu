@@ -23,12 +23,12 @@ pub fn init(boot_info: &BootInformation) -> MemoryController {
 
     let kernel_start = elf_sections_tag.sections()
         .filter(|s| s.is_allocated())
-        .map(|s| s.addr)
+        .map(|s| s.start_address())
         .min()
         .unwrap();
     let kernel_end = elf_sections_tag.sections()
         .filter(|s| s.is_allocated())
-        .map(|s| s.addr + s.size)
+        .map(|s| s.end_address())
         .max()
         .unwrap();
 

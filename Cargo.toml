@@ -9,18 +9,11 @@ crate-type = ["staticlib"]
 
 [target.'cfg(target_arch = "x86")'.dependencies]
 arch_i686 = { path = "arch/x86/i686" }
-#multiboot2 = { git = "https://github.com/phil-opp/multiboot2-elf64", features = ["elf32"] }
-multiboot2 = "0.3.1"
+# TODO: Submit issue for multiboot2-elf64 repo
+# multiboot2 = { git = "https://github.com/phil-opp/multiboot2-elf64", features = ["elf32"] }
+multiboot2 = { git = "https://github.com/ahmedcharles/multiboot2-elf64", branch = "elf32" }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 arch_x86_64 = { path = "arch/x86/x86_64", features = ["vga"] }
-#multiboot2 = { git = "https://github.com/phil-opp/multiboot2-elf64" }
-multiboot2 = "0.3.1"
-
-# The development profile, used for `cargo build`.
-[profile.dev]
-panic = "abort"
-
-# The release profile, used for `cargo build --release`.
-[profile.release]
-panic = "abort"
+# multiboot2 = { git = "https://github.com/phil-opp/multiboot2-elf64", features = [] }
+multiboot2 = { git = "https://github.com/ahmedcharles/multiboot2-elf64", branch = "elf32" }

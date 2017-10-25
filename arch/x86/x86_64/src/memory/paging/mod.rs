@@ -9,11 +9,6 @@ use self::temporary_page::TemporaryPage;
 
 const ENTRY_COUNT: usize = 512;
 pub const PAGE_SIZE: usize = 4096;
-
-#[cfg(target_arch = "x86")]
-const PHYS_ADDR_MASK: usize = 0x0;
-
-#[cfg(target_arch = "x86_64")]
 const PHYS_ADDR_MASK: usize = 0x000f_ffff_ffff_f000;
 
 pub type PhysicalAddress = usize;
@@ -133,14 +128,14 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> Ac
                 // section is not loaded to memory
                 continue;
             }
-            assert!(section.addr as usize % PAGE_SIZE == 0,
+            assert!(section.start_address() as usize % PAGE_SIZE == 0,
                     "sections need to be page aligned");
 
             println!("mapping section at addr: {:#x}, size: {:#x}",
-                     section.addr,
-                     section.size);
+                     section.start_address(),
+                     section.size());
 
-            let flags = EntryFlags::from_elf_section_flags(section);
+            let flags = EntryFlags::from_elf_section_flags(&section);
 
             let start_frame = Frame::containing_address(section.start_address());
             let end_frame = Frame::containing_address(section.end_address() - 1);

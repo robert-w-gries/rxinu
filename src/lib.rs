@@ -25,10 +25,11 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 
     let boot_info = unsafe { multiboot2::load(multiboot_information_address) };
 
-    let mut memory_controller = arch::memory::init(boot_info);
+    let mut memory_controller = arch::memory::init(&boot_info);
 
-    #[cfg(target_arch = "x86_64")]
-    arch::interrupts::init(&mut memory_controller);
+    // TODO: fix interrupts
+    //#[cfg(target_arch = "x86_64")]
+    //arch::interrupts::init(&mut memory_controller);
 
     println!("\nIt did not crash!");
 

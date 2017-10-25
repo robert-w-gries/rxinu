@@ -8,6 +8,6 @@
   "os": "none",
   "features": "-mmx,-sse,+soft-float",
   "disable-redzone": true,
-  "linker-flavor": "ld",
+  "linker-flavor": "gcc",
   "panic": "abort"
 }
