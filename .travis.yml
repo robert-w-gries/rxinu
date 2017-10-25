@@ -4,20 +4,17 @@ rust:
 cache: cargo
 
 env:
-  - ['target=i686', 'ASM=clang-3.8']
-  - ['target=x86_64', 'ASM=clang-3.8']
-addons:
-  apt:
-    sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
-    packages: ['clang-3.8']
+  - ['target=i686']
+  - ['target=x86_64']
 
 before_script:
   - rustup component add rust-src
   - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
-  - (test -x $HOME/.cargo/bin/xargo || cargo install xargo)
+  - (test -x $HOME/.cargo/bin/xargo || cargo install xargo --vers 0.3.8)
+  - which rustfmt | cargo install rustfmt
   - cargo install-update -a
 
-sudo: false
+#sudo: false
 
 script:
   - cargo fmt -- --write-mode=diff
