@@ -64,3 +64,31 @@ make run target=i686
 See [Phillipp Oppermann's blog post regarding gdb](https://os.phil-opp.com/set-up-gdb/) for details on how to debug the kernel.
 
 The `rxinu` Makefile has support for debugging built-in already. All that is needed is installing the `gdb` fork and pointing the Makefile's environment variable to the forked `gdb`
+
+## Goals
+
+- [x] Kernel runs rust code
+- [x] Simple VGA driver
+- [x] Memory Management
+  - [x] Setup paging
+  - [x] Physical Memory Manager
+  - [x] Virtual Memory Allocator
+  - [x] Heap Allocator
+- [x] Interrupt handling
+- [x] PIC
+- [ ] Project 1: Synchronous serial driver
+- [ ] Keyboard input
+- [ ] Higher half kernel
+- [ ] Unit tests and integration tests
+- [ ] MIPS target
+- [ ] Timer
+- [ ] Scheduler
+  - [ ] Project 2: Multiprocessing and Context Switch
+  - [ ] Project 3: Priority and Preemption
+- [ ] Project 4: Synchronization and Interprocess Communications
+- [ ] Project 5: Sleep and Delta Queues
+- [ ] Project 6: File system
+- [ ] Project 7: Xinu File Sharing Protocol
+- [ ] Project 8: Chat application
+- [ ] Permissions for kernel sections
+- [ ] Hardware abstraction
