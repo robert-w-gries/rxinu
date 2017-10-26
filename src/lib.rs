@@ -19,15 +19,15 @@ extern crate multiboot2;
 
 #[no_mangle]
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
-    #[cfg(target_arch = "x86_64")]
-    arch::device::init();
+    // TODO: Fix page fault in interrupt code
+    //#[cfg(target_arch = "x86_64")] arch::device::init();
     arch::console::init();
 
     let boot_info = unsafe { multiboot2::load(multiboot_information_address) };
 
     let mut memory_controller = arch::memory::init(&boot_info);
 
-    // TODO: fix interrupts
+    // TODO: Fix page fault in interrupt code
     //#[cfg(target_arch = "x86_64")] arch::interrupts::init(&mut memory_controller);
 
     println!("\nIt did not crash!");
