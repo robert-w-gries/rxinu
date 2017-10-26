@@ -2,6 +2,7 @@
 #![feature(asm)]
 #![feature(const_fn)]
 #![feature(unique)]
+#![feature(const_unique_new)]
 #![no_std]
 
 #[macro_use]
@@ -14,7 +15,7 @@ extern crate lazy_static;
 extern crate once;
 
 extern crate bit_field;
-extern crate hole_list_allocator;
+extern crate hole_list_allocator as allocator;
 extern crate multiboot2;
 extern crate rlibc;
 extern crate spin;

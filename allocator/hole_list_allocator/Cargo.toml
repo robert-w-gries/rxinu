@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Rob Gries <robert.w.gries@gmail.com>"]
 
 [dependencies]
-linked_list_allocator = "0.2.5"
+linked_list_allocator = { git = "https://github.com/phil-opp/linked-list-allocator.git" }
 spin = "0.4.5"
 
 [dependencies.lazy_static]

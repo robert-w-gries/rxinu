@@ -4,27 +4,21 @@ rust:
 cache: cargo
 
 env:
-  - ['target=i686', 'ASM=clang-3.8']
-  - ['target=x86_64', 'ASM=clang-3.8']
-addons:
-  apt:
-    sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
-    packages: ['clang-3.8']
+  - ['target=i686']
+  - ['target=x86_64']
 
 before_script:
-  #- sudo apt-get -qq update
-  #- sudo apt-get install -y qemu xorriso
-  - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=$TRAVIS_RUST_VERSION -y
-  - source ~/.cargo/env
   - rustup component add rust-src
   - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
-  - (test -x $HOME/.cargo/bin/rustfmt || cargo install rustfmt)
-  - (test -x $HOME/.cargo/bin/xargo || cargo install xargo)
+  - (test -x $HOME/.cargo/bin/rustfmt || cargo install rustfmt-nightly)
   - cargo install-update -a
+  - cargo install xargo --vers 0.3.8 --force
 
-sudo: false
+addons:
+  apt:
+    packages:
+      - nasm
 
 script:
-  # Can't run cargo fmt for now. rust-lang-nursery/rustftm#1375
-  # - cargo fmt -- --write-mode=diff
+  - cargo fmt -- --write-mode=diff
   - make

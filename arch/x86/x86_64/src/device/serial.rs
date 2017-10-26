@@ -99,20 +99,20 @@ impl SerialPort {
 
 bitflags! {
     /// Interrupt enable register flags
-    flags IntEnFlags: u8 {
-        const RECEIVED =        1 << 0,
-        const SENT =            1 << 1,
-        const ERRORED =            1 << 2,
-        const STATUS_CHANGE =    1 << 3,
+    struct IntEnFlags: u8 {
+        const RECEIVED =        1 << 0;
+        const SENT =            1 << 1;
+        const ERRORED =         1 << 2;
+        const STATUS_CHANGE =   1 << 3;
         // 4 to 7 are unused
     }
 }
 
 bitflags! {
     /// Line status flags
-    flags LineStsFlags: u8 {
-        const DATA_READY =    1 << 0,
-        const THR_EMPTY =    1 << 5,
-        const TRANS_EMPTY =    1 << 6,
+    struct LineStsFlags: u8 {
+        const DATA_READY =    1 << 0;
+        const THR_EMPTY =     1 << 5;
+        const TRANS_EMPTY =   1 << 6;
     }
 }

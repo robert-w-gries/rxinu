@@ -1,4 +1,5 @@
 use multiboot2::BootInformation;
+use allocator;
 
 use self::paging::{PAGE_SIZE, PhysicalAddress};
 pub use self::area_frame_allocator::AreaFrameAllocator;
@@ -22,12 +23,12 @@ pub fn init(boot_info: &BootInformation) -> MemoryController {
 
     let kernel_start = elf_sections_tag.sections()
         .filter(|s| s.is_allocated())
-        .map(|s| s.addr)
+        .map(|s| s.start_address())
         .min()
         .unwrap();
     let kernel_end = elf_sections_tag.sections()
         .filter(|s| s.is_allocated())
-        .map(|s| s.addr + s.size)
+        .map(|s| s.end_address())
         .max()
         .unwrap();
 
@@ -47,13 +48,17 @@ pub fn init(boot_info: &BootInformation) -> MemoryController {
         boot_info);
 
     use self::paging::page::Page;
-    use hole_list_allocator::{HEAP_START, HEAP_SIZE};
+    use allocator::{HEAP_START, HEAP_SIZE};
 
     let heap_start_page = Page::containing_address(HEAP_START);
     let heap_end_page = Page::containing_address(HEAP_START + HEAP_SIZE-1);
 
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
         active_table.map(page, paging::entry::WRITABLE, &mut frame_allocator);
+    }
+
+    unsafe {
+        allocator::init(HEAP_START, HEAP_SIZE);
     }
 
     let stack_allocator = {
