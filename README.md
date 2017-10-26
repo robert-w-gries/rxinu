@@ -1,8 +1,7 @@
 [![Build Status](https://travis-ci.org/robert-w-gries/rxinu.svg?branch=master)](https://travis-ci.org/robert-w-gries/rxinu)
 
 # rxinu
-Rust implementation of [Xinu](https://github.com/xinu-os/xinu)
-
+Rust implementation of [Xinu](https://github.com/xinu-os/xinu), based on the [excellent blog written by Philipp Oppermann](https://os.phil-opp.com/)
 ## Dependencies
   
 ### Quick Start
@@ -13,7 +12,7 @@ source $HOME/.cargo/env
 # add $HOME/.cargo/bin to PATH env variable
 rustup install nightly
 rustup default nightly
-cargo install xargo
+cargo install xargo --vers 0.3.8
 rustup component add rust-src
 ```
 
@@ -62,6 +61,6 @@ make run target=i686
 
 ## Debugging
 
-See [Phillipp Oppermann's blog regarding gdb](https://os.phil-opp.com/set-up-gdb/) for details on how to debug the kernel.
+See [Phillipp Oppermann's blog post regarding gdb](https://os.phil-opp.com/set-up-gdb/) for details on how to debug the kernel.
 
 The `rxinu` Makefile has support for debugging built-in already. All that is needed is installing the `gdb` fork and pointing the Makefile's environment variable to the forked `gdb`
