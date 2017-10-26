@@ -10,11 +10,9 @@ env:
 before_script:
   - rustup component add rust-src
   - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
-  - (test -x $HOME/.cargo/bin/xargo || cargo install xargo --vers 0.3.8)
   - which rustfmt | cargo install rustfmt
   - cargo install-update -a
-
-#sudo: false
+  - cargo install xargo --vers 0.3.8 --force
 
 script:
   - cargo fmt -- --write-mode=diff
