@@ -3,6 +3,7 @@ CARGO ?= xargo
 ASM ?= nasm
 LD ?= ld
 GDB ?= ~/rust-os-gdb/bin/rust-gdb
+GRUB_MKRESCUE ?= grub-mkrescue
 
 # Target and build files
 arch ?= x86
@@ -74,7 +75,7 @@ $(iso): $(kernel) $(grub_cfg)
 	@echo "Building $(iso)"
 	@cp $(kernel) build/isofiles/boot/kernel.bin
 	@cp $(grub_cfg) build/isofiles/boot/grub
-	@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
+	@$(GRUB_MKRESCUE) -o $(iso) build/isofiles 2> /dev/null
 	@rm -rf build/isofiles
 
 $(kernel): cargo $(rust_os) $(ASM_OBJ) $(linker_script)
