@@ -1,50 +1,24 @@
-use core::mem::size_of;
+use x86_64::structures::idt::{Idt, ExceptionStackFrame};
+use interrupts::{exception, DOUBLE_FAULT_IST_INDEX};
 
-use x86::bits64::irq::IdtEntry;
-use x86::shared::PrivilegeLevel;
-use x86::shared::descriptor::Flags;
-use x86::shared::dtables::DescriptorTablePointer;
-use x86::shared::segmentation;
+lazy_static! {
+    static ref IDT: Idt = {
+        let mut idt = Idt::new();
 
-use super::exception::EXCEPTIONS;
-use super::irq::IRQS;
-use super::exception_stack_frame::ExceptionStackFrame;
+        idt.divide_by_zero.set_handler_fn(exception::divide_by_zero);
+        idt.breakpoint.set_handler_fn(exception::breakpoint);
+        idt.invalid_opcode.set_handler_fn(exception::invalid_opcode);
+        idt.page_fault.set_handler_fn(exception::page_fault);
 
-pub static mut IDTR: DescriptorTablePointer<IdtEntry> = DescriptorTablePointer {
-    limit: 0,
-    base: IdtEntry::MISSING,
-};
+        unsafe {
+            idt.double_fault.set_handler_fn(exception::double_fault)
+                .set_stack_index(DOUBLE_FAULT_IST_INDEX as u16);
+        }
 
-pub static mut IDT: [IdtEntry; 256] = [IdtEntry::MISSING, 256];
-
-const IRQ_OFFSET: u8 = 32;
-
-pub fn init() {
-    IDTR.limit = (IDT.len() * size_of::<IdtEntry>() - 1) as u16;
-    IDTR.base = IDT.as_ptr();
-
-    for i in 0..EXCEPTIONS.len() {
-        let e: extern fn() = EXCEPTIONS[i];
-        if e == () { continue; }
-        set_func(&mut IDT[i], e);
-    }
-
-    for i in 0..IRQS.len() {
-        set_func(&mut IDT[IRQ_OFFSET+i], IRQS[i]);
-    }
-
-    dtables::lidt(&IDTR);
+        idt
+    };
 }
 
-fn set_func(i: IdtEntry, e: fn()) {
-    i.base_lo = ((e.as_usize() as u64) & 0xFFFF) as u16;
-    i.base_lo = e.as_usize() as u64 >> 16;
-    i.gdt_selector = segmentation::cs().bits();
-
-    use x86::shared::descriptor::*;
-    use x86::shared::PrivilegeLevel::Ring0;
-
-    i.flags = Flags::from_priv(Ring0)
-                  .const_or(FLAGS_TYPE_SYS_NATIVE_INTERRUPT_GATE)
-                  .const_or(FLAGS_PRESENT);
+pub fn init() {
+    IDT.load();
 }

@@ -21,6 +21,7 @@ extern crate rlibc;
 extern crate spin;
 extern crate volatile;
 extern crate x86;
+extern crate x86_64;
 
 #[macro_export]
 macro_rules! print {
@@ -53,7 +54,7 @@ fn enable_nxe_bit() {
 }
 
 fn enable_write_protect_bit() {
-    use x86::shared::control_regs::{cr0, cr0_write, Cr0};
+    use x86::shared::control_regs::*;
 
-    unsafe { cr0_write(cr0() | Cr0::WRITE_PROTECT) };
+    unsafe { cr0_write(cr0() | CR0_WRITE_PROTECT) };
 }

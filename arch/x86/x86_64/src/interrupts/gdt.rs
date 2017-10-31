@@ -1,6 +1,29 @@
+use spin::Once;
 use x86::bits64::task::TaskStateSegment;
-use x86::shared::segmentation::SegmentSelector;
 use x86::shared::PrivilegeLevel;
+use x86::shared::segmentation::{set_cs, SegmentSelector};
+use x86::shared::task::load_tr;
+
+static GDT: Once<Gdt> = Once::new();
+
+pub fn init(tss: &'static TaskStateSegment) {
+    let mut code_selector = SegmentSelector::new(0, PrivilegeLevel::Ring0);
+    let mut tss_selector = SegmentSelector::new(0, PrivilegeLevel::Ring0);
+    let gdt = GDT.call_once(|| {
+        let mut gdt = Gdt::new();
+        code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
+        tss_selector = gdt.add_entry(Descriptor::tss_segment(&tss));
+        gdt
+    });
+    gdt.load();
+
+    unsafe {
+        // reload code segment register and load TSS
+        set_cs(code_selector);
+        load_tr(tss_selector);
+    }
+}
+
 
 pub struct Gdt {
     table: [u64; 8],
@@ -43,7 +66,7 @@ impl Gdt {
         use core::mem::size_of;
 
         let ptr = DescriptorTablePointer {
-            base: self.table.as_ptr() as u64,
+            base: self.table.as_ptr(),
             limit: (self.table.len() * size_of::<u64>() - 1) as u16,
         };
 

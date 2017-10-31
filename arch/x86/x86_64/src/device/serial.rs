@@ -75,7 +75,7 @@ impl SerialPort {
 
     pub fn send(&mut self, data: u8) {
         match data {
-            /// backspace or delete
+            // backspace or delete
             8 | 0x7F => {
                 while ! self.line_sts().contains(THR_EMPTY) {}
                 self.data.write(8);

@@ -50,7 +50,7 @@ impl ActivePageTable {
             p4_frame: Frame::containing_address(control_regs::cr3().0 as usize),
         };
         unsafe {
-            control_regs::cr3_write(PhysicalAddress(new_table.p4_frame.start_address() as u64));
+            control_regs::cr3_write(new_table.p4_frame.start_address() as u64);
         }
         old_table
     }
