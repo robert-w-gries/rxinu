@@ -1,41 +1,50 @@
+use core::mem::size_of;
+
+use x86::bits64::irq::IdtEntry;
+use x86::shared::PrivilegeLevel;
+use x86::shared::descriptor::Flags;
+use x86::shared::dtables::DescriptorTablePointer;
+use x86::shared::segmentation;
+
+use super::exception::EXCEPTIONS;
+use super::irq::IRQS;
+use super::exception_stack_frame::ExceptionStackFrame;
+
+pub static mut IDTR: DescriptorTablePointer<IdtEntry> = DescriptorTablePointer {
+    limit: 0,
+    base: IdtEntry::MISSING,
+};
+
 pub static mut IDT: [IdtEntry; 256] = [IdtEntry::MISSING, 256];
 
-pub fn init() {
-    let exceptions: Vec<fn()> = vec![
-        divide_by_zero,
-        (),                                 // TODO: debug
-        (),                                 // TODO: non_maskable
-        breakpoint,
-        (),                                 // TODO: non_maskable
-        (),                                 // TODO: non_maskable
-        invalid_opcode                      ,
-        (),                                 // TODO: non_maskable
-        double_fault,
-        (),                                 // Index 9: Not available
-        (),                                 // TODO: invalid_tss
-        (),                                 // TODO: segment_not_present
-        (),                                 // TODO: stack_segment
-        (),                                 // TODO: protection
-        page_fault,
-        (),                                 // Index 15: Reserved
-        (),                                 // TODO: fpu
-        (),                                 // TODO: alignment_check
-        (),                                 // TODO: machine_check
-        (),                                 // TODO: simd
-        (),                                 // TODO: virtualization 
-        (), (), (), (), (), (), (), (), (), // 21 through 29 reserved
-        (),                                 // TODO: security
-        // Index 31: Reserved
-    ];
+const IRQ_OFFSET: u8 = 32;
 
-    for (i, e) in exceptions.iter().enumerate() {
-        if e == () continue;
+pub fn init() {
+    IDTR.limit = (IDT.len() * size_of::<IdtEntry>() - 1) as u16;
+    IDTR.base = IDT.as_ptr();
+
+    for i in 0..EXCEPTIONS.len() {
+        let e: extern fn() = EXCEPTIONS[i];
+        if e == () { continue; }
         set_func(&mut IDT[i], e);
     }
+
+    for i in 0..IRQS.len() {
+        set_func(&mut IDT[IRQ_OFFSET+i], IRQS[i]);
+    }
+
+    dtables::lidt(&IDTR);
 }
 
 fn set_func(i: IdtEntry, e: fn()) {
     i.base_lo = ((e.as_usize() as u64) & 0xFFFF) as u16;
-    i.base_lo = handler.as_usize() as u64 >> 16;
-    i.gdt_selector = ::shared::segmentation::cs().bits();
+    i.base_lo = e.as_usize() as u64 >> 16;
+    i.gdt_selector = segmentation::cs().bits();
+
+    use x86::shared::descriptor::*;
+    use x86::shared::PrivilegeLevel::Ring0;
+
+    i.flags = Flags::from_priv(Ring0)
+                  .const_or(FLAGS_TYPE_SYS_NATIVE_INTERRUPT_GATE)
+                  .const_or(FLAGS_PRESENT);
 }

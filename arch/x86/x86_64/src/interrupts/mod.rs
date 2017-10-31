@@ -1,9 +1,9 @@
-use x86::bits64
 use spin::Once;
 
 use memory::MemoryController;
-use self::Idt;
 
+mod exception;
+mod exception_stack_frame;
 mod gdt;
 mod idt;
 mod irq;
@@ -14,13 +14,12 @@ static GDT: Once<gdt::Gdt> = Once::new();
 /// Initialize double fault stack and load gdt and idt 
 #[inline(always)]
 pub fn init(memory_controller: &mut MemoryController) {
-    use x86::shared::gdt::SegmentSelector;
-    use x86::shared::segmentation::set_cs;
-    use x86::shared::tables::load_tss;
+    use x86::shared::segmentation::{set_cs, SegmentSelector};
+    //use x86::shared::dtables::load_tss;
 
-    gdt::init();
+    //gdt::init();
     idt::init();
-
+/*
     let double_fault_stack = memory_controller.alloc_stack(1)
         .expect("could not allocate double fault stack");
 
@@ -48,7 +47,7 @@ pub fn init(memory_controller: &mut MemoryController) {
     }
 
     IDT.load();
-
+*/
     println!("IT DID NOT CRASH!");
     println!("IT DID NOT CRASH!");
     println!("IT DID NOT CRASH!");
