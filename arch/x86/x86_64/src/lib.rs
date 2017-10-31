@@ -20,7 +20,7 @@ extern crate multiboot2;
 extern crate rlibc;
 extern crate spin;
 extern crate volatile;
-extern crate x86_64;
+extern crate x86;
 
 #[macro_export]
 macro_rules! print {
@@ -43,7 +43,7 @@ pub mod interrupts;
 pub mod memory;
 
 fn enable_nxe_bit() {
-    use x86_64::registers::msr::{IA32_EFER, rdmsr, wrmsr};
+    use x86::shared::msr::{IA32_EFER, rdmsr, wrmsr};
 
     let nxe_bit = 1 << 11;
     unsafe {
@@ -53,7 +53,7 @@ fn enable_nxe_bit() {
 }
 
 fn enable_write_protect_bit() {
-    use x86_64::registers::control_regs::{cr0, cr0_write, Cr0};
+    use x86::shared::control_regs::{cr0, cr0_write, Cr0};
 
     unsafe { cr0_write(cr0() | Cr0::WRITE_PROTECT) };
 }

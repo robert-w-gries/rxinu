@@ -44,8 +44,7 @@ impl ActivePageTable {
     }
 
     pub fn switch(&mut self, new_table: InactivePageTable) -> InactivePageTable {
-        use x86_64::PhysicalAddress;
-        use x86_64::registers::control_regs;
+        use x86::shared::control_regs;
 
         let old_table = InactivePageTable {
             p4_frame: Frame::containing_address(control_regs::cr3().0 as usize),
@@ -62,25 +61,26 @@ impl ActivePageTable {
                    f: F)
         where F: FnOnce(&mut Mapper)
     {
-        use x86_64::registers::control_regs;
-        use x86_64::instructions::tlb;
+        use x86::shared::{control_regs, tlb};
+
+        let flush_tlb = || unsafe { tlb::flush_all() };
 
         {
-            let backup = Frame::containing_address(control_regs::cr3().0 as usize);
+            let backup = Frame::containing_address(unsafe { control_regs::cr3() } as usize);
 
             // map temporary_page to current p4 table
             let p4_table = temporary_page.map_table_frame(backup.clone(), self);
 
             // overwrite recursive mapping
-            self.p4_mut()[511].set(table.p4_frame.clone(), PRESENT | WRITABLE);
-            tlb::flush_all();
+            self.p4_mut()[ENTRY_COUNT-1].set(table.p4_frame.clone(), PRESENT | WRITABLE);
+            flush_tlb();
 
             // execute f in the new context
             f(self);
 
             // restore recursive mapping to original p4 table
-            p4_table[511].set(backup, PRESENT | WRITABLE);
-            tlb::flush_all();
+            p4_table[ENTRY_COUNT-1].set(backup, PRESENT | WRITABLE);
+            flush_tlb();
         }
 
         temporary_page.unmap(self);
@@ -100,7 +100,7 @@ impl InactivePageTable {
             let table = temporary_page.map_table_frame(frame.clone(), active_table);
             table.zero();
             // set up recursive mapping for the table
-            table[511].set(frame.clone(), PRESENT | WRITABLE);
+            table[ENTRY_COUNT-1].set(frame.clone(), PRESENT | WRITABLE);
         }
         temporary_page.unmap(active_table);
 
