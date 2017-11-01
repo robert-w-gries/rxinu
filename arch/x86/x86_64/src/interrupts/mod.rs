@@ -9,7 +9,6 @@ mod irq;
 
 const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
-
 /// Initialize double fault stack and load gdt and idt 
 pub fn init(memory_controller: &mut MemoryController) {
 
@@ -20,7 +19,10 @@ pub fn init(memory_controller: &mut MemoryController) {
     tss.ist[DOUBLE_FAULT_IST_INDEX] = double_fault_stack.top() as u64;
 
     gdt::init(&tss);
-    idt::init();
+    unsafe { idt::init(); }
+
+    // TODO: Fix interrupt handling
+    // unsafe { asm!("int3"); }
 }
 
 #[cfg(test)]
@@ -28,6 +30,6 @@ mod tests {
 
     #[test]
     fn breakpoint_exception() {
-        ::x86::shared::interrupts::int3();
+        ::x86::shared::irq::int!(3);
     }
 }

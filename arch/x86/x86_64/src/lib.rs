@@ -9,9 +9,6 @@
 extern crate bitflags;
 
 #[macro_use]
-extern crate lazy_static;
-
-#[macro_use]
 extern crate once;
 
 extern crate bit_field;
@@ -21,7 +18,6 @@ extern crate rlibc;
 extern crate spin;
 extern crate volatile;
 extern crate x86;
-extern crate x86_64;
 
 #[macro_export]
 macro_rules! print {
