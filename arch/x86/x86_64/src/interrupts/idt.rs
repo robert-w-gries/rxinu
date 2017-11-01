@@ -1,4 +1,4 @@
-use x86_64::structures::idt::{Idt, ExceptionStackFrame};
+use x86_64::structures::idt::Idt;
 use interrupts::{exception, DOUBLE_FAULT_IST_INDEX};
 
 lazy_static! {

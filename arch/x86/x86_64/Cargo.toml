@@ -16,7 +16,7 @@ volatile = "0.1.0"
 x86_64 = "0.1.2"
 
 [dependencies.x86]
-version = "0.8.1"
+git = "https://github.com/ColinFinck/rust-x86"
 default-features = false
 
 [dependencies.lazy_static]

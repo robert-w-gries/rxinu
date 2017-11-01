@@ -1,5 +1,4 @@
-use x86::bits64::irq::*;
-use x86_64::structures::idt::ExceptionStackFrame;
+use x86_64::structures::idt::{ExceptionStackFrame, PageFaultErrorCode};
 
 pub extern "x86-interrupt" fn divide_by_zero(stack_frame: &mut ExceptionStackFrame) {
     println!("\nEXCEPTION: DIVIDE BY ZERO\n{:#?}", stack_frame);
@@ -24,7 +23,7 @@ pub extern "x86-interrupt" fn double_fault(
     loop{}
 }
 
-pub extern "x86-interrupt" fn page_fault(stack_frame: &mut ExceptionStackFrame, error_code: PageFaultError) {
+pub extern "x86-interrupt" fn page_fault(stack_frame: &mut ExceptionStackFrame, error_code: PageFaultErrorCode) {
     use x86::shared::control_regs;
     println!("\nEXCEPTION: PAGE FAULT while accessing {:#x}\nerror code: \
                                   {:?}\n{:#?}",

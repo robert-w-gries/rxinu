@@ -15,8 +15,6 @@ static TSS: Once<TaskStateSegment> = Once::new();
 /// Initialize double fault stack and load gdt and idt 
 #[inline(always)]
 pub fn init(memory_controller: &mut MemoryController) {
-    use x86::shared::segmentation::{set_cs, SegmentSelector};
-
     let double_fault_stack = memory_controller.alloc_stack(1)
         .expect("could not allocate double fault stack");
 

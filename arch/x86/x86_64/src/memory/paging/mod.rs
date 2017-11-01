@@ -47,7 +47,7 @@ impl ActivePageTable {
         use x86::shared::control_regs;
 
         let old_table = InactivePageTable {
-            p4_frame: Frame::containing_address(control_regs::cr3().0 as usize),
+            p4_frame: Frame::containing_address(control_regs::cr3() as usize),
         };
         unsafe {
             control_regs::cr3_write(new_table.p4_frame.start_address() as u64);
