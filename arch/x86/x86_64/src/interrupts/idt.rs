@@ -1,6 +1,7 @@
 use x86_64::structures::idt::Idt;
-use interrupts::{exception, DOUBLE_FAULT_IST_INDEX};
+use interrupts::{self, exception, irq};
 
+// TODO: Fix IDT by switching to x86 crate
 lazy_static! {
     static ref IDT: Idt = {
         let mut idt = Idt::new();
@@ -12,8 +13,12 @@ lazy_static! {
 
         unsafe {
             idt.double_fault.set_handler_fn(exception::double_fault)
-                .set_stack_index(DOUBLE_FAULT_IST_INDEX as u16);
+                .set_stack_index(interrupts::DOUBLE_FAULT_IST_INDEX as u16);
         }
+
+        idt.interrupts[0].set_handler_fn(irq::cascade);
+        idt.interrupts[1].set_handler_fn(irq::com1);
+        idt.interrupts[2].set_handler_fn(irq::com2);
 
         idt
     };

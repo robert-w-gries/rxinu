@@ -17,6 +17,7 @@ x86_64 = "0.1.2"
 
 [dependencies.x86]
 git = "https://github.com/ColinFinck/rust-x86"
+branch = "segmentation"
 default-features = false
 
 [dependencies.lazy_static]
