@@ -23,9 +23,9 @@ lazy_static! {
                 .set_stack_index(DOUBLE_FAULT_IST_INDEX as u16);
         }
 
-        idt.interrupts[0].set_handler_fn(irq::cascade);
-        idt.interrupts[1].set_handler_fn(irq::com1);
-        idt.interrupts[2].set_handler_fn(irq::com2);
+        idt.interrupts[2].set_handler_fn(irq::cascade);
+        idt.interrupts[3].set_handler_fn(irq::com2);
+        idt.interrupts[4].set_handler_fn(irq::com1);
         idt
     };
 }
