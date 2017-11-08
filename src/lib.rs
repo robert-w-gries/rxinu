@@ -25,8 +25,6 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 
     arch::interrupts::init(&mut memory_controller);
 
-    unsafe { asm!("int3"); }
-
     println!("\nIt did not crash!");
 
     loop {}

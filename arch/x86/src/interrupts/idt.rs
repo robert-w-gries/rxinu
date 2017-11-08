@@ -100,6 +100,17 @@ fn set_double_fault_handler_fn(mut i: &mut IdtEntry, e: HandlerFunc, index: u8) 
 }
 
 /// Represents the exception stack frame pushed by the CPU on exception entry.
+#[cfg(target_arch = "x86")]
+#[repr(C)]
+pub struct ExceptionStackFrame {
+    pub instruction_pointer: u32,
+    pub code_segment: u32,
+    pub cpu_flags: u32,
+    pub stack_pointer: u32,
+    pub stack_segment: u32,
+}
+
+#[cfg(target_arch = "x86_64")]
 #[repr(C)]
 pub struct ExceptionStackFrame {
     pub instruction_pointer: u64,
@@ -111,6 +122,9 @@ pub struct ExceptionStackFrame {
 
 impl fmt::Debug for ExceptionStackFrame {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[cfg(target_arch = "x86")]
+        struct Hex(u32);
+        #[cfg(target_arch = "x86_64")]
         struct Hex(u64);
         impl fmt::Debug for Hex {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
