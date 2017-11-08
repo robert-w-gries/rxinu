@@ -8,6 +8,7 @@ pub struct Page {
 
 impl Page {
     pub fn containing_address(address: VirtualAddress) -> Page {
+        #[cfg(target_arch = "x86_64")]
         assert!(address < 0x0000_8000_0000_0000 || address >= 0xffff_8000_0000_0000,
                 "invalid address: 0x{:x}",
                 address);
@@ -22,10 +23,22 @@ impl Page {
         (self.number >> 18) & 0o777
     }
 
+    #[cfg(target_arch = "x86")]
+    pub fn p2_index(&self) -> usize {
+        (self.number >> 10) & 0x3ff
+    }
+
+    #[cfg(target_arch = "x86")]
+    pub fn p1_index(&self) -> usize {
+        (self.number >> 0) & 0x3ff
+    }
+
+    #[cfg(target_arch = "x86_64")]
     pub fn p2_index(&self) -> usize {
         (self.number >> 9) & 0o777
     }
 
+    #[cfg(target_arch = "x86_64")]
     pub fn p1_index(&self) -> usize {
         (self.number >> 0) & 0o777
     }

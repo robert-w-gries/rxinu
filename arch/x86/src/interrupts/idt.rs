@@ -1,6 +1,7 @@
 use core::fmt;
 use core::mem;
 
+#[cfg(target_arch = "x86")] use x86::bits32::irq::IdtEntry;
 #[cfg(target_arch = "x86_64")] use x86::bits64::irq::IdtEntry;
 
 use x86::shared::dtables::{self, DescriptorTablePointer};
@@ -56,6 +57,28 @@ pub unsafe fn init() {
 }
 
 type HandlerFunc = extern "x86-interrupt" fn(&mut ExceptionStackFrame);
+
+#[cfg(target_arch = "x86")]
+fn set_handler_fn(i: &mut IdtEntry, e: HandlerFunc) {
+    let ptr = e as usize;
+    i.offset_lo = ((ptr as u32) & 0xFFFF) as u16;
+    i.offset_hi = ((ptr as u32 & 0xFFFF0000) >> 16) as u16;
+    i.selector = segmentation::cs().bits() as u16;
+
+    use x86::shared::descriptor::*;
+    use x86::shared::PrivilegeLevel::Ring0;
+
+    i.flags = Flags::from_priv(Ring0)
+                  .const_or(FLAGS_TYPE_SYS_NATIVE_INTERRUPT_GATE)
+                  .const_or(FLAGS_PRESENT);
+}
+
+#[cfg(target_arch = "x86")]
+fn set_double_fault_handler_fn(mut i: &mut IdtEntry, e: HandlerFunc, index: u8) {
+    set_handler_fn(&mut i, e);
+}
+
+#[cfg(target_arch = "x86_64")]
 fn set_handler_fn(i: &mut IdtEntry, e: HandlerFunc) {
     let ptr = e as usize;
     i.base_lo = ((ptr as u64) & 0xFFFF) as u16;
@@ -70,6 +93,7 @@ fn set_handler_fn(i: &mut IdtEntry, e: HandlerFunc) {
                   .const_or(FLAGS_PRESENT);
 }
 
+#[cfg(target_arch = "x86_64")]
 fn set_double_fault_handler_fn(mut i: &mut IdtEntry, e: HandlerFunc, index: u8) {
     i.ist_index = index;
     set_handler_fn(&mut i, e);

@@ -5,6 +5,10 @@ use memory::FrameAllocator;
 use super::ENTRY_COUNT;
 use super::entry::{Entry, HUGE_PAGE, PRESENT, WRITABLE};
 
+#[cfg(target_arch = "x86")]
+pub const P2: *mut Table<Level2> = 0xffff_f000 as *mut _;
+
+#[cfg(target_arch = "x86_64")]
 pub const P4: *mut Table<Level4> = 0xffff_ffff_ffff_f000 as *mut _;
 
 pub struct Table<L: TableLevel> {
@@ -55,7 +59,12 @@ impl<L> Table<L>
         let entry_flags = self[index].flags();
         if entry_flags.contains(PRESENT) && !entry_flags.contains(HUGE_PAGE) {
             let table_address = self as *const _ as usize;
-            Some((table_address << 9) | (index << 12))
+
+            if cfg!(target_arch = "x86") {
+                Some((table_address << 10) | (index << 12))
+            } else {
+                Some((table_address << 9) | (index << 12))
+            }
         } else {
             None
         }
@@ -83,15 +92,13 @@ impl<L> IndexMut<usize> for Table<L>
 
 pub trait TableLevel {}
 
-pub enum Level4 {}
-#[allow(dead_code)]
-pub enum Level3 {}
-#[allow(dead_code)]
+#[cfg(target_arch = "x86_64")] pub enum Level4 {}
+#[cfg(target_arch = "x86_64")] pub enum Level3 {}
 pub enum Level2 {}
 pub enum Level1 {}
 
-impl TableLevel for Level4 {}
-impl TableLevel for Level3 {}
+#[cfg(target_arch = "x86_64")] impl TableLevel for Level4 {}
+#[cfg(target_arch = "x86_64")] impl TableLevel for Level3 {}
 impl TableLevel for Level2 {}
 impl TableLevel for Level1 {}
 
@@ -99,10 +106,12 @@ pub trait HierarchicalLevel: TableLevel {
     type NextLevel: TableLevel;
 }
 
+#[cfg(target_arch = "x86_64")]
 impl HierarchicalLevel for Level4 {
     type NextLevel = Level3;
 }
 
+#[cfg(target_arch = "x86_64")]
 impl HierarchicalLevel for Level3 {
     type NextLevel = Level2;
 }

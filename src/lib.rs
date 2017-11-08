@@ -1,3 +1,4 @@
+#![feature(asm)]
 #![feature(alloc)]
 #![feature(const_fn)]
 #![feature(lang_items)]
@@ -5,13 +6,9 @@
 #![feature(compiler_builtins_lib)]
 extern crate compiler_builtins;
 
-#[cfg(target_arch = "x86")]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[macro_use]
-extern crate arch_i686 as arch;
-
-#[cfg(target_arch = "x86_64")]
-#[macro_use]
-extern crate arch_x86_64 as arch;
+extern crate arch_x86 as arch;
 
 #[macro_use]
 extern crate alloc;
@@ -19,14 +16,16 @@ extern crate multiboot2;
 
 #[no_mangle]
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
-    #[cfg(target_arch = "x86_64")] arch::device::init();
+    arch::device::init();
     arch::console::init();
 
     let boot_info = unsafe { multiboot2::load(multiboot_information_address) };
 
     let mut memory_controller = arch::memory::init(&boot_info);
 
-    #[cfg(target_arch = "x86_64")] arch::interrupts::init(&mut memory_controller);
+    arch::interrupts::init(&mut memory_controller);
+
+    unsafe { asm!("int3"); }
 
     println!("\nIt did not crash!");
 

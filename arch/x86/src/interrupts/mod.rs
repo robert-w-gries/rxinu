@@ -1,4 +1,5 @@
-use x86::bits64::task::TaskStateSegment;
+#[cfg(target_arch = "x86")] use x86::bits32::task::TaskStateSegment;
+#[cfg(target_arch = "x86_64")] use x86::bits64::task::TaskStateSegment;
 
 use memory::MemoryController;
 
@@ -9,7 +10,17 @@ mod irq;
 
 const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
-/// Initialize double fault stack and load gdt and idt 
+#[cfg(target_arch = "x86")]
+pub fn init(memory_controller: &mut MemoryController) {
+
+    let mut tss = TaskStateSegment::new();
+
+    unsafe { gdt::init(&tss); }
+    unsafe { idt::init(); }
+}
+
+#[cfg(target_arch = "x86_64")]
+/// Initialize double fault stack and load gdt and idt
 pub fn init(memory_controller: &mut MemoryController) {
 
     let mut tss = TaskStateSegment::new();
@@ -27,6 +38,6 @@ mod tests {
 
     #[test]
     fn breakpoint_exception() {
-        ::x86::shared::irq::int!(3);
+        unsafe { asm!("int3"); }
     }
 }

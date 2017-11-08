@@ -1,5 +1,5 @@
 [package]
-name = "arch_x86_64"
+name = "arch_x86"
 version = "0.1.0"
 authors = [ "robert.w.gries@gmail.com" ]
 
@@ -15,7 +15,7 @@ spin = "0.4.5"
 volatile = "0.1.0"
 
 [dependencies.x86]
-git = "https://github.com/ColinFinck/rust-x86"
+git = "https://github.com/robert-w-gries/rust-x86"
 branch = "all-merged"
 default-features = false
 
@@ -24,7 +24,7 @@ version = "0.2.4"
 features = ["spin_no_std"]
 
 [dependencies.hole_list_allocator]
-path = "../../../allocator/hole_list_allocator"
+path = "../../allocator/hole_list_allocator"
 
 [features]
 serial = []
