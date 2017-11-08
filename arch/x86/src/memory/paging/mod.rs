@@ -11,9 +11,11 @@ pub const PAGE_SIZE: usize = 4096;
 
 #[cfg(target_arch = "x86")] const ENTRY_COUNT: usize = 1024;
 #[cfg(target_arch = "x86")] const PHYS_ADDR_MASK: usize = 0xffff_f000;
+#[cfg(target_arch = "x86")] const TEMP_PAGE_ADDR: usize = 0x0000_beef;
 
 #[cfg(target_arch = "x86_64")] const ENTRY_COUNT: usize = 512;
 #[cfg(target_arch = "x86_64")] const PHYS_ADDR_MASK: usize = 0x000f_ffff_ffff_f000;
+#[cfg(target_arch = "x86_64")] const TEMP_PAGE_ADDR: usize = 0xdead_beef;
 
 pub type PhysicalAddress = usize;
 pub type VirtualAddress = usize;
@@ -115,7 +117,7 @@ impl InactivePageTable {
 pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> ActivePageTable
     where A: FrameAllocator
 {
-    let mut temporary_page = TemporaryPage::new(Page { number: 0x0000beef }, allocator);
+    let mut temporary_page = TemporaryPage::new(Page { number: TEMP_PAGE_ADDR }, allocator);
 
     let mut active_table = unsafe { ActivePageTable::new() };
     let mut new_table = {
