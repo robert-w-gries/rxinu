@@ -22,12 +22,31 @@ pub unsafe fn init() {
     IDTR.base = IDT.as_ptr();
 
     set_handler_fn(&mut IDT[0], exception::divide_by_zero);
+    set_handler_fn(&mut IDT[1], exception::debug);
+    set_handler_fn(&mut IDT[2], exception::non_maskable);
     set_handler_fn(&mut IDT[3], exception::breakpoint);
+    set_handler_fn(&mut IDT[4], exception::overflow);
+    set_handler_fn(&mut IDT[5], exception::bound_range);
     set_handler_fn(&mut IDT[6], exception::invalid_opcode);
+    set_handler_fn(&mut IDT[7], exception::device_not_available);
     set_double_fault_handler_fn(&mut IDT[8],
                                 exception::double_fault,
                                 DOUBLE_FAULT_IST_INDEX as u8);
+    // 9 no longer available
+    set_handler_fn(&mut IDT[10], exception::invalid_tss);
+    set_handler_fn(&mut IDT[11], exception::segment_not_present);
+    set_handler_fn(&mut IDT[12], exception::stack_segment);
+    set_handler_fn(&mut IDT[13], exception::protection);
     set_handler_fn(&mut IDT[14], exception::page_fault);
+    // 15 reserved
+    set_handler_fn(&mut IDT[16], exception::fpu);
+    set_handler_fn(&mut IDT[17], exception::alignment_check);
+    set_handler_fn(&mut IDT[18], exception::machine_check);
+    set_handler_fn(&mut IDT[19], exception::simd);
+    set_handler_fn(&mut IDT[20], exception::virtualization);
+    // 21 through 29 reserved
+    set_handler_fn(&mut IDT[30], exception::security);
+    // 31 reserved
 
     set_handler_fn(&mut IDT[IRQ_OFFSET+2], irq::cascade);
     set_handler_fn(&mut IDT[IRQ_OFFSET+3], irq::com2);
