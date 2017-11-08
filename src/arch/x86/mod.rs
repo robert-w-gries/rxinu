@@ -26,15 +26,11 @@ pub fn init(multiboot_information_address: usize) {
 
     let mut memory_controller = memory::init(&boot_info);
 
-println!("Disabling irq");
-unsafe { x86::shared::irq::disable(); }
+    unsafe { x86::shared::irq::disable(); }
     interrupts::init(&mut memory_controller);
 
     device::init();
-println!("Enabling IRQ");
-//unsafe { x86::shared::irq::enable(); }
-unsafe { asm!("sti") };
-//println!("WORKING");
+    unsafe { x86::shared::irq::enable(); }
 }
 
 #[allow(dead_code)]

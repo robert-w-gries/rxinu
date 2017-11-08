@@ -1,7 +1,7 @@
 use arch::x86::device::pic;
 use arch::x86::device::serial::{COM1, COM2};
 use arch::x86::interrupts::idt::ExceptionStackFrame;
-use devices::ps2_keyboard;
+use devices::{ps2_controller_8042, ps2_keyboard};
 
 fn trigger(irq: u8) {
     if irq >= 8 {
@@ -18,13 +18,13 @@ pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStackFrame) {
+    // Read a single scancode off our keyboard port.
+    let code = ps2_controller_8042::key_read();
+
+    // Pass scan code to ps2_keyboard driver
+    ps2_keyboard::parse_key(code);
+
     pic::MASTER.lock().ack();
-    if let Some(input) = ps2_keyboard::read_char() {
-        match input {
-            '\n' => { println!(""); }
-            input => { print!("Input = {}\n\n", input); }
-        }
-    }
 }
 
 #[allow(unused_variables)]

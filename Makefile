@@ -60,16 +60,15 @@ clean:
 	@rm -rf build
 
 debug: $(iso)
-	@/usr/bin/qemu-system-x86_64 -cdrom $(iso) -d int -s -S
+	@qemu-system-x86_64 -cdrom $(iso) -d int -s -S
 
 gdb: $(kernel)
 	@$(GDB) "$(kernel)" -ex "target remote :1234"
 
 iso: $(iso)
 
-	#@/usr/local/bin/qemu-system-x86_64 -cdrom $(iso) -s -nographic -object input-linux,id=kbd,evdev=/dev/input/by-path/platform-i8042-serio-0-event-kbd
 run: $(iso)
-	@/usr/bin/qemu-system-x86_64 -cdrom $(iso) -s #-serial stdio
+	@qemu-system-x86_64 -cdrom $(iso) -s
 
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub
