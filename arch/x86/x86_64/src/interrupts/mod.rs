@@ -20,9 +20,6 @@ pub fn init(memory_controller: &mut MemoryController) {
 
     unsafe { gdt::init(&tss); }
     unsafe { idt::init(); }
-
-    // TODO: Fix interrupt handling
-    unsafe { asm!("int3"); }
 }
 
 #[cfg(test)]

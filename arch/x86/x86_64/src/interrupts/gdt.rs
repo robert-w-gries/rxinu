@@ -13,12 +13,11 @@ use x86::shared::task::load_tr;
 
 #[allow(dead_code)]
 const GDT_NULL: usize = 0;
-const GDT_KERNEL_CODE: usize = 2;
-const GDT_KERNEL_DATA: usize = 3;
-const GDT_TSS: usize = 4;
+const GDT_KERNEL_CODE: usize = 1;
+const GDT_KERNEL_DATA: usize = 2;
+const GDT_TSS: usize = 3;
 
-static mut GDT: [SegmentDescriptor; 6] = [
-    SegmentDescriptor::NULL,
+static mut GDT: [SegmentDescriptor; 5] = [
     SegmentDescriptor::NULL,
     SegmentDescriptor::NULL,
     SegmentDescriptor::NULL,
