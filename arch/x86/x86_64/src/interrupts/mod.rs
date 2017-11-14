@@ -18,11 +18,11 @@ pub fn init(memory_controller: &mut MemoryController) {
         .expect("could not allocate double fault stack");
     tss.ist[DOUBLE_FAULT_IST_INDEX] = double_fault_stack.top() as u64;
 
-    gdt::init(&tss);
+    unsafe { gdt::init(&tss); }
     unsafe { idt::init(); }
 
     // TODO: Fix interrupt handling
-    // unsafe { asm!("int3"); }
+    unsafe { asm!("int3"); }
 }
 
 #[cfg(test)]

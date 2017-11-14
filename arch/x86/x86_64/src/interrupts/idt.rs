@@ -6,7 +6,7 @@ use core::mem;
 use x86::shared::dtables::{self, DescriptorTablePointer};
 use x86::shared::segmentation;
 
-use interrupts::{exception, irq};
+use interrupts::{DOUBLE_FAULT_IST_INDEX, exception, irq};
 
 const IRQ_OFFSET: usize = 32;
 
@@ -21,18 +21,17 @@ pub unsafe fn init() {
     IDTR.limit = (IDT.len() * mem::size_of::<IdtEntry>() - 1) as u16;
     IDTR.base = IDT.as_ptr();
 
-    set_handler_fn(&mut IDT[0],  exception::divide_by_zero);
-    set_handler_fn(&mut IDT[3],  exception::breakpoint);
-    set_handler_fn(&mut IDT[6],  exception::invalid_opcode);
-    set_handler_fn(&mut IDT[8],  exception::double_fault);
+    set_handler_fn(&mut IDT[0], exception::divide_by_zero);
+    set_handler_fn(&mut IDT[3], exception::breakpoint);
+    set_handler_fn(&mut IDT[6], exception::invalid_opcode);
+    set_double_fault_handler_fn(&mut IDT[8],
+                                exception::double_fault,
+                                DOUBLE_FAULT_IST_INDEX as u8);
     set_handler_fn(&mut IDT[14], exception::page_fault);
 
-    // TODO: Implement stack for double fault
-    //.set_stack_index(interrupts::DOUBLE_FAULT_IST_INDEX as u16);
-
-    set_handler_fn(&mut IDT[IRQ_OFFSET+0], irq::cascade);
-    set_handler_fn(&mut IDT[IRQ_OFFSET+1], irq::com1);
-    set_handler_fn(&mut IDT[IRQ_OFFSET+2], irq::com2);
+    set_handler_fn(&mut IDT[IRQ_OFFSET+2], irq::cascade);
+    set_handler_fn(&mut IDT[IRQ_OFFSET+3], irq::com2);
+    set_handler_fn(&mut IDT[IRQ_OFFSET+4], irq::com1);
 
     dtables::lidt(&IDTR);
 }
@@ -42,7 +41,7 @@ fn set_handler_fn(i: &mut IdtEntry, e: HandlerFunc) {
     let ptr = e as usize;
     i.base_lo = ((ptr as u64) & 0xFFFF) as u16;
     i.base_hi = ptr as u64 >> 16;
-    i.selector = segmentation::cs().bits();
+    i.selector = segmentation::cs();
 
     use x86::shared::descriptor::*;
     use x86::shared::PrivilegeLevel::Ring0;
@@ -50,6 +49,11 @@ fn set_handler_fn(i: &mut IdtEntry, e: HandlerFunc) {
     i.flags = Flags::from_priv(Ring0)
                   .const_or(FLAGS_TYPE_SYS_NATIVE_INTERRUPT_GATE)
                   .const_or(FLAGS_PRESENT);
+}
+
+fn set_double_fault_handler_fn(mut i: &mut IdtEntry, e: HandlerFunc, index: u8) {
+    i.ist_index = index;
+    set_handler_fn(&mut i, e);
 }
 
 /// Represents the exception stack frame pushed by the CPU on exception entry.

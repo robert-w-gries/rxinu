@@ -8,47 +8,57 @@ use core::mem;
 
 use x86::shared::PrivilegeLevel;
 use x86::shared::dtables::{self, DescriptorTablePointer};
-use x86::shared::segmentation::{Type, CODE_CONFORMING, DATA_WRITE};
+use x86::shared::segmentation::{Type, CODE_READ, DATA_WRITE};
 use x86::shared::task::load_tr;
 
 #[allow(dead_code)]
 const GDT_NULL: usize = 0;
-const GDT_KERNEL_CODE: usize = 1;
-const GDT_KERNEL_DATA: usize = 2;
-const GDT_TSS: usize = 3;
+const GDT_KERNEL_CODE: usize = 2;
+const GDT_KERNEL_DATA: usize = 3;
+const GDT_TSS: usize = 4;
 
-pub fn init(tss: &TaskStateSegment) {
+static mut GDT: [SegmentDescriptor; 6] = [
+    SegmentDescriptor::NULL,
+    SegmentDescriptor::NULL,
+    SegmentDescriptor::NULL,
+    SegmentDescriptor::NULL,
+    SegmentDescriptor::NULL,
+    SegmentDescriptor::NULL,
+];
+
+static mut GDTR: DescriptorTablePointer<SegmentDescriptor> = DescriptorTablePointer {
+    limit: 0,
+    base: 0 as * const _,
+};
+
+pub unsafe fn init(tss: &TaskStateSegment) {
     // TODO: Investigate PrivilegeLevel for TSS
     let tss_segs = SegmentDescriptor::new_tss(&tss, PrivilegeLevel::Ring0); 
 
-    let gdt: [SegmentDescriptor; 5] = [
-        // Null
-        SegmentDescriptor::NULL,
-        // Kernel code
-        SegmentDescriptor::new_memory(0,
-                                      0,
-                                      Type::Code(CODE_CONFORMING),
-                                      false,
-                                      PrivilegeLevel::Ring0,
-                                      SegmentBitness::Bits64),
-        // Kernel data
-        SegmentDescriptor::new_memory(0,
-                                      0,
-                                      Type::Data(DATA_WRITE),
-                                      false,
-                                      PrivilegeLevel::Ring0,
-                                      SegmentBitness::Bits64),
-        // TSS
-        tss_segs[0],
-        tss_segs[1],
-    ];
+    // Kernel code
+    GDT[GDT_KERNEL_CODE] = SegmentDescriptor::new_memory(0,
+        0,
+        Type::Code(CODE_READ),
+        false,
+        PrivilegeLevel::Ring0,
+        SegmentBitness::Bits64);
 
-    let gdtr: DescriptorTablePointer<SegmentDescriptor> = DescriptorTablePointer {
-        limit: (gdt.len() * mem::size_of::<SegmentDescriptor>() - 1) as u16,
-        base: gdt.as_ptr(),
-    };
+    // Kernel data
+    GDT[GDT_KERNEL_DATA] = SegmentDescriptor::new_memory(0,
+        0,
+        Type::Data(DATA_WRITE),
+        false,
+        PrivilegeLevel::Ring0,
+        SegmentBitness::Bits64);
 
-    unsafe { dtables::lgdt(&gdtr); }
+    // TSS
+    GDT[GDT_TSS] = tss_segs[0];
+    GDT[GDT_TSS+1] = tss_segs[1];
+
+    GDTR.base = GDT.as_ptr();
+    GDTR.limit = (GDT.len() * mem::size_of::<SegmentDescriptor>() - 1) as u16;
+
+    unsafe { dtables::lgdt(&GDTR); }
 
     // TODO: Investigate PrivilegeLevel for segment selectors and TSS load
     unsafe {

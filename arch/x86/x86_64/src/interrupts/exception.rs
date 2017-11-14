@@ -6,7 +6,9 @@ pub extern "x86-interrupt" fn divide_by_zero(stack_frame: &mut ExceptionStackFra
 }
 
 pub extern "x86-interrupt" fn breakpoint(stack_frame: &mut ExceptionStackFrame) {
-    println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
+    println!("\nException: BREAKPOINT at {:#x}\n{:#?}",
+              stack_frame.instruction_pointer,
+              stack_frame);
 }
 
 pub extern "x86-interrupt" fn invalid_opcode(stack_frame: &mut ExceptionStackFrame) {
