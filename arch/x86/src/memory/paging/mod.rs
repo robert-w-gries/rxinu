@@ -7,9 +7,15 @@ use self::mapper::Mapper;
 use self::page::Page;
 use self::temporary_page::TemporaryPage;
 
-const ENTRY_COUNT: usize = 1024;
 pub const PAGE_SIZE: usize = 4096;
-const PHYS_ADDR_MASK: usize = 0xffff_f000;
+
+#[cfg(target_arch = "x86")] const ENTRY_COUNT: usize = 1024;
+#[cfg(target_arch = "x86")] const PHYS_ADDR_MASK: usize = 0xffff_f000;
+#[cfg(target_arch = "x86")] const TEMP_PAGE_ADDR: usize = 0x0000_beef;
+
+#[cfg(target_arch = "x86_64")] const ENTRY_COUNT: usize = 512;
+#[cfg(target_arch = "x86_64")] const PHYS_ADDR_MASK: usize = 0x000f_ffff_ffff_f000;
+#[cfg(target_arch = "x86_64")] const TEMP_PAGE_ADDR: usize = 0xdead_beef;
 
 pub type PhysicalAddress = usize;
 pub type VirtualAddress = usize;
@@ -47,10 +53,10 @@ impl ActivePageTable {
         use x86::shared::control_regs;
 
         let old_table = InactivePageTable {
-            p2_frame: Frame::containing_address(unsafe { control_regs::cr3() } as usize),
+            frame: Frame::containing_address(unsafe { control_regs::cr3() } as usize),
         };
         unsafe {
-            control_regs::cr3_write(new_table.p2_frame.start_address());
+            control_regs::cr3_write(new_table.frame.start_address() as u64);
         }
         old_table
     }
@@ -62,23 +68,24 @@ impl ActivePageTable {
         where F: FnOnce(&mut Mapper)
     {
         use x86::shared::{control_regs, tlb};
+
         let flush_tlb = || unsafe { tlb::flush_all() };
 
         {
             let backup = Frame::containing_address(unsafe { control_regs::cr3() } as usize);
 
-            // map temporary_page to current p2 table
-            let p2_table = temporary_page.map_table_frame(backup.clone(), self);
+            // map temporary_page to current top table
+            let top_table = temporary_page.map_table_frame(backup.clone(), self);
 
             // overwrite recursive mapping
-            self.p2_mut()[ENTRY_COUNT-1].set(table.p2_frame.clone(), PRESENT | WRITABLE);
+            self.top_table_mut()[ENTRY_COUNT-1].set(table.frame.clone(), PRESENT | WRITABLE);
             flush_tlb();
 
             // execute f in the new context
             f(self);
 
-            // restore recursive mapping to original p2 table
-            p2_table[ENTRY_COUNT-1].set(backup, PRESENT | WRITABLE);
+            // restore recursive mapping to original top table
+            top_table[ENTRY_COUNT-1].set(backup, PRESENT | WRITABLE);
             flush_tlb();
         }
 
@@ -87,7 +94,7 @@ impl ActivePageTable {
 }
 
 pub struct InactivePageTable {
-    p2_frame: Frame,
+    frame: Frame,
 }
 
 impl InactivePageTable {
@@ -103,14 +110,14 @@ impl InactivePageTable {
         }
         temporary_page.unmap(active_table);
 
-        InactivePageTable { p2_frame: frame }
+        InactivePageTable { frame: frame }
     }
 }
 
 pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> ActivePageTable
     where A: FrameAllocator
 {
-    let mut temporary_page = TemporaryPage::new(Page { number: 0x0000beef }, allocator);
+    let mut temporary_page = TemporaryPage::new(Page { number: TEMP_PAGE_ADDR }, allocator);
 
     let mut active_table = unsafe { ActivePageTable::new() };
     let mut new_table = {
@@ -142,9 +149,13 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> Ac
                 mapper.identity_map(frame, flags, allocator);
             }
         }
+
         // identity map the VGA text buffer
-        let vga_frame = Frame::containing_address(0xb8000);
-        mapper.identity_map(vga_frame, WRITABLE, allocator);
+        #[cfg(feature = "vga")]
+        {
+            let vga_buffer_frame = Frame::containing_address(0xb8000);
+            mapper.identity_map(vga_buffer_frame, WRITABLE, allocator);
+        }
 
         let multiboot_start = Frame::containing_address(boot_info.start_address());
         let multiboot_end = Frame::containing_address(boot_info.end_address() - 1);
@@ -155,9 +166,9 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> Ac
 
     let old_table = active_table.switch(new_table);
 
-    // turn the old p2 page into a guard page
-    let old_p2_page = Page::containing_address(old_table.p2_frame.start_address());
-    active_table.unmap(old_p2_page, allocator);
-    println!("guard page at {:#x}", old_p2_page.start_address());
+    // turn the old top page into a guard page
+    let old_top_page = Page::containing_address(old_table.frame.start_address());
+    active_table.unmap(old_top_page, allocator);
+    println!("guard page at {:#x}", old_top_page.start_address());
     active_table
 }

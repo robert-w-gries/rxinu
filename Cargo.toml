@@ -7,13 +7,8 @@ authors = [ "robert.w.gries@gmail.com" ]
 [lib]
 crate-type = ["staticlib"]
 
-[target.'cfg(target_arch = "x86")'.dependencies]
-arch_i686 = { path = "arch/x86/i686" }
+[target.'cfg(any(target_arch = "x86", target_arch = "x86_64"))'.dependencies]
+arch_x86 = { path = "arch/x86", features = ["serial"] }
 # TODO: Submit issue for multiboot2-elf64 repo
-# multiboot2 = { git = "https://github.com/phil-opp/multiboot2-elf64", features = ["elf32"] }
-multiboot2 = { git = "https://github.com/ahmedcharles/multiboot2-elf64", branch = "elf32" }
-
-[target.'cfg(target_arch = "x86_64")'.dependencies]
-arch_x86_64 = { path = "arch/x86/x86_64", features = ["vga"] }
 # multiboot2 = { git = "https://github.com/phil-opp/multiboot2-elf64", features = [] }
 multiboot2 = { git = "https://github.com/ahmedcharles/multiboot2-elf64", branch = "elf32" }
