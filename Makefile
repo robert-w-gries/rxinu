@@ -68,7 +68,7 @@ gdb: $(kernel)
 iso: $(iso)
 
 run: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso) -s
+	@qemu-system-x86_64 -cdrom $(iso) -s -nographic
 
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub
