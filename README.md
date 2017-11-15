@@ -74,14 +74,20 @@ The `rxinu` Makefile has support for debugging built-in already. All that is nee
   - [x] Physical Memory Manager
   - [x] Virtual Memory Allocator
   - [x] Heap Allocator
-- [x] Interrupt handling
-- [x] PIC
+  - [ ] Switch to [ralloc](https://github.com/redox-os/ralloc)
+- [ ] Interrupt handling
+  - [x] CPU Exception
+  - [ ] IRQ
+  - [ ] Syscall
 - [ ] Project 1: Synchronous serial driver
-- [ ] Keyboard input
+  - [x] Serial driver
+  - [ ] Keyboard interrupt
+  - [ ] `kputc`/`kgetc`/`kungetc`/`kprintf`
 - [ ] Higher half kernel
 - [ ] Unit tests and integration tests
 - [ ] MIPS target
 - [ ] Timer
+- [ ] Processes
 - [ ] Scheduler
   - [ ] Project 2: Multiprocessing and Context Switch
   - [ ] Project 3: Priority and Preemption
@@ -92,3 +98,9 @@ The `rxinu` Makefile has support for debugging built-in already. All that is nee
 - [ ] Project 8: Chat application
 - [ ] Permissions for kernel sections
 - [ ] Hardware abstraction
+- [ ] CI
+  - [x] Build all targets
+  - [ ] Rustfmt for all crates
+  - [ ] Unit tests
+  - [ ] Regression tests
+  - [ ] Code coverage
