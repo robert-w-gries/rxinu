@@ -10,7 +10,6 @@ extern crate compiler_builtins;
 #[macro_use]
 extern crate arch_x86 as arch;
 
-#[macro_use]
 extern crate alloc;
 extern crate multiboot2;
 

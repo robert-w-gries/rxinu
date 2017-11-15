@@ -1,8 +1,8 @@
 use core::ptr::Unique;
 
 use memory::{Frame, FrameAllocator};
-use super::{PhysicalAddress, VirtualAddress, ENTRY_COUNT, PAGE_SIZE};
-use super::entry::{EntryFlags, PRESENT, HUGE_PAGE};
+use super::{PhysicalAddress, VirtualAddress, PAGE_SIZE};
+use super::entry::{EntryFlags, PRESENT};
 use super::page::Page;
 use super::table::{self, Table,};
 
@@ -38,7 +38,7 @@ impl Mapper {
     pub fn map_to<A>(&mut self, page: Page, frame: Frame, flags: EntryFlags, allocator: &mut A)
         where A: FrameAllocator
     {
-        let mut p1 = self.top_table_mut().next_table_create(page.p2_index(), allocator);
+        let p1 = self.top_table_mut().next_table_create(page.p2_index(), allocator);
 
         assert!(p1[page.p1_index()].is_unused());
         p1[page.p1_index()].set(frame, flags | PRESENT);
@@ -107,15 +107,18 @@ impl Mapper {
     pub fn map_to<A>(&mut self, page: Page, frame: Frame, flags: EntryFlags, allocator: &mut A)
         where A: FrameAllocator
     {
-        let mut p3 = self.top_table_mut().next_table_create(page.p4_index(), allocator);
-        let mut p2 = p3.next_table_create(page.p3_index(), allocator);
-        let mut p1 = p2.next_table_create(page.p2_index(), allocator);
+        let p3 = self.top_table_mut().next_table_create(page.p4_index(), allocator);
+        let p2 = p3.next_table_create(page.p3_index(), allocator);
+        let p1 = p2.next_table_create(page.p2_index(), allocator);
 
         assert!(p1[page.p1_index()].is_unused());
         p1[page.p1_index()].set(frame, flags | PRESENT);
     }
 
     pub fn translate_page(&self, page: Page) -> Option<Frame> {
+        use super::ENTRY_COUNT;
+        use super::entry::HUGE_PAGE;
+
         let p3 = self.top_table().next_table(page.p4_index());
 
         let huge_page = || {

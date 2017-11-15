@@ -42,7 +42,7 @@ impl Entry {
 impl EntryFlags {
     #[cfg(target_arch = "x86")]
     pub fn from_elf_section_flags(section: &ElfSection) -> EntryFlags {
-        use multiboot2::{ELF_SECTION_ALLOCATED, ELF_SECTION_WRITABLE, ELF_SECTION_EXECUTABLE};
+        use multiboot2::{ELF_SECTION_ALLOCATED, ELF_SECTION_WRITABLE};
 
         let mut flags = EntryFlags::empty();
 

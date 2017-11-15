@@ -54,7 +54,7 @@ pub extern "x86-interrupt" fn device_not_available(stack_frame: &mut ExceptionSt
 }
 
 pub extern "x86-interrupt" fn double_fault( stack_frame: &mut ExceptionStackFrame) {
-    println!("Exception: DOUBLE FAULT\n{:#?}", stack_frame);
+    println!("Exception: Double fault\n{:#?}", stack_frame);
     loop{}
 }
 
@@ -88,7 +88,7 @@ pub extern "x86-interrupt" fn protection(stack_frame: &mut ExceptionStackFrame) 
 
 pub extern "x86-interrupt" fn page_fault(stack_frame: &mut ExceptionStackFrame) {
     use x86::shared::control_regs;
-    println!("\nException: PAGE FAULT while accessing {:#x}\n{:#?}",
+    println!("\nException: Page fault while accessing {:#x}\n{:#?}",
              unsafe { control_regs::cr2() },
              stack_frame);
     loop {}

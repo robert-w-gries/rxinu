@@ -39,6 +39,7 @@ pub mod device;
 pub mod interrupts;
 pub mod memory;
 
+#[allow(dead_code)]
 fn enable_nxe_bit() {
     use x86::shared::msr::{IA32_EFER, rdmsr, wrmsr};
 

@@ -46,19 +46,17 @@ pub unsafe fn init(tss: &TaskStateSegment) {
     GDTR.base = GDT.as_ptr();
     GDTR.limit = (GDT.len() * mem::size_of::<SegmentDescriptor>() - 1) as u16;
 
-    unsafe { dtables::lgdt(&GDTR); }
+    dtables::lgdt(&GDTR);
 
     // TODO: Investigate PrivilegeLevel for segment selectors and TSS load
-    unsafe {
-        segmentation::set_cs(SegmentSelector::new(GDT_KERNEL_CODE as u16, PrivilegeLevel::Ring0));
-        segmentation::load_ds(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
-        segmentation::load_es(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
-        segmentation::load_fs(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
-        segmentation::load_gs(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
-        segmentation::load_ss(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
+    segmentation::set_cs(SegmentSelector::new(GDT_KERNEL_CODE as u16, PrivilegeLevel::Ring0));
+    segmentation::load_ds(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
+    segmentation::load_es(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
+    segmentation::load_fs(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
+    segmentation::load_gs(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
+    segmentation::load_ss(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
 
-        load_tr(SegmentSelector::new(GDT_TSS as u16, PrivilegeLevel::Ring0));
-    }
+    load_tr(SegmentSelector::new(GDT_TSS as u16, PrivilegeLevel::Ring0));
 }
 
 #[cfg(target_arch = "x86_64")]
@@ -89,17 +87,15 @@ pub unsafe fn init(tss: &TaskStateSegment) {
     GDTR.base = GDT.as_ptr();
     GDTR.limit = (GDT.len() * mem::size_of::<SegmentDescriptor>() - 1) as u16;
 
-    unsafe { dtables::lgdt(&GDTR); }
+    dtables::lgdt(&GDTR);
 
     // TODO: Investigate PrivilegeLevel for segment selectors and TSS load
-    unsafe {
-        segmentation::set_cs(SegmentSelector::new(GDT_KERNEL_CODE as u16, PrivilegeLevel::Ring0));
-        segmentation::load_ds(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
-        segmentation::load_es(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
-        segmentation::load_fs(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
-        segmentation::load_gs(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
-        segmentation::load_ss(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
+    segmentation::set_cs(SegmentSelector::new(GDT_KERNEL_CODE as u16, PrivilegeLevel::Ring0));
+    segmentation::load_ds(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
+    segmentation::load_es(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
+    segmentation::load_fs(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
+    segmentation::load_gs(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
+    segmentation::load_ss(SegmentSelector::new(GDT_KERNEL_DATA as u16, PrivilegeLevel::Ring0));
 
-        load_tr(SegmentSelector::new(GDT_TSS as u16, PrivilegeLevel::Ring0));
-    }
+    load_tr(SegmentSelector::new(GDT_TSS as u16, PrivilegeLevel::Ring0));
 }

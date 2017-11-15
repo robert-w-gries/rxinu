@@ -11,9 +11,9 @@ mod irq;
 const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
 #[cfg(target_arch = "x86")]
-pub fn init(memory_controller: &mut MemoryController) {
+pub fn init(_memory_controller: &mut MemoryController) {
 
-    let mut tss = TaskStateSegment::new();
+    let tss = TaskStateSegment::new();
 
     unsafe { gdt::init(&tss); }
     unsafe { idt::init(); }

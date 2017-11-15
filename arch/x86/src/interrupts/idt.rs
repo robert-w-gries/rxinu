@@ -74,7 +74,7 @@ fn set_handler_fn(i: &mut IdtEntry, e: HandlerFunc) {
 }
 
 #[cfg(target_arch = "x86")]
-fn set_double_fault_handler_fn(mut i: &mut IdtEntry, e: HandlerFunc, index: u8) {
+fn set_double_fault_handler_fn(mut i: &mut IdtEntry, e: HandlerFunc, _index: u8) {
     set_handler_fn(&mut i, e);
 }
 
