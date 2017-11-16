@@ -1,29 +1,9 @@
-#![feature(abi_x86_interrupt)]
-#![feature(asm)]
-#![feature(const_fn)]
-#![feature(unique)]
-#![feature(const_unique_new)]
-#![no_std]
-
-#[macro_use]
-extern crate bitflags;
-
-#[macro_use]
-extern crate once;
-
-extern crate bit_field;
-extern crate hole_list_allocator as allocator;
-extern crate multiboot2;
-extern crate rlibc;
-extern crate spin;
-extern crate volatile;
-extern crate x86;
-
+// Export macros before declaring mods so modules can use print
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
             use core::fmt::Write;
-            let _ = write!($crate::console::CONSOLE.lock(), $($arg)*);
+            let _ = write!($crate::arch::x86::console::CONSOLE.lock(), $($arg)*);
     });
 }
 
@@ -33,11 +13,21 @@ macro_rules! println {
     ($fmt:expr, $($arg:tt)*) => (print!(concat!($fmt, "\n"), $($arg)*));
 }
 
-// declare modules after exporting print macros
 pub mod console;
-pub mod device;
-pub mod interrupts;
-pub mod memory;
+mod device;
+mod interrupts;
+mod memory;
+
+pub fn init(multiboot_information_address: usize) {
+    device::init();
+    console::init();
+
+    let boot_info = unsafe { ::multiboot2::load(multiboot_information_address) };
+
+    let mut memory_controller = memory::init(&boot_info);
+
+    interrupts::init(&mut memory_controller);
+}
 
 #[allow(dead_code)]
 fn enable_nxe_bit() {

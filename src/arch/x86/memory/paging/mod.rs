@@ -1,7 +1,7 @@
+use arch::x86::memory::{Frame, FrameAllocator};
 use core::ops::{Deref, DerefMut};
 use multiboot2::BootInformation;
 
-use memory::{Frame, FrameAllocator};
 use self::entry::{EntryFlags, PRESENT, WRITABLE};
 use self::mapper::Mapper;
 use self::page::Page;

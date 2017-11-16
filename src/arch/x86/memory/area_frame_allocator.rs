@@ -1,4 +1,4 @@
-use memory::{Frame, FrameAllocator};
+use arch::x86::memory::{Frame, FrameAllocator};
 use multiboot2::{MemoryAreaIter, MemoryArea};
 
 pub struct AreaFrameAllocator {

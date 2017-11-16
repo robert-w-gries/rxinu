@@ -1,4 +1,4 @@
-use memory::Frame;
+use arch::x86::memory::Frame;
 
 use super::{ActivePageTable, VirtualAddress};
 use super::page::Page;
@@ -47,7 +47,7 @@ impl TemporaryPage {
 
 struct TinyAllocator([Option<Frame>; 3]);
 
-use memory::FrameAllocator;
+use arch::x86::memory::FrameAllocator;
 
 impl TinyAllocator {
     fn new<A>(allocator: &mut A) -> TinyAllocator

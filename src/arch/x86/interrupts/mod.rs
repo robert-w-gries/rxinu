@@ -1,7 +1,7 @@
 #[cfg(target_arch = "x86")] use x86::bits32::task::TaskStateSegment;
 #[cfg(target_arch = "x86_64")] use x86::bits64::task::TaskStateSegment;
 
-use memory::MemoryController;
+use arch::x86::memory::MemoryController;
 
 mod exception;
 mod gdt;

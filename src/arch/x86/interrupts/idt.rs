@@ -1,13 +1,11 @@
+use arch::x86::interrupts::{DOUBLE_FAULT_IST_INDEX, exception, irq};
 use core::fmt;
 use core::mem;
-
-#[cfg(target_arch = "x86")] use x86::bits32::irq::IdtEntry;
-#[cfg(target_arch = "x86_64")] use x86::bits64::irq::IdtEntry;
-
 use x86::shared::dtables::{self, DescriptorTablePointer};
 use x86::shared::segmentation;
 
-use interrupts::{DOUBLE_FAULT_IST_INDEX, exception, irq};
+#[cfg(target_arch = "x86")] use x86::bits32::irq::IdtEntry;
+#[cfg(target_arch = "x86_64")] use x86::bits64::irq::IdtEntry;
 
 const IRQ_OFFSET: usize = 32;
 

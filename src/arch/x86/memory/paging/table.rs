@@ -1,7 +1,7 @@
+use arch::x86::memory::FrameAllocator;
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
-use memory::FrameAllocator;
 use super::ENTRY_COUNT;
 use super::entry::{Entry, HUGE_PAGE, PRESENT, WRITABLE};
 

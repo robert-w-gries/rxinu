@@ -1,7 +1,7 @@
-use memory::FrameAllocator;
-use memory::paging::{ActivePageTable, PAGE_SIZE};
-use memory::paging::page::{Page, PageIter};
-use memory::paging::entry::WRITABLE;
+use arch::x86::memory::FrameAllocator;
+use arch::x86::memory::paging::{ActivePageTable, PAGE_SIZE};
+use arch::x86::memory::paging::page::{Page, PageIter};
+use arch::x86::memory::paging::entry::WRITABLE;
 
 pub struct StackAllocator {
     range: PageIter,

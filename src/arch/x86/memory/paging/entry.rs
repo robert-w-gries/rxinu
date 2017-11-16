@@ -1,7 +1,7 @@
 use multiboot2::ElfSection;
 
-use memory::Frame;
-use memory::paging::PHYS_ADDR_MASK;
+use arch::x86::memory::Frame;
+use arch::x86::memory::paging::PHYS_ADDR_MASK;
 
 #[cfg(target_arch = "x86")] pub struct Entry(u32);
 #[cfg(target_arch = "x86_64")] pub struct Entry(u64);

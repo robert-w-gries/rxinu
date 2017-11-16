@@ -1,4 +1,4 @@
-use interrupts::idt::ExceptionStackFrame;
+use arch::x86::interrupts::idt::ExceptionStackFrame;
 
 pub extern "x86-interrupt" fn divide_by_zero(stack_frame: &mut ExceptionStackFrame) {
     println!("\nException: Divide by zero at {:#x}\n{:#?}",

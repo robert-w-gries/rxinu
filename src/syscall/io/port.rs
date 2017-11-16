@@ -2,7 +2,7 @@
 /// https://github.com/redox-os/syscall/blob/b5101b25cc8452d4233cc6b4e5b4998a862f8c6c/src/io/pio.rs
 
 use core::marker::PhantomData;
-use super::Io;
+use super::io::Io;
 
 #[derive(Copy, Clone)]
 pub struct Port<T> {

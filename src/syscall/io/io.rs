@@ -1,8 +1,4 @@
-#![allow(dead_code)]
-
 use core::cmp::PartialEq;
-
-pub mod port;
 
 pub trait Io {
     type Value: Copy + PartialEq;

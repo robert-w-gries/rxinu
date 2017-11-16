@@ -1,15 +1,10 @@
 use core::fmt::{self, Write};
-use spin::Mutex;
 
-use super::io::{Io, ReadOnly};
-use super::io::port::Port;
+use syscall::io::{Io, Port, ReadOnly};
 
 const MAX_HEIGHT: usize = 25;
 
-pub static COM1: Mutex<SerialPort> = Mutex::new(SerialPort::new(0x3F8));
-pub static COM2: Mutex<SerialPort> = Mutex::new(SerialPort::new(0x2F8));
-
-impl Write for SerialPort {
+impl<T: Io<Value = u8>> Write for SerialPort<T> {
     fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
         for byte in s.bytes() {
             self.send(byte);
@@ -18,24 +13,19 @@ impl Write for SerialPort {
     }
 }
 
-pub fn init() {
-    COM1.lock().init();
-    COM2.lock().init();
-}
-
 #[allow(dead_code)]
-pub struct SerialPort {
-    data: Port<u8>,
-    int_en: Port<u8>,
-    fifo_ctrl: Port<u8>,
-    line_ctrl: Port<u8>,
-    modem_ctrl: Port<u8>,
-    line_sts: ReadOnly<Port<u8>>,
-    modem_sts: ReadOnly<Port<u8>>,
+pub struct SerialPort<T: Io<Value = u8>> {
+    data: T,
+    int_en: T,
+    fifo_ctrl: T,
+    line_ctrl: T,
+    modem_ctrl: T,
+    line_sts: ReadOnly<T>,
+    modem_sts: ReadOnly<T>,
 }
 
-impl SerialPort {
-    const fn new(base: u16) -> SerialPort {
+impl SerialPort<Port<u8>> {
+    pub const fn new(base: u16) -> SerialPort<Port<u8>> {
         SerialPort {
             data: Port::new(base),
             int_en: Port::new(base + 1),
@@ -46,14 +36,16 @@ impl SerialPort {
             modem_sts: ReadOnly::new(Port::new(base + 6))
         }
     }
+}
 
+impl<T: Io<Value = u8>> SerialPort<T> {
     pub fn clear_screen(&mut self) {
         for _ in 0..MAX_HEIGHT {
             self.send(b'\n')
         }
     }
 
-    fn init(&mut self) {
+    pub fn init(&mut self) {
         self.int_en.write(0x00);        // disable interrupts
         self.line_ctrl.write(0x80);     // enable DLAB (set baud rate divisor)
         self.data.write(0x03);          // set divisor to 3 (lo byte) 38400 baud
@@ -61,7 +53,7 @@ impl SerialPort {
         self.line_ctrl.write(0x03);     // 8 bits, no parity, one stop bit
         self.fifo_ctrl.write(0xC7);     // enable fifo, clear them, 14 byte threshold
         self.modem_ctrl.write(0x0B);    // IRQs enabled, RTS/DSR set
-        self.int_en.write(0x01);
+        self.int_en.write(0x01);        // enable interrupts
     }
 
     fn line_sts(&self) -> LineStsFlags {
@@ -113,7 +105,9 @@ bitflags! {
     /// Line status flags
     struct LineStsFlags: u8 {
         const DATA_READY =    1 << 0;
+        // 1 to 4 unknown
         const THR_EMPTY =     1 << 5;
         const TRANS_EMPTY =   1 << 6;
+        // 6 and 7 unknown
     }
 }

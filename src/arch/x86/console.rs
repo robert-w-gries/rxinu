@@ -2,10 +2,10 @@ use core::fmt::{self, Write};
 use spin::Mutex;
 
 #[cfg(feature = "serial")]
-use device::serial::COM1 as console;
+use super::device::serial::COM1 as console;
 
 #[cfg(feature = "vga")]
-use device::vga::VGA as console;
+use super::device::vga::VGA as console;
 
 pub static CONSOLE: Mutex<Console> = Mutex::new(Console);
 

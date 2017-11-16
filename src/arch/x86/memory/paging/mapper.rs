@@ -1,6 +1,6 @@
 use core::ptr::Unique;
+use arch::x86::memory::{Frame, FrameAllocator};
 
-use memory::{Frame, FrameAllocator};
 use super::{PhysicalAddress, VirtualAddress, PAGE_SIZE};
 use super::entry::{EntryFlags, PRESENT};
 use super::page::Page;

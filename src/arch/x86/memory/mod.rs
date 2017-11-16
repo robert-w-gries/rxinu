@@ -13,8 +13,8 @@ mod stack_allocator;
 pub fn init(boot_info: &BootInformation) -> MemoryController {
     assert_has_not_been_called!("memory::init must be called only once");
 
-    #[cfg(target_arch = "x86_64")] ::enable_nxe_bit();
-    ::enable_write_protect_bit();
+    #[cfg(target_arch = "x86_64")] super::enable_nxe_bit();
+    super::enable_write_protect_bit();
 
     let memory_map_tag = boot_info.memory_map_tag().expect(
         "Memory map tag required");
