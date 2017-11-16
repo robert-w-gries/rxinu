@@ -31,6 +31,6 @@ features = ["spin_no_std"]
 path = "allocator/hole_list_allocator"
 
 [features]
-default = ["serial"]
+default = ["vga"]
 serial = []
 vga = []

@@ -47,6 +47,7 @@ pub unsafe fn init() {
     set_handler_fn(&mut IDT[30], exception::security);
     // 31 reserved
 
+    set_handler_fn(&mut IDT[IRQ_OFFSET+1], irq::keyboard);
     set_handler_fn(&mut IDT[IRQ_OFFSET+2], irq::cascade);
     set_handler_fn(&mut IDT[IRQ_OFFSET+3], irq::com2);
     set_handler_fn(&mut IDT[IRQ_OFFSET+4], irq::com1);

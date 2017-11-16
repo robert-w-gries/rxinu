@@ -19,14 +19,14 @@ mod interrupts;
 mod memory;
 
 pub fn init(multiboot_information_address: usize) {
-    device::init();
     console::init();
-
     let boot_info = unsafe { ::multiboot2::load(multiboot_information_address) };
 
     let mut memory_controller = memory::init(&boot_info);
 
     interrupts::init(&mut memory_controller);
+
+    device::init();
 }
 
 #[allow(dead_code)]

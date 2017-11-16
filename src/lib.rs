@@ -36,6 +36,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 
     println!("\nIt did not crash!");
 
+println!("Keyboard:\n\n");
     loop {}
 }
 

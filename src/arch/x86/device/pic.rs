@@ -17,18 +17,18 @@ pub fn init() {
     SLAVE.lock().data.write(0x28);
 
     // Set up cascade
-    MASTER.lock().data.write(4);
-    SLAVE.lock().data.write(2);
+    MASTER.lock().data.write(0);
+    SLAVE.lock().data.write(0);
 
     // Set up interrupt mode (1 is 8086/88 mode, 2 is auto EOI)
     MASTER.lock().data.write(ICW4::MODE_8086 as u8);
     SLAVE.lock().data.write(ICW4::MODE_8086 as u8);
 
-    // Unmask interrupts
-    MASTER.lock().data.write(0);
-    SLAVE.lock().data.write(0);
+    // Mask interrupts
+    MASTER.lock().data.write(0x0);
+    SLAVE.lock().data.write(0x0);
 
     // Ack remaining interrupts
-    MASTER.lock().ack();
-    SLAVE.lock().ack();
+    //MASTER.lock().ack();
+    //SLAVE.lock().ack();
 }
