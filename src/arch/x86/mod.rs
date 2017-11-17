@@ -19,14 +19,22 @@ mod interrupts;
 mod memory;
 
 pub fn init(multiboot_information_address: usize) {
+    use x86;
+
     console::init();
     let boot_info = unsafe { ::multiboot2::load(multiboot_information_address) };
 
     let mut memory_controller = memory::init(&boot_info);
 
+println!("Disabling irq");
+unsafe { x86::shared::irq::disable(); }
     interrupts::init(&mut memory_controller);
 
     device::init();
+println!("Enabling IRQ");
+//unsafe { x86::shared::irq::enable(); }
+unsafe { asm!("sti") };
+//println!("WORKING");
 }
 
 #[allow(dead_code)]

@@ -1,4 +1,4 @@
-use arch::x86::interrupts::idt::ExceptionStackFrame;
+use arch::x86::interrupts::idt::{ExceptionStackFrame, PageFaultErrorCode};
 
 pub extern "x86-interrupt" fn divide_by_zero(stack_frame: &mut ExceptionStackFrame) {
     println!("\nException: Divide by zero at {:#x}\n{:#?}",
@@ -53,40 +53,41 @@ pub extern "x86-interrupt" fn device_not_available(stack_frame: &mut ExceptionSt
     loop {}
 }
 
-pub extern "x86-interrupt" fn double_fault( stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn double_fault(stack_frame: &mut ExceptionStackFrame, _error_code: u64) {
     println!("Exception: Double fault\n{:#?}", stack_frame);
     loop{}
 }
 
-pub extern "x86-interrupt" fn invalid_tss(stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn invalid_tss(stack_frame: &mut ExceptionStackFrame, _error_code: u64) {
     println!("\nException: Invalid TSS fault at {:#x}\n{:#?}",
              stack_frame.instruction_pointer,
              stack_frame);
     loop {}
 }
 
-pub extern "x86-interrupt" fn segment_not_present(stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn segment_not_present(stack_frame: &mut ExceptionStackFrame, _error_code: u64) {
     println!("\nException: Segment not present fault at {:#x}\n{:#?}",
              stack_frame.instruction_pointer,
              stack_frame);
     loop {}
 }
 
-pub extern "x86-interrupt" fn stack_segment(stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn stack_segment(stack_frame: &mut ExceptionStackFrame, _error_code: u64) {
     println!("\nException: Stack segment fault at {:#x}\n{:#?}",
              stack_frame.instruction_pointer,
              stack_frame);
     loop {}
 }
 
-pub extern "x86-interrupt" fn protection(stack_frame: &mut ExceptionStackFrame) {
-    println!("\nException: Protection fault at {:#x}\n{:#?}",
+pub extern "x86-interrupt" fn protection(stack_frame: &mut ExceptionStackFrame, error_code: u64) {
+    println!("\nException: Protection fault at {:#x}\nError Code: {:#x}\n{:#?}",
              stack_frame.instruction_pointer,
+             error_code,
              stack_frame);
     loop {}
 }
 
-pub extern "x86-interrupt" fn page_fault(stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn page_fault(stack_frame: &mut ExceptionStackFrame, error_code: PageFaultErrorCode) {
     use x86::shared::control_regs;
     println!("\nException: Page fault while accessing {:#x}\n{:#?}",
              unsafe { control_regs::cr2() },
@@ -101,7 +102,7 @@ pub extern "x86-interrupt" fn fpu(stack_frame: &mut ExceptionStackFrame) {
     loop {}
 }
 
-pub extern "x86-interrupt" fn alignment_check(stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn alignment_check(stack_frame: &mut ExceptionStackFrame, _error_code: u64) {
     println!("\nException: Alignment check fault at {:#x}\n{:#?}",
              stack_frame.instruction_pointer,
              stack_frame);
@@ -129,7 +130,7 @@ pub extern "x86-interrupt" fn virtualization(stack_frame: &mut ExceptionStackFra
     loop {}
 }
 
-pub extern "x86-interrupt" fn security(stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn security(stack_frame: &mut ExceptionStackFrame, _error_code: u64) {
     println!("\nException: Security exception at {:#x}\n{:#?}",
              stack_frame.instruction_pointer,
              stack_frame);

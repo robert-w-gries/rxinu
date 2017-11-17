@@ -1,13 +1,16 @@
 use arch::x86::interrupts::{DOUBLE_FAULT_IST_INDEX, exception, irq};
 use core::fmt;
 use core::mem;
+use x86::shared::PrivilegeLevel;
 use x86::shared::dtables::{self, DescriptorTablePointer};
-use x86::shared::segmentation;
+use x86::shared::paging::VAddr;
+use x86::shared::segmentation::{self, SegmentSelector};
 
-#[cfg(target_arch = "x86")] use x86::bits32::irq::IdtEntry;
-#[cfg(target_arch = "x86_64")] use x86::bits64::irq::IdtEntry;
+#[cfg(target_arch = "x86")] use x86::bits32::irq::{IdtEntry, Type};
+#[cfg(target_arch = "x86_64")] use x86::bits64::irq::{IdtEntry, Type};
 
 const IRQ_OFFSET: usize = 32;
+const KERNEL_CODE_SELECTOR: SegmentSelector = SegmentSelector::new(1, PrivilegeLevel::Ring0);
 
 static mut IDT: [IdtEntry; 256] = [IdtEntry::MISSING; 256];
 
@@ -20,82 +23,83 @@ pub unsafe fn init() {
     IDTR.limit = (IDT.len() * mem::size_of::<IdtEntry>() - 1) as u16;
     IDTR.base = IDT.as_ptr();
 
-    set_handler_fn(&mut IDT[0], exception::divide_by_zero);
-    set_handler_fn(&mut IDT[1], exception::debug);
-    set_handler_fn(&mut IDT[2], exception::non_maskable);
-    set_handler_fn(&mut IDT[3], exception::breakpoint);
-    set_handler_fn(&mut IDT[4], exception::overflow);
-    set_handler_fn(&mut IDT[5], exception::bound_range);
-    set_handler_fn(&mut IDT[6], exception::invalid_opcode);
-    set_handler_fn(&mut IDT[7], exception::device_not_available);
-    set_double_fault_handler_fn(&mut IDT[8],
-                                exception::double_fault,
-                                DOUBLE_FAULT_IST_INDEX as u8);
+    IDT[0] = fn_handler_entry(exception::divide_by_zero as usize);
+    IDT[1] = fn_handler_entry(exception::debug as usize);
+    IDT[2] = fn_handler_entry(exception::non_maskable as usize);
+    IDT[3] = fn_handler_entry(exception::breakpoint as usize);
+    IDT[4] = fn_handler_entry(exception::overflow as usize);
+    IDT[5] = fn_handler_entry(exception::bound_range as usize);
+    IDT[6] = fn_handler_entry(exception::invalid_opcode as usize);
+    IDT[7] = fn_handler_entry(exception::device_not_available as usize);
+    IDT[8] = double_fault_handler_entry(exception::double_fault as usize,
+                                        DOUBLE_FAULT_IST_INDEX as u8);
     // 9 no longer available
-    set_handler_fn(&mut IDT[10], exception::invalid_tss);
-    set_handler_fn(&mut IDT[11], exception::segment_not_present);
-    set_handler_fn(&mut IDT[12], exception::stack_segment);
-    set_handler_fn(&mut IDT[13], exception::protection);
-    set_handler_fn(&mut IDT[14], exception::page_fault);
+    IDT[10] = fn_handler_entry(exception::invalid_tss as usize);
+    IDT[11] = fn_handler_entry(exception::segment_not_present as usize);
+    IDT[12] = fn_handler_entry(exception::stack_segment as usize);
+    IDT[13] = fn_handler_entry(exception::protection as usize);
+    IDT[14] = fn_handler_entry(exception::page_fault as usize);
     // 15 reserved
-    set_handler_fn(&mut IDT[16], exception::fpu);
-    set_handler_fn(&mut IDT[17], exception::alignment_check);
-    set_handler_fn(&mut IDT[18], exception::machine_check);
-    set_handler_fn(&mut IDT[19], exception::simd);
-    set_handler_fn(&mut IDT[20], exception::virtualization);
+    IDT[16] = fn_handler_entry(exception::fpu as usize);
+    IDT[17] = fn_handler_entry(exception::alignment_check as usize);
+    IDT[18] = fn_handler_entry(exception::machine_check as usize);
+    IDT[19] = fn_handler_entry(exception::simd as usize);
+    IDT[20] = fn_handler_entry(exception::virtualization as usize);
     // 21 through 29 reserved
-    set_handler_fn(&mut IDT[30], exception::security);
+    IDT[30] = fn_handler_entry(exception::security as usize);
     // 31 reserved
 
-    set_handler_fn(&mut IDT[IRQ_OFFSET+1], irq::keyboard);
-    set_handler_fn(&mut IDT[IRQ_OFFSET+2], irq::cascade);
-    set_handler_fn(&mut IDT[IRQ_OFFSET+3], irq::com2);
-    set_handler_fn(&mut IDT[IRQ_OFFSET+4], irq::com1);
+    IDT[IRQ_OFFSET+0] = fn_handler_entry(irq::timer as usize);
+    IDT[IRQ_OFFSET+1] = fn_handler_entry(irq::keyboard as usize);
+    IDT[IRQ_OFFSET+2] = fn_handler_entry(irq::cascade as usize);
+    IDT[IRQ_OFFSET+3] = fn_handler_entry(irq::com2 as usize);
+    IDT[IRQ_OFFSET+4] = fn_handler_entry(irq::com1 as usize);
 
     dtables::lidt(&IDTR);
 }
 
-type HandlerFunc = extern "x86-interrupt" fn(&mut ExceptionStackFrame);
-
-#[cfg(target_arch = "x86")]
-fn set_handler_fn(i: &mut IdtEntry, e: HandlerFunc) {
-    let ptr = e as usize;
-    i.offset_lo = ((ptr as u32) & 0xFFFF) as u16;
-    i.offset_hi = ((ptr as u32 & 0xFFFF0000) >> 16) as u16;
-    i.selector = segmentation::cs().bits() as u16;
-
-    use x86::shared::descriptor::*;
-    use x86::shared::PrivilegeLevel::Ring0;
-
-    i.flags = Flags::from_priv(Ring0)
-                  .const_or(FLAGS_TYPE_SYS_NATIVE_INTERRUPT_GATE)
-                  .const_or(FLAGS_PRESENT);
+fn fn_handler_entry(ptr: usize) -> IdtEntry {
+    IdtEntry::new(VAddr::from_usize(ptr), KERNEL_CODE_SELECTOR,
+                  PrivilegeLevel::Ring0, Type::InterruptGate, 0)
 }
 
 #[cfg(target_arch = "x86")]
-fn set_double_fault_handler_fn(mut i: &mut IdtEntry, e: HandlerFunc, _index: u8) {
-    set_handler_fn(&mut i, e);
+fn double_fault_handler_entry(ptr: usize, index: u8) -> IdtEntry {
+    fn_handler_entry(ptr)
 }
 
 #[cfg(target_arch = "x86_64")]
-fn set_handler_fn(i: &mut IdtEntry, e: HandlerFunc) {
-    let ptr = e as usize;
-    i.base_lo = ((ptr as u64) & 0xFFFF) as u16;
-    i.base_hi = ptr as u64 >> 16;
-    i.selector = segmentation::cs();
-
-    use x86::shared::descriptor::*;
-    use x86::shared::PrivilegeLevel::Ring0;
-
-    i.flags = Flags::from_priv(Ring0)
-                  .const_or(FLAGS_TYPE_SYS_NATIVE_INTERRUPT_GATE)
-                  .const_or(FLAGS_PRESENT);
+fn double_fault_handler_entry(ptr: usize, index: u8) -> IdtEntry {
+    let mut i = fn_handler_entry(ptr);
+    i.ist_index = DOUBLE_FAULT_IST_INDEX as u8;
+    i
 }
 
-#[cfg(target_arch = "x86_64")]
-fn set_double_fault_handler_fn(mut i: &mut IdtEntry, e: HandlerFunc, index: u8) {
-    i.ist_index = index;
-    set_handler_fn(&mut i, e);
+bitflags! {
+    /// Describes an page fault error code.
+    pub struct PageFaultErrorCode: u64 {
+        /// If this flag is set, the page fault was caused by a page-protection violation,
+        /// else the page fault was caused by a not-present page.
+        const PROTECTION_VIOLATION = 1 << 0;
+
+        /// If this flag is set, the memory access that caused the page fault was a write.
+        /// Else the access that caused the page fault is a memory read. This bit does not
+        /// necessarily indicate the cause of the page fault was a read or write violation.
+        const CAUSED_BY_WRITE = 1 << 1;
+
+        /// If this flag is set, an access in user mode (CPL=3) caused the page fault. Else
+        /// an access in supervisor mode (CPL=0, 1, or 2) caused the page fault. This bit
+        /// does not necessarily indicate the cause of the page fault was a privilege violation.
+        const USER_MODE = 1 << 2;
+
+        /// If this flag is set, the page fault is a result of the processor reading a 1 from
+        /// a reserved field within a page-translation-table entry.
+        const MALFORMED_TABLE = 1 << 3;
+
+        /// If this flag is set, it indicates that the access that caused the page fault was an
+        /// instruction fetch.
+        const INSTRUCTION_FETCH = 1 << 4;
+    }
 }
 
 /// Represents the exception stack frame pushed by the CPU on exception entry.
@@ -132,10 +136,10 @@ impl fmt::Debug for ExceptionStackFrame {
         }
 
         let mut s = f.debug_struct("ExceptionStackFrame");
-        s.field("instruction_pointer", &self.instruction_pointer);
+        s.field("instruction_pointer", &Hex(self.instruction_pointer));
         s.field("code_segment", &self.code_segment);
         s.field("cpu_flags", &Hex(self.cpu_flags));
-        s.field("stack_pointer", &self.stack_pointer);
+        s.field("stack_pointer", &Hex(self.stack_pointer));
         s.field("stack_segment", &self.stack_segment);
         s.finish()
     }

@@ -78,6 +78,11 @@ impl Modifiers {
     }
 }
 
+enum ScanCodeSet {
+    ScanCodeSet1,
+    ScanCodeSet2,
+}
+
 /// Our keyboard state, including our I/O port, our currently pressed
 /// modifiers, etc.
 struct State {
@@ -89,18 +94,31 @@ struct State {
     /// We also need to keep track of which modifier keys have been pressed
     /// and released.
     modifiers: Modifiers,
+
+    // Select a scan code set. Scan code set 2 is the default for most cases
+    scancode_set: ScanCodeSet,
 }
 
 /// Our global keyboard state, protected by a mutex.
 static STATE: Mutex<State> = Mutex::new(State {
     port: Port::new(0x60),
     modifiers: Modifiers::new(),
+    scancode_set: ScanCodeSet::ScanCodeSet2,
 });
 
 /// Try to convert a scancode to an ASCII character.  If we don't recognize
 /// it, just return `None`.
-fn find_ascii(scancode: u8) -> Option<u8> {
+fn find_ascii(scancode: u8, scancode_set: &ScanCodeSet) -> Option<u8> {
+    match scancode_set {
+        ScanCodeSet1 => match_scancode_set2(scancode),
+        ScanCodeSet2 => match_scancode_set2(scancode),
+        _ => None,
+    }
+}
+
+fn match_scancode_set1(scancode: u8) -> Option<u8> {
     let idx = scancode as usize;
+println!("Index1 = {:x}", idx);
     match scancode {
         0x01 ... 0x0E => Some(b"\x1B1234567890-=\0x02"[idx-0x01]),
         0x0F ... 0x1C => Some(b"\tqwertyuiop[]\r"[idx-0x0F]),
@@ -108,7 +126,21 @@ fn find_ascii(scancode: u8) -> Option<u8> {
         0x2C ... 0x35 => Some(b"zxcvbnm,./"[idx-0x2C]),
         0x39 => Some(b' '),
         _ => None,
-    }
+    }   
+}
+
+fn match_scancode_set2(scancode: u8) -> Option<u8> {
+    let idx = scancode as usize;
+println!("Index2 = {:x}", idx);
+    match scancode {
+        0x0D ... 0x0E => Some(b"\t`"[idx - 0x0D]),
+        0x15 ... 0x16 => Some(b"q1"[idx - 0x15]),
+        0x0F ... 0x1C => Some(b"\tqwertyuiop[]\r"[idx-0x0F]),
+        0x1E ... 0x28 => Some(b"asdfghjkl;'"[idx-0x1E]),
+        0x2C ... 0x35 => Some(b"zxcvbnm,./"[idx-0x2C]),
+        0x39 => Some(b' '),
+        _ => None,
+    }   
 }
 
 /// Try to read a single input character
@@ -122,7 +154,7 @@ pub fn read_char() -> Option<char> {
     state.modifiers.update(scancode);
 
     // Look up the ASCII keycode.
-    if let Some(ascii) = find_ascii(scancode) {
+    if let Some(ascii) = find_ascii(scancode, &state.scancode_set) {
         // The `as char` converts our ASCII data to Unicode, which is
         // correct as long as we're only using 7-bit ASCII.
         Some(state.modifiers.apply_to(ascii) as char)
@@ -141,16 +173,11 @@ pub fn init() {
     // Disable PS/2 devices
     CONTROLLER.lock().write(0xAD);
     CONTROLLER.lock().write(0xA7);
-    //outb(0x64, 0xAD);
-    //outb(0x64, 0xA7);
 
     // Flush the output buffer
-    //inb(0x60);
     STATE.lock().port.read();
 
     // Setup the Controller Configuration Byte
-    //outb(0x64, 0x20);
-    //uint8_t configByte = inb(0x60);
     CONTROLLER.lock().write(0x20);
     while CONTROLLER.lock().read() & 0x1 == 0 {}
     let mut config_byte: u8 = STATE.lock().port.read();
@@ -163,32 +190,22 @@ pub fn init() {
     config_byte &= !(1 << 6);
 
     // write new configuration
-    //outb(0x60, configByte);
     CONTROLLER.lock().write(0x60);
     while CONTROLLER.lock().read() & 0x2 == 1 {}
     STATE.lock().port.write(config_byte);
     println!("New Controller Configuration Byte: {:x}\n", config_byte);
 
     // Perform Controller Self Test
-    //outb(0x64, 0xAA);
-    //while ((inb(0x64) & 1) == 0);
-    //if (inb(0x60) != 0x55)
-    //   printf("Self check failed!\n");
     CONTROLLER.lock().write(0xAA);
     while CONTROLLER.lock().read() & 0x1 == 0 {}
     assert!(STATE.lock().port.read() == 0x55, "Self check failed!");
 
     // Perform interface tests
-    //outb(0x64, 0xAB);
-    //while ((inb(0x64) & 1) == 0);
-    //printf("Interface test: %u\n", inb(0x60));
     CONTROLLER.lock().write(0xAB);
     while CONTROLLER.lock().read() & 0x1 == 0 {}
     assert!(STATE.lock().port.read() == 0, "Interface test failed!");
 
     // Enable device(s)
-    //outb(0x64, 0xAE);
-    // outb(0x64, 0xA8);   // TODO: only do this if a second port exists
     CONTROLLER.lock().write(0xAE);
 
     // Reset devices
