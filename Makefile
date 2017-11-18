@@ -22,6 +22,14 @@ CFLAGS := --target=$(target)-unknown-none-elf -ffreestanding
 ASFLAGS := $(asm_target)
 LDFLAGS := -n --gc-sections -melf_$(ld_target)
 QEMUFLAGS := -nographic -serial telnet:127.0.0.1:4444,server
+CARGOFLAGS :=
+
+ifdef FEATURES
+	CARGOFLAGS += --no-default-features --features $(FEATURES)
+	ifeq ($(FEATURES),vga)
+		QEMUFLAGS :=
+	endif
+endif
 
 # Rust target
 rust_arch := $(target)
@@ -54,7 +62,7 @@ ASM_OBJ := $(patsubst src/arch/$(arch)/asm/%.nasm, build/arch/$(arch)/asm/%.o, $
 all: $(kernel)
 
 cargo:
-	@xargo build --target $(rust_target)
+	@xargo build --target $(rust_target) $(CARGOFLAGS)
 
 clean:
 	@cargo clean

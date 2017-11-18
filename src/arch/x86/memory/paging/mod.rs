@@ -137,7 +137,7 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> Ac
             assert!(section.start_address() as usize % PAGE_SIZE == 0,
                     "sections need to be page aligned");
 
-            println!("mapping section at addr: {:#x}, size: {:#x}",
+            kprintln!("mapping section at addr: {:#x}, size: {:#x}",
                      section.start_address(),
                      section.size());
 
@@ -169,6 +169,6 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> Ac
     // turn the old top page into a guard page
     let old_top_page = Page::containing_address(old_table.frame.start_address());
     active_table.unmap(old_top_page, allocator);
-    println!("guard page at {:#x}", old_top_page.start_address());
+    kprintln!("guard page at {:#x}", old_top_page.start_address());
     active_table
 }

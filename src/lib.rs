@@ -36,7 +36,7 @@ pub mod syscall;
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::init(multiboot_information_address);
 
-    println!("\nIt did not crash!");
+    kprintln!("\nIt did not crash!");
 
     loop {}
 }
@@ -50,8 +50,8 @@ pub extern "C" fn eh_personality() {}
 #[lang = "panic_fmt"]
 #[no_mangle]
 pub extern "C" fn panic_fmt(fmt: core::fmt::Arguments, file: &str, line: u32) -> ! {
-    println!("\n\nPANIC in {} at line {}:", file, line);
-    println!("    {}", fmt);
+    kprintln!("\n\nPANIC in {} at line {}:", file, line);
+    kprintln!("    {}", fmt);
     loop {}
 }
 

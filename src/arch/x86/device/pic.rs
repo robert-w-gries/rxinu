@@ -48,5 +48,5 @@ pub fn init() {
     //write_then_wait(MASTER.lock().data, saved_mask1);
     //write_then_wait(SLAVE.lock().data, saved_mask2);
 
-    println!("[ OK ] PIC Driver");
+    kprintln!("[ OK ] PIC Driver");
 }

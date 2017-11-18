@@ -12,5 +12,5 @@ pub fn init() {
     COM1.lock().init();
     COM2.lock().init();
 
-    println!("[ OK ] Serial Driver");
+    kprintln!("[ OK ] Serial Driver");
 }

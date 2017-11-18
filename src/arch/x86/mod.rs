@@ -1,6 +1,6 @@
 // Export macros before declaring mods so modules can use print
 #[macro_export]
-macro_rules! print {
+macro_rules! kprint {
     ($($arg:tt)*) => ({
             use core::fmt::Write;
             let _ = write!($crate::arch::x86::console::CONSOLE.lock(), $($arg)*);
@@ -8,9 +8,9 @@ macro_rules! print {
 }
 
 #[macro_export]
-macro_rules! println {
-    ($fmt:expr) => (print!(concat!($fmt, "\n")));
-    ($fmt:expr, $($arg:tt)*) => (print!(concat!($fmt, "\n"), $($arg)*));
+macro_rules! kprintln {
+    ($fmt:expr) => (kprint!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => (kprint!(concat!($fmt, "\n"), $($arg)*));
 }
 
 pub mod console;
@@ -19,8 +19,6 @@ mod interrupts;
 mod memory;
 
 pub fn init(multiboot_information_address: usize) {
-    console::clear_screen();
-
     let boot_info = unsafe { ::multiboot2::load(multiboot_information_address) };
 
     let mut memory_controller = memory::init(&boot_info);
@@ -30,6 +28,8 @@ pub fn init(multiboot_information_address: usize) {
       interrupts::init(&mut memory_controller);
       device::init();
     });
+
+    console::clear_screen();
 }
 
 #[allow(dead_code)]

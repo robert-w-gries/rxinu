@@ -101,15 +101,12 @@ static STATE: Mutex<ModifierState> = Mutex::new(ModifierState::new());
 /// Get all bytes from keyboard and translate to key
 pub fn parse_key(scancode: u8) {
     let byte_sequence: u64 = retrieve_bytes(scancode);
-//println!("full bytes = {}", byte_sequence);
     if let Some(key) = keyboard::get_key(byte_sequence) {
         match key {
             Key::Ascii(k) => print_char(k as char),
             Key::Meta(modifier) => STATE.lock().update(modifier),
             Key::LowerAscii(byte) => print_str(STATE.lock().apply_to(byte as char)),
         }
-    } else {
-        //println!("\nUnrecognized key = {:x}", byte_sequence);
     }
 }
 
@@ -130,12 +127,12 @@ fn retrieve_bytes(scancode: u8) -> u64 {
 }
 
 fn print_str(s: String) {
-    print!("{}", s);
+    kprint!("{}", s);
 }
 
 fn print_char(byte: char) {
     match byte {
-        '\n' | ' ' | '\t' => print!("{}", byte),
+        '\n' | ' ' | '\t' => kprint!("{}", byte),
         _ => (),
     }
 }

@@ -36,11 +36,11 @@ pub extern "x86-interrupt" fn cascade(_stack_frame: &mut ExceptionStackFrame) {
 pub extern "x86-interrupt" fn com1(_stack_frame: &mut ExceptionStackFrame) {
     pic::MASTER.lock().ack();
     let data: u8 = COM1.lock().receive();
-    print!("{}", data as char);
+    kprint!("{}", data as char);
 }
 
 pub extern "x86-interrupt" fn com2(_stack_frame: &mut ExceptionStackFrame) {
     pic::MASTER.lock().ack();
     let data: u8 = COM2.lock().receive();
-    print!("{}", data as char);
+    kprint!("{}", data as char);
 }
