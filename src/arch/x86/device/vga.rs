@@ -1,3 +1,4 @@
+use core::fmt;
 use core::ptr::Unique;
 use spin::Mutex;
 use volatile::Volatile;
@@ -73,7 +74,7 @@ impl Writer {
     }
 }
 
-impl ::core::fmt::Write for Writer {
+impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> ::core::fmt::Result {
         for byte in s.as_bytes() {
             self.write_byte(byte)

@@ -19,18 +19,17 @@ mod interrupts;
 mod memory;
 
 pub fn init(multiboot_information_address: usize) {
-    use x86;
+    console::clear_screen();
 
-    console::init();
     let boot_info = unsafe { ::multiboot2::load(multiboot_information_address) };
 
     let mut memory_controller = memory::init(&boot_info);
 
-    unsafe { x86::shared::irq::disable(); }
-    interrupts::init(&mut memory_controller);
-
-    device::init();
-    unsafe { x86::shared::irq::enable(); }
+    // Make sure interrupts don't intefere with setup
+    interrupts::disable_interrupts_then(|| {
+      interrupts::init(&mut memory_controller);
+      device::init();
+    });
 }
 
 #[allow(dead_code)]

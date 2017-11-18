@@ -1,8 +1,7 @@
+use alloc::Vec;
 use alloc::string::{String, ToString};
-use devices::keyboard::{self, ScanCodeSet};
+use devices::{keyboard, ps2_controller_8042};
 use spin::Mutex;
-
-const DEFAULT_SCANCODE_SET: ScanCodeSet = ScanCodeSet::Set2;
 
 #[derive(Debug)]
 struct KeyPair {
@@ -62,75 +61,81 @@ impl ModifierState {
     /// Apply all of our modifiers to an ASCII character, and return a new
     /// ASCII character.
     fn apply_to(&self, ascii: char) -> String {
-        if 'a' <= ascii && ascii <= 'z' {
-            if self.is_uppercase() {
-                return ascii.to_uppercase().collect();
-            }
-        }
+      if self.is_uppercase() {
+        ascii.to_uppercase().collect()
+      } else {
         ascii.to_string()
+      }
     }
 
     fn update(&mut self, m: Modifier) {
+        use self::Modifier::*;
+
         match m {
-            Modifier::AltLeft(state) => self.alt.left = state,
-            Modifier::AltRight(state) => self.alt.right = state,
-            Modifier::CapsLock => self.caps_lock = !self.caps_lock,
-            Modifier::ControlLeft(state) => self.control.left = state,
-            Modifier::ControlRight(state) => self.control.right = state,
-            Modifier::NumLock => self.num_lock = !self.num_lock,
-            Modifier::ScrollLock => self.scroll_lock = !self.scroll_lock,
-            Modifier::ShiftLeft(state) => self.shift.left = state,
-            Modifier::ShiftRight(state) => self.shift.right = state,
-            _ => return,
+            AltLeft(state) => self.alt.left = state,
+            AltRight(state) => self.alt.right = state,
+            CapsLock => self.caps_lock = !self.caps_lock,
+            ControlLeft(state) => self.control.left = state,
+            ControlRight(state) => self.control.right = state,
+            NumLock => self.num_lock = !self.num_lock,
+            ScrollLock => self.scroll_lock = !self.scroll_lock,
+            ShiftLeft(state) => self.shift.left = state,
+            ShiftRight(state) => self.shift.right = state,
         }
     }
 }
 
-enum KeyEvent {
-    Pressed,
-    SolidState,
-    Released,
+pub enum KeyEvent {
+    Pressed(Key),
+    Released(Key),
 }
 
-pub enum KeyType {
-    Ascii(char),
-    KeyState(Modifier),
+pub enum Key {
+    Ascii(u8),
+    Meta(Modifier),
+    LowerAscii(u8),
 }
 
-struct Keypress {
-    /// Select a scan code set. Scan code set 2 is the default for most cases
-    scancode_set: ScanCodeSet,
+static STATE: Mutex<ModifierState> = Mutex::new(ModifierState::new());
 
-    /// Modifiers to ascii keys
-    modifiers: ModifierState,
-
-    /// Indicates whether key is pressed or released
-    event: KeyEvent,
-}
-
-/// Our global keyboard state, protected by a mutex.
-static KEYPRESS: Mutex<Keypress> = Mutex::new(Keypress{
-    scancode_set: ScanCodeSet::Set2,
-    modifiers: ModifierState::new(),
-    event: KeyEvent::SolidState,
-});
-
-/// Try to read a single input character
+/// Get all bytes from keyboard and translate to key
 pub fn parse_key(scancode: u8) {
-    if let Some(key) = keyboard::get_scancode_key(scancode, DEFAULT_SCANCODE_SET) {
+    let byte_sequence: u64 = retrieve_bytes(scancode);
+//println!("full bytes = {}", byte_sequence);
+    if let Some(key) = keyboard::get_key(byte_sequence) {
         match key {
-            KeyType::KeyState(modifier) => KEYPRESS.lock().modifiers.update(modifier),
-            KeyType::Ascii(letter) => print_key(letter),
+            Key::Ascii(k) => print_char(k as char),
+            Key::Meta(modifier) => STATE.lock().update(modifier),
+            Key::LowerAscii(byte) => print_str(STATE.lock().apply_to(byte as char)),
         }
+    } else {
+        //println!("\nUnrecognized key = {:x}", byte_sequence);
     }
 }
 
-fn print_key(character: char) {
-    // The `as char` converts our ASCII data to Unicode, which is
-    // correct as long as we're only using 7-bit ASCII.
-    let final_char = KEYPRESS.lock().modifiers.apply_to(character);
-    match final_char.as_ref() {
-        "\n" => println!(""),
-        character => print!("{}", final_char),
+/// Keep reading bytes until sequence is finished and combine bytes into an integer
+fn retrieve_bytes(scancode: u8) -> u64 {
+    let mut byte_sequence: Vec<u8> = vec![scancode];
+
+    // if byte is start of sequence, start reading bytes until end of sequence
+    // TODO: Design system that reads more than two bytes
+    if scancode == 0xE0 || scancode == 0xE1 {
+        let check_byte: u8 = ps2_controller_8042::key_read();
+        if let Some(byte) = keyboard::is_special_key(check_byte) {
+            byte_sequence.push(byte);
+        }
+    }
+
+    byte_sequence.iter().rev().fold(0, |acc, &b| (acc<<1) + b as u64)
+}
+
+fn print_str(s: String) {
+    print!("{}", s);
+}
+
+fn print_char(byte: char) {
+    match byte {
+        '\n' | ' ' | '\t' => print!("{}", byte),
+        _ => (),
     }
 }

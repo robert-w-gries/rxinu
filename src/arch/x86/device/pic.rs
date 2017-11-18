@@ -43,10 +43,10 @@ pub fn init() {
     write_then_wait(SLAVE.lock().data, ICW4::MODE_8086 as u8);
 
     // Restore saved masks
-    //MASTER.lock().data.write(0x0);
-    //SLAVE.lock().data.write(0x0);
     //write_then_wait(MASTER.lock().data, 0x0);
     //write_then_wait(SLAVE.lock().data, 0x0);
     //write_then_wait(MASTER.lock().data, saved_mask1);
     //write_then_wait(SLAVE.lock().data, saved_mask2);
+
+    println!("[ OK ] PIC Driver");
 }

@@ -11,4 +11,6 @@ pub static COM2: Mutex<SerialPort<Port<u8>>> = Mutex::new(SerialPort::<Port<u8>>
 pub fn init() {
     COM1.lock().init();
     COM2.lock().init();
+
+    println!("[ OK ] Serial Driver");
 }

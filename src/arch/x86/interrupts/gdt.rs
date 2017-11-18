@@ -19,8 +19,10 @@ const GDT_KERNEL_CODE: usize = 1;
 const GDT_KERNEL_DATA: usize = 2;
 const GDT_TSS: usize = 3;
 
+// TODO: Change to lazy static
 static mut GDT: [SegmentDescriptor; GDT_SIZE] = [SegmentDescriptor::NULL; GDT_SIZE];
 
+// TODO: Change to non static mut
 static mut GDTR: DescriptorTablePointer<SegmentDescriptor> = DescriptorTablePointer {
     limit: 0,
     base: 0 as * const _,

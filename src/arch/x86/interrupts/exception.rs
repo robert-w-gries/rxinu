@@ -89,8 +89,9 @@ pub extern "x86-interrupt" fn protection(stack_frame: &mut ExceptionStackFrame, 
 
 pub extern "x86-interrupt" fn page_fault(stack_frame: &mut ExceptionStackFrame, error_code: PageFaultErrorCode) {
     use x86::shared::control_regs;
-    println!("\nException: Page fault while accessing {:#x}\n{:#?}",
+    println!("\nException: Page fault while accessing {:#x}\nerror code: {:?}\n{:#?}",
              unsafe { control_regs::cr2() },
+             error_code,
              stack_frame);
     loop {}
 }

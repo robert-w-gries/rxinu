@@ -10,12 +10,14 @@
 #![no_std]
 
 #[macro_use]
+extern crate alloc;
+
+#[macro_use]
 extern crate bitflags;
 
 #[macro_use]
 extern crate once;
 
-extern crate alloc;
 extern crate bit_field;
 extern crate compiler_builtins;
 extern crate hole_list_allocator as allocator;

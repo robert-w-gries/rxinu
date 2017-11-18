@@ -17,6 +17,6 @@ impl Write for Console {
     }
 }
 
-pub fn init() {
+pub fn clear_screen() {
     console.lock().clear_screen();
 }

@@ -1,7 +1,8 @@
+use arch::x86::memory::MemoryController;
+use x86;
+
 #[cfg(target_arch = "x86")] use x86::bits32::task::TaskStateSegment;
 #[cfg(target_arch = "x86_64")] use x86::bits64::task::TaskStateSegment;
-
-use arch::x86::memory::MemoryController;
 
 mod exception;
 mod gdt;
@@ -31,6 +32,15 @@ pub fn init(memory_controller: &mut MemoryController) {
 
     unsafe { gdt::init(&tss); }
     unsafe { idt::init(); }
+}
+
+/// Disable interrupts, execute code uninterrupted, re-enable interrupts
+pub fn disable_interrupts_then<T>(uninterrupted_fn: T) -> ()
+    where T: FnOnce() -> ()
+{
+    unsafe { x86::shared::irq::disable(); }
+    uninterrupted_fn();
+    unsafe { x86::shared::irq::enable(); }
 }
 
 #[cfg(test)]

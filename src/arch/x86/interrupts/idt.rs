@@ -4,7 +4,7 @@ use core::mem;
 use x86::shared::PrivilegeLevel;
 use x86::shared::dtables::{self, DescriptorTablePointer};
 use x86::shared::paging::VAddr;
-use x86::shared::segmentation::{self, SegmentSelector};
+use x86::shared::segmentation::{SegmentSelector};
 
 #[cfg(target_arch = "x86")] use x86::bits32::irq::{IdtEntry, Type};
 #[cfg(target_arch = "x86_64")] use x86::bits64::irq::{IdtEntry, Type};
@@ -12,8 +12,10 @@ use x86::shared::segmentation::{self, SegmentSelector};
 const IRQ_OFFSET: usize = 32;
 const KERNEL_CODE_SELECTOR: SegmentSelector = SegmentSelector::new(1, PrivilegeLevel::Ring0);
 
+// TODO: change to lazy static
 static mut IDT: [IdtEntry; 256] = [IdtEntry::MISSING; 256];
 
+// TODO: change to non static mut
 static mut IDTR: DescriptorTablePointer<IdtEntry> = DescriptorTablePointer {
     limit: 0,
     base: 0 as * const _,
@@ -64,14 +66,14 @@ fn fn_handler_entry(ptr: usize) -> IdtEntry {
 }
 
 #[cfg(target_arch = "x86")]
-fn double_fault_handler_entry(ptr: usize, index: u8) -> IdtEntry {
+fn double_fault_handler_entry(ptr: usize, _index: u8) -> IdtEntry {
     fn_handler_entry(ptr)
 }
 
 #[cfg(target_arch = "x86_64")]
 fn double_fault_handler_entry(ptr: usize, index: u8) -> IdtEntry {
     let mut i = fn_handler_entry(ptr);
-    i.ist_index = DOUBLE_FAULT_IST_INDEX as u8;
+    i.ist_index = index as u8;
     i
 }
 

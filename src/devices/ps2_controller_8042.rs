@@ -17,19 +17,17 @@ pub fn init() {
     CONTROLLER.lock().write(0x20);
     while CONTROLLER.lock().read() & 0x1 == 0 {}
     let mut config_byte: u8 = DEVICE.lock().read();
-    println!("Old Controller Configuration Byte: {:x}", config_byte);
+
     // TODO: see if two ports exist
 
-    // Disable all IRQs and disable translation
+    // Disable all IRQs
     config_byte &= !(1 << 0);
     config_byte &= !(1 << 1);
-    config_byte &= !(1 << 6);
 
     // write new configuration
     CONTROLLER.lock().write(0x60);
     while CONTROLLER.lock().read() & 0x2 == 1 {}
     DEVICE.lock().write(config_byte);
-    println!("New Controller Configuration Byte: {:x}\n", config_byte);
 
     // Perform Controller Self Test
     CONTROLLER.lock().write(0xAA);
@@ -48,7 +46,6 @@ pub fn init() {
     CONTROLLER.lock().write(0x20);
     while CONTROLLER.lock().read() & 0x1 == 0 {}
     let mut enable: u8 = DEVICE.lock().read();
-    println!("Old Controller Configuration Byte: {:x}", enable);
 
     // Enable all IRQs
     enable |= 1 << 0;
@@ -57,8 +54,9 @@ pub fn init() {
     CONTROLLER.lock().write(0x60);
     while CONTROLLER.lock().read() & 0x2 == 1 {}
     DEVICE.lock().write(enable);
-    println!("New Controller Configuration Byte: {:x}\n", enable);
     DEVICE.lock().read();
+
+    println!("[ OK ] PS/2 Driver");
 }
 
 pub fn key_read() -> u8 {

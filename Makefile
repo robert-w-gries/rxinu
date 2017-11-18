@@ -21,6 +21,7 @@ endif
 CFLAGS := --target=$(target)-unknown-none-elf -ffreestanding
 ASFLAGS := $(asm_target)
 LDFLAGS := -n --gc-sections -melf_$(ld_target)
+QEMUFLAGS := -nographic -serial telnet:127.0.0.1:4444,server
 
 # Rust target
 rust_arch := $(target)
@@ -60,7 +61,7 @@ clean:
 	@rm -rf build
 
 debug: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso) -d int -s -S
+	@qemu-system-x86_64 $(QEMUFLAGS) -cdrom $(iso) -d int -s -S
 
 gdb: $(kernel)
 	@$(GDB) "$(kernel)" -ex "target remote :1234"
@@ -68,7 +69,7 @@ gdb: $(kernel)
 iso: $(iso)
 
 run: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso) -s
+	@qemu-system-x86_64 $(QEMUFLAGS) -cdrom $(iso) -s
 
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub

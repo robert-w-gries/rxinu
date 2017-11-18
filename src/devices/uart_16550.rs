@@ -61,30 +61,33 @@ impl<T: Io<Value = u8>> SerialPort<T> {
     }
 
     pub fn receive(&mut self) -> u8 {
-        while self.line_sts().contains(DATA_READY) {}
-        self.data.read()
+        // TODO: implement a buffer so we don't lose data
+        let mut data: u8 = 0x0;
+        while self.line_sts().contains(DATA_READY) {
+            data = self.data.read();
+        }
+        data
     }
 
     pub fn send(&mut self, data: u8) {
+        let mut wait_then_write = |data: u8| {
+            while !self.line_sts().contains(THR_EMPTY) {}
+            self.data.write(data);
+        };
+
         match data {
             // backspace or delete
-            8 | 0x7F => {
-                while ! self.line_sts().contains(THR_EMPTY) {}
-                self.data.write(8);
-                while ! self.line_sts().contains(THR_EMPTY) {}
-                self.data.write(b' ');
-                while ! self.line_sts().contains(THR_EMPTY) {}
-                self.data.write(8);
+            0x8 | 0x7F => {
+                wait_then_write(0x8);
+                wait_then_write(b' ');
+                wait_then_write(0x8);
             },
             b'\n' => {
-                while ! self.line_sts().contains(THR_EMPTY) {}
-                self.data.write(data);
-                while ! self.line_sts().contains(THR_EMPTY) {}
-                self.data.write(b'\r');
+                wait_then_write(b'\n');
+                wait_then_write(b'\r');
             },
             _ => {
-                while ! self.line_sts().contains(THR_EMPTY) {}
-                self.data.write(data);
+                wait_then_write(data);
             }
         }
     }

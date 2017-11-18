@@ -3,6 +3,7 @@ use arch::x86::device::serial::{COM1, COM2};
 use arch::x86::interrupts::idt::ExceptionStackFrame;
 use devices::{ps2_controller_8042, ps2_keyboard};
 
+#[allow(dead_code)]
 fn trigger(irq: u8) {
     if irq >= 8 {
         pic::SLAVE.lock().mask_set(irq - 8);
@@ -33,11 +34,13 @@ pub extern "x86-interrupt" fn cascade(_stack_frame: &mut ExceptionStackFrame) {
 }
 
 pub extern "x86-interrupt" fn com1(_stack_frame: &mut ExceptionStackFrame) {
-    COM1.lock().receive();
     pic::MASTER.lock().ack();
+    let data: u8 = COM1.lock().receive();
+    print!("{}", data as char);
 }
 
 pub extern "x86-interrupt" fn com2(_stack_frame: &mut ExceptionStackFrame) {
-    COM2.lock().receive();
     pic::MASTER.lock().ack();
+    let data: u8 = COM2.lock().receive();
+    print!("{}", data as char);
 }
