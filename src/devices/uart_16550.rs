@@ -82,7 +82,7 @@ impl<T: Io<Value = u8>> SerialPort<T> {
                 wait_then_write(b' ');
                 wait_then_write(0x8);
             },
-            b'\n' => {
+            b'\r' | b'\n' => {
                 wait_then_write(b'\n');
                 wait_then_write(b'\r');
             },

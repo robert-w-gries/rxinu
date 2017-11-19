@@ -1,6 +1,6 @@
 use arch::x86::device::pic;
 use arch::x86::device::serial::{COM1, COM2};
-use arch::x86::interrupts::idt::ExceptionStackFrame;
+use arch::x86::interrupts::exception::ExceptionStackFrame;
 use devices::{ps2_controller_8042, ps2_keyboard};
 
 #[allow(dead_code)]

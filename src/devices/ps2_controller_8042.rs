@@ -7,13 +7,13 @@ static DEVICE: Mutex<Port<u8>> = Mutex::new(Port::new(0x60));
 
 pub fn init() {
     // Poll bit 1 of Status Register "Input buffer empty/full"
-    let mut wait_then_write = |data: u8| {
+    let wait_then_write = |data: u8| {
         while CONTROLLER.lock().read() & 0x2 == 1 {}
         DEVICE.lock().write(data);
     };
 
     // Poll bit 0 of Status Register "Output buffer empty/full"
-    let mut wait_then_read = || -> u8 {
+    let wait_then_read = || -> u8 {
         while CONTROLLER.lock().read() & 0x1 == 0 {}
         DEVICE.lock().read()
     };
