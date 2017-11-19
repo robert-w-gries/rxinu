@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use arch::x86::memory::FrameAllocator;
 use arch::x86::memory::paging::{ActivePageTable, PAGE_SIZE};
 use arch::x86::memory::paging::page::{Page, PageIter};

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use core::ops::Add;
 use super::{VirtualAddress, PAGE_SIZE};
 

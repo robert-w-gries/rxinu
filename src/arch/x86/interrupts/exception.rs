@@ -193,6 +193,7 @@ impl fmt::Debug for ErrorExceptionStackFrame {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct ErrorCode(u64);
 

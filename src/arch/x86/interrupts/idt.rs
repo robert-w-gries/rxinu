@@ -1,5 +1,4 @@
 use arch::x86::interrupts::{DOUBLE_FAULT_IST_INDEX, irq};
-use core::fmt;
 use core::mem;
 use x86::shared::PrivilegeLevel;
 use x86::shared::dtables::{self, DescriptorTablePointer};
