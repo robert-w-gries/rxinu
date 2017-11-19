@@ -4,12 +4,10 @@ rust:
 cache: cargo
 
 env:
-  - 'target=i686'
-    - 'FEATURES="vga"'
-    - 'FEATURES="serial"'
-  - 'target=x86_64'
-    - 'FEATURES="vga"'
-    - 'FEATURES="serial"'
+  - ['target=i686', 'FEATURES="vga"']
+  - ['target=i686', 'FEATURES="serial"']
+  - ['target=x86_64', 'FEATURES="vga"']
+  - ['target=x86_64', 'FEATURES="serial"']
 
 before_script:
   - rustup component add rust-src
