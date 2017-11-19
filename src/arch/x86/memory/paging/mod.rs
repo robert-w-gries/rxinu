@@ -9,13 +9,19 @@ use self::temporary_page::TemporaryPage;
 
 pub const PAGE_SIZE: usize = 4096;
 
-#[cfg(target_arch = "x86")] const ENTRY_COUNT: usize = 1024;
-#[cfg(target_arch = "x86")] const PHYS_ADDR_MASK: usize = 0xffff_f000;
-#[cfg(target_arch = "x86")] const TEMP_PAGE_ADDR: usize = 0x0000_beef;
+#[cfg(target_arch = "x86")]
+const ENTRY_COUNT: usize = 1024;
+#[cfg(target_arch = "x86")]
+const PHYS_ADDR_MASK: usize = 0xffff_f000;
+#[cfg(target_arch = "x86")]
+const TEMP_PAGE_ADDR: usize = 0x0000_beef;
 
-#[cfg(target_arch = "x86_64")] const ENTRY_COUNT: usize = 512;
-#[cfg(target_arch = "x86_64")] const PHYS_ADDR_MASK: usize = 0x000f_ffff_ffff_f000;
-#[cfg(target_arch = "x86_64")] const TEMP_PAGE_ADDR: usize = 0xdead_beef;
+#[cfg(target_arch = "x86_64")]
+const ENTRY_COUNT: usize = 512;
+#[cfg(target_arch = "x86_64")]
+const PHYS_ADDR_MASK: usize = 0x000f_ffff_ffff_f000;
+#[cfg(target_arch = "x86_64")]
+const TEMP_PAGE_ADDR: usize = 0xdead_beef;
 
 pub type PhysicalAddress = usize;
 pub type VirtualAddress = usize;
@@ -46,7 +52,9 @@ impl DerefMut for ActivePageTable {
 
 impl ActivePageTable {
     unsafe fn new() -> ActivePageTable {
-        ActivePageTable { mapper: Mapper::new() }
+        ActivePageTable {
+            mapper: Mapper::new(),
+        }
     }
 
     pub fn switch(&mut self, new_table: InactivePageTable) -> InactivePageTable {
@@ -61,11 +69,13 @@ impl ActivePageTable {
         old_table
     }
 
-    pub fn with<F>(&mut self,
-                   table: &mut InactivePageTable,
-                   temporary_page: &mut temporary_page::TemporaryPage, // new
-                   f: F)
-        where F: FnOnce(&mut Mapper)
+    pub fn with<F>(
+        &mut self,
+        table: &mut InactivePageTable,
+        temporary_page: &mut temporary_page::TemporaryPage, // new
+        f: F,
+    ) where
+        F: FnOnce(&mut Mapper),
     {
         use x86::shared::{control_regs, tlb};
 
@@ -78,14 +88,14 @@ impl ActivePageTable {
             let top_table = temporary_page.map_table_frame(backup.clone(), self);
 
             // overwrite recursive mapping
-            self.top_table_mut()[ENTRY_COUNT-1].set(table.frame.clone(), PRESENT | WRITABLE);
+            self.top_table_mut()[ENTRY_COUNT - 1].set(table.frame.clone(), PRESENT | WRITABLE);
             flush_tlb();
 
             // execute f in the new context
             f(self);
 
             // restore recursive mapping to original top table
-            top_table[ENTRY_COUNT-1].set(backup, PRESENT | WRITABLE);
+            top_table[ENTRY_COUNT - 1].set(backup, PRESENT | WRITABLE);
             flush_tlb();
         }
 
@@ -98,15 +108,16 @@ pub struct InactivePageTable {
 }
 
 impl InactivePageTable {
-    pub fn new(frame: Frame,
-               active_table: &mut ActivePageTable,
-               temporary_page: &mut TemporaryPage)
-               -> InactivePageTable {
+    pub fn new(
+        frame: Frame,
+        active_table: &mut ActivePageTable,
+        temporary_page: &mut TemporaryPage,
+    ) -> InactivePageTable {
         {
             let table = temporary_page.map_table_frame(frame.clone(), active_table);
             table.zero();
             // set up recursive mapping for the table
-            table[ENTRY_COUNT-1].set(frame.clone(), PRESENT | WRITABLE);
+            table[ENTRY_COUNT - 1].set(frame.clone(), PRESENT | WRITABLE);
         }
         temporary_page.unmap(active_table);
 
@@ -115,9 +126,15 @@ impl InactivePageTable {
 }
 
 pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> ActivePageTable
-    where A: FrameAllocator
+where
+    A: FrameAllocator,
 {
-    let mut temporary_page = TemporaryPage::new(Page { number: TEMP_PAGE_ADDR }, allocator);
+    let mut temporary_page = TemporaryPage::new(
+        Page {
+            number: TEMP_PAGE_ADDR,
+        },
+        allocator,
+    );
 
     let mut active_table = unsafe { ActivePageTable::new() };
     let mut new_table = {
@@ -126,7 +143,8 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> Ac
     };
 
     active_table.with(&mut new_table, &mut temporary_page, |mapper| {
-        let elf_sections_tag = boot_info.elf_sections_tag()
+        let elf_sections_tag = boot_info
+            .elf_sections_tag()
             .expect("Memory map tag required");
 
         for section in elf_sections_tag.sections() {
@@ -134,12 +152,16 @@ pub fn remap_the_kernel<A>(allocator: &mut A, boot_info: &BootInformation) -> Ac
                 // section is not loaded to memory
                 continue;
             }
-            assert!(section.start_address() as usize % PAGE_SIZE == 0,
-                    "sections need to be page aligned");
+            assert!(
+                section.start_address() as usize % PAGE_SIZE == 0,
+                "sections need to be page aligned"
+            );
 
-            kprintln!("mapping section at addr: {:#x}, size: {:#x}",
-                     section.start_address(),
-                     section.size());
+            kprintln!(
+                "mapping section at addr: {:#x}, size: {:#x}",
+                section.start_address(),
+                section.size()
+            );
 
             let flags = EntryFlags::from_elf_section_flags(&section);
 

@@ -19,7 +19,9 @@ macro_rules! exception {
             $func
         }
         #[cfg(target_arch = "x86_64")]
-        pub extern "x86-interrupt" fn $e(stack_frame: &mut ExceptionStackFrame, error_code: $err_type) {
+        pub extern "x86-interrupt" fn $e(stack_frame: &mut ExceptionStackFrame,
+                                         error_code: $err_type)
+        {
             kprintln!("\nError code: {:#?}\n{:#?}\n{:#?}",
                       error_code,
                       stack_frame,
@@ -30,84 +32,51 @@ macro_rules! exception {
 }
 
 // TODO: Implement actual error handling for each exception
-exception!(divide_by_zero, EXCEPTIONS[0], {
-    loop {}
-});
+exception!(divide_by_zero, EXCEPTIONS[0], { loop {} });
 
-exception!(debug, EXCEPTIONS[1], {
-});
+exception!(debug, EXCEPTIONS[1], {});
 
-exception!(non_maskable, EXCEPTIONS[2], {
-});
+exception!(non_maskable, EXCEPTIONS[2], {});
 
-exception!(break_point, EXCEPTIONS[3], {
-});
+exception!(break_point, EXCEPTIONS[3], {});
 
-exception!(overflow, EXCEPTIONS[4], {
-    loop {}
-});
+exception!(overflow, EXCEPTIONS[4], { loop {} });
 
-exception!(bound_range, EXCEPTIONS[5], {
-    loop {}
-});
+exception!(bound_range, EXCEPTIONS[5], { loop {} });
 
-exception!(invalid_opcode, EXCEPTIONS[6], {
-    loop {}
-});
+exception!(invalid_opcode, EXCEPTIONS[6], { loop {} });
 
-exception!(device_not_available, EXCEPTIONS[7], {
-    loop {}
-});
+exception!(device_not_available, EXCEPTIONS[7], { loop {} });
 
-exception!(double_fault, EXCEPTIONS[8], ErrorCode, {
-    loop{}
-});
+exception!(double_fault, EXCEPTIONS[8], ErrorCode, { loop {} });
 
-exception!(invalid_tss, EXCEPTIONS[10], ErrorCode, {
-    loop {}
-});
+exception!(invalid_tss, EXCEPTIONS[10], ErrorCode, { loop {} });
 
-exception!(segment_not_present, EXCEPTIONS[11], ErrorCode, {
-    loop {}
-});
+exception!(segment_not_present, EXCEPTIONS[11], ErrorCode, { loop {} });
 
-exception!(stack_segment, EXCEPTIONS[12], ErrorCode, {
-    loop {}
-});
+exception!(stack_segment, EXCEPTIONS[12], ErrorCode, { loop {} });
 
-exception!(protection, EXCEPTIONS[13], ErrorCode, {
-    loop {}
-});
+exception!(protection, EXCEPTIONS[13], ErrorCode, { loop {} });
 
 exception!(page_fault, EXCEPTIONS[14], PageFaultErrorCode, {
     use x86::shared::control_regs;
-    kprintln!("\nPage fault while accessing {:#x}", unsafe { control_regs::cr2() });
+    kprintln!("\nPage fault while accessing {:#x}", unsafe {
+        control_regs::cr2()
+    });
     loop {}
 });
 
-exception!(fpu, EXCEPTIONS[16], {
-    loop {}
-});
+exception!(fpu, EXCEPTIONS[16], { loop {} });
 
-exception!(alignment_check, EXCEPTIONS[17], ErrorCode, {
-    loop {}
-});
+exception!(alignment_check, EXCEPTIONS[17], ErrorCode, { loop {} });
 
-exception!(machine_check, EXCEPTIONS[18], {
-    loop {}
-});
+exception!(machine_check, EXCEPTIONS[18], { loop {} });
 
-exception!(simd, EXCEPTIONS[19], {
-    loop {}
-});
+exception!(simd, EXCEPTIONS[19], { loop {} });
 
-exception!(virtualization, EXCEPTIONS[20], {
-    loop {}
-});
+exception!(virtualization, EXCEPTIONS[20], { loop {} });
 
-exception!(security, SECURITY, ErrorCode, {
-    loop {}
-});
+exception!(security, SECURITY, ErrorCode, { loop {} });
 
 /// Source: AMD Secure Virtual Machine Architecture Reference Manual
 pub static SECURITY: InterruptDescription = InterruptDescription {

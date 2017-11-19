@@ -3,8 +3,10 @@ use multiboot2::ElfSection;
 use arch::x86::memory::Frame;
 use arch::x86::memory::paging::PHYS_ADDR_MASK;
 
-#[cfg(target_arch = "x86")] pub struct Entry(u32);
-#[cfg(target_arch = "x86_64")] pub struct Entry(u64);
+#[cfg(target_arch = "x86")]
+pub struct Entry(u32);
+#[cfg(target_arch = "x86_64")]
+pub struct Entry(u64);
 
 impl Entry {
     pub fn is_unused(&self) -> bool {
@@ -17,7 +19,7 @@ impl Entry {
 
     pub fn flags(&self) -> EntryFlags {
         EntryFlags::from_bits_truncate(self.0)
-    } 
+    }
     pub fn pointed_frame(&self) -> Option<Frame> {
         if self.flags().contains(PRESENT) {
             Some(Frame::containing_address(self.0 as usize & PHYS_ADDR_MASK))
@@ -58,7 +60,7 @@ impl EntryFlags {
 
     #[cfg(target_arch = "x86_64")]
     pub fn from_elf_section_flags(section: &ElfSection) -> EntryFlags {
-        use multiboot2::{ELF_SECTION_ALLOCATED, ELF_SECTION_WRITABLE, ELF_SECTION_EXECUTABLE};
+        use multiboot2::{ELF_SECTION_ALLOCATED, ELF_SECTION_EXECUTABLE, ELF_SECTION_WRITABLE};
 
         let mut flags = EntryFlags::empty();
 

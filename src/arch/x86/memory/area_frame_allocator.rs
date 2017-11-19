@@ -1,5 +1,5 @@
 use arch::x86::memory::{Frame, FrameAllocator};
-use multiboot2::{MemoryAreaIter, MemoryArea};
+use multiboot2::{MemoryArea, MemoryAreaIter};
 
 pub struct AreaFrameAllocator {
     next_free_frame: Frame,
@@ -12,12 +12,13 @@ pub struct AreaFrameAllocator {
 }
 
 impl AreaFrameAllocator {
-    pub fn new(kernel_start: usize,
-               kernel_end: usize,
-               multiboot_start: usize,
-               multiboot_end: usize,
-               memory_areas: MemoryAreaIter)
-               -> AreaFrameAllocator {
+    pub fn new(
+        kernel_start: usize,
+        kernel_end: usize,
+        multiboot_start: usize,
+        multiboot_end: usize,
+        memory_areas: MemoryAreaIter,
+    ) -> AreaFrameAllocator {
         let mut allocator = AreaFrameAllocator {
             next_free_frame: Frame::containing_address(0),
             current_area: None,
@@ -54,7 +55,9 @@ impl FrameAllocator for AreaFrameAllocator {
         if let Some(area) = self.current_area {
             // "Clone" the frame to return it if it's free. Frame doesn't
             // implement Clone, but we can construct an identical frame.
-            let frame = Frame { number: self.next_free_frame.number };
+            let frame = Frame {
+                number: self.next_free_frame.number,
+            };
 
             // the last frame of the current area
             let current_area_last_frame = {
@@ -67,10 +70,14 @@ impl FrameAllocator for AreaFrameAllocator {
                 self.choose_next_area();
             } else if frame >= self.kernel_start && frame <= self.kernel_end {
                 // `frame` is used by the kernel
-                self.next_free_frame = Frame { number: self.kernel_end.number + 1 };
+                self.next_free_frame = Frame {
+                    number: self.kernel_end.number + 1,
+                };
             } else if frame >= self.multiboot_start && frame <= self.multiboot_end {
                 // `frame` is used by the multiboot information structure
-                self.next_free_frame = Frame { number: self.multiboot_end.number + 1 };
+                self.next_free_frame = Frame {
+                    number: self.multiboot_end.number + 1,
+                };
             } else {
                 // frame is unused, increment `next_free_frame` and return it
                 self.next_free_frame.number += 1;

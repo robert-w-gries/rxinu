@@ -7,14 +7,14 @@ macro_rules! key_press {
 }
 
 macro_rules! key_release {
-    ($x:expr) => (Some(KeyEvent::Released($x))) 
+    ($x:expr) => (Some(KeyEvent::Released($x)))
 }
 
 pub fn get_key(scancode: u64) -> Option<Key> {
     match get_key_event(scancode) {
         Some(KeyEvent::Pressed(key)) => Some(key),
         Some(KeyEvent::Released(key)) => Some(key),
-        _ => None
+        _ => None,
     }
 }
 
@@ -49,19 +49,19 @@ fn match_scancode(scancode: u64) -> Option<KeyEvent> {
     let idx = scancode as usize;
     match scancode {
         // ASCII Keys by keyboard row
-        0x02 ... 0x0D => key_press!(LowerAscii(b"1234567890-="[idx - 0x02])),
-        0x10 ... 0x1B => key_press!(LowerAscii(b"qwertyuiop[]"[idx - 0x10])),
-        0x1E ... 0x28 => key_press!(LowerAscii(b"asdfghjkl;'"[idx - 0x1E])),
-        0x2C ... 0x35 => key_press!(LowerAscii(b"zxcvbnm,./"[idx - 0x2C])),
+        0x02...0x0D => key_press!(LowerAscii(b"1234567890-="[idx - 0x02])),
+        0x10...0x1B => key_press!(LowerAscii(b"qwertyuiop[]"[idx - 0x10])),
+        0x1E...0x28 => key_press!(LowerAscii(b"asdfghjkl;'"[idx - 0x1E])),
+        0x2C...0x35 => key_press!(LowerAscii(b"zxcvbnm,./"[idx - 0x2C])),
         0x29 => key_press!(LowerAscii((b'`'))),
         0x2B => key_press!(LowerAscii((b'\\'))),
 
         // Non-modifiable ASCII keys
-        0x01 => key_press!(Ascii(0x1B)), // escape
-        0x0E => key_press!(Ascii(0x8)),  // backspace
-        0x0F => key_press!(Ascii(b'\t')),   // tab
-        0x1C => key_press!(Ascii(b'\n')),   // newline
-        0x39 => key_press!(Ascii(b' ')),    // space
+        0x01 => key_press!(Ascii(0x1B)),  // escape
+        0x0E => key_press!(Ascii(0x8)),   // backspace
+        0x0F => key_press!(Ascii(b'\t')), // tab
+        0x1C => key_press!(Ascii(b'\n')), // newline
+        0x39 => key_press!(Ascii(b' ')),  // space
 
         // Meta keys
         0x1D => key_press!(Meta(ControlLeft(true))),
@@ -81,6 +81,6 @@ fn match_scancode(scancode: u64) -> Option<KeyEvent> {
         0xB8 => key_release!(Meta(AltLeft(false))),
         0xE0B8 => key_release!(Meta(AltRight(false))),
 
-        _ => None
+        _ => None,
     }
 }

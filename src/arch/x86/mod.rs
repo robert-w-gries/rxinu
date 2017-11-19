@@ -11,14 +11,14 @@ pub fn init(multiboot_information_address: usize) {
 
     // Make sure interrupts don't intefere with setup
     interrupts::disable_interrupts_then(|| {
-      interrupts::init(&mut memory_controller);
-      device::init();
+        interrupts::init(&mut memory_controller);
+        device::init();
     });
 }
 
 #[allow(dead_code)]
 fn enable_nxe_bit() {
-    use x86::shared::msr::{IA32_EFER, rdmsr, wrmsr};
+    use x86::shared::msr::{rdmsr, wrmsr, IA32_EFER};
 
     let nxe_bit = 1 << 11;
     unsafe {

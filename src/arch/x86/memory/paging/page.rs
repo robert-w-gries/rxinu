@@ -11,10 +11,14 @@ pub struct Page {
 impl Page {
     pub fn containing_address(address: VirtualAddress) -> Page {
         #[cfg(target_arch = "x86_64")]
-        assert!(address < 0x0000_8000_0000_0000 || address >= 0xffff_8000_0000_0000,
-                "invalid address: 0x{:x}",
-                address);
-        Page { number: address / PAGE_SIZE }
+        assert!(
+            address < 0x0000_8000_0000_0000 || address >= 0xffff_8000_0000_0000,
+            "invalid address: 0x{:x}",
+            address
+        );
+        Page {
+            number: address / PAGE_SIZE,
+        }
     }
 
     pub fn p4_index(&self) -> usize {
@@ -61,7 +65,9 @@ impl Add<usize> for Page {
     type Output = Page;
 
     fn add(self, rhs: usize) -> Page {
-        Page { number: self.number + rhs }
+        Page {
+            number: self.number + rhs,
+        }
     }
 }
 

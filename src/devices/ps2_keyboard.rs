@@ -11,7 +11,10 @@ struct KeyPair {
 
 impl KeyPair {
     const fn new() -> Self {
-        KeyPair { left: false, right: false }
+        KeyPair {
+            left: false,
+            right: false,
+        }
     }
 
     fn is_pressed(&self) -> bool {
@@ -61,11 +64,11 @@ impl ModifierState {
     /// Apply all of our modifiers to an ASCII character, and return a new
     /// ASCII character.
     fn apply_to(&self, ascii: char) -> String {
-      if self.is_uppercase() {
-        ascii.to_uppercase().collect()
-      } else {
-        ascii.to_string()
-      }
+        if self.is_uppercase() {
+            ascii.to_uppercase().collect()
+        } else {
+            ascii.to_string()
+        }
     }
 
     fn update(&mut self, m: Modifier) {
@@ -123,7 +126,10 @@ fn retrieve_bytes(scancode: u8) -> u64 {
         }
     }
 
-    byte_sequence.iter().rev().fold(0, |acc, &b| (acc<<1) + b as u64)
+    byte_sequence
+        .iter()
+        .rev()
+        .fold(0, |acc, &b| (acc << 1) + b as u64)
 }
 
 fn print_str(s: String) {

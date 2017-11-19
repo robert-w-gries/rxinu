@@ -8,14 +8,12 @@ pub trait Io {
 }
 
 pub struct ReadOnly<I: Io> {
-        inner: I
+    inner: I,
 }
 
 impl<I: Io> ReadOnly<I> {
     pub const fn new(inner: I) -> ReadOnly<I> {
-        ReadOnly {
-            inner: inner
-        }
+        ReadOnly { inner: inner }
     }
 
     pub fn read(&self) -> I::Value {
@@ -24,14 +22,12 @@ impl<I: Io> ReadOnly<I> {
 }
 
 pub struct WriteOnly<I: Io> {
-        inner: I
+    inner: I,
 }
 
 impl<I: Io> WriteOnly<I> {
     pub const fn new(inner: I) -> WriteOnly<I> {
-        WriteOnly {
-            inner: inner
-        }
+        WriteOnly { inner: inner }
     }
 
     pub fn write(&mut self, value: I::Value) {
