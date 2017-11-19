@@ -41,7 +41,10 @@ pub fn init() {
 
     // Perform Controller Self Test
     CONTROLLER.lock().write(0xAA);
-    assert!(wait_then_read() == 0x55, "PS/2 Controller self check failed!");
+    assert!(
+        wait_then_read() == 0x55,
+        "PS/2 Controller self check failed!"
+    );
 
     // Perform interface tests
     CONTROLLER.lock().write(0xAB);

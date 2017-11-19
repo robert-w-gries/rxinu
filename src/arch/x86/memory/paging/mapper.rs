@@ -4,24 +4,25 @@ use arch::x86::memory::{Frame, FrameAllocator};
 use super::{PhysicalAddress, VirtualAddress, PAGE_SIZE};
 use super::entry::{EntryFlags, PRESENT};
 use super::page::Page;
-use super::table::{self, Table,};
+use super::table::{self, Table};
 
 pub struct Mapper {
-	#[cfg(target_arch = "x86")]
-    p2: Unique<Table<table::Level2>>,
-	
-	#[cfg(target_arch = "x86_64")]
-    p4: Unique<Table<table::Level4>>,
+    #[cfg(target_arch = "x86")] p2: Unique<Table<table::Level2>>,
+
+    #[cfg(target_arch = "x86_64")] p4: Unique<Table<table::Level4>>,
 }
 
 #[cfg(target_arch = "x86")]
 impl Mapper {
     pub unsafe fn new() -> Mapper {
-        Mapper { p2: Unique::new_unchecked(table::P2) }
+        Mapper {
+            p2: Unique::new_unchecked(table::P2),
+        }
     }
 
     pub fn identity_map<A>(&mut self, frame: Frame, flags: EntryFlags, allocator: &mut A)
-        where A: FrameAllocator
+    where
+        A: FrameAllocator,
     {
         let page = Page::containing_address(frame.start_address());
         self.map_to(page, frame, flags, allocator)
@@ -36,9 +37,11 @@ impl Mapper {
     }
 
     pub fn map_to<A>(&mut self, page: Page, frame: Frame, flags: EntryFlags, allocator: &mut A)
-        where A: FrameAllocator
+    where
+        A: FrameAllocator,
     {
-        let p1 = self.top_table_mut().next_table_create(page.p2_index(), allocator);
+        let p1 = self.top_table_mut()
+            .next_table_create(page.p2_index(), allocator);
 
         assert!(p1[page.p1_index()].is_unused());
         p1[page.p1_index()].set(frame, flags | PRESENT);
@@ -66,7 +69,8 @@ impl Mapper {
 
     #[allow(unused)]
     pub fn unmap<A>(&mut self, page: Page, allocator: &mut A)
-        where A: FrameAllocator
+    where
+        A: FrameAllocator,
     {
         assert!(self.translate(page.start_address()).is_some());
 
@@ -86,11 +90,14 @@ impl Mapper {
 #[cfg(target_arch = "x86_64")]
 impl Mapper {
     pub unsafe fn new() -> Mapper {
-        Mapper { p4: Unique::new_unchecked(table::P4) }
+        Mapper {
+            p4: Unique::new_unchecked(table::P4),
+        }
     }
 
     pub fn identity_map<A>(&mut self, frame: Frame, flags: EntryFlags, allocator: &mut A)
-        where A: FrameAllocator
+    where
+        A: FrameAllocator,
     {
         let page = Page::containing_address(frame.start_address());
         self.map_to(page, frame, flags, allocator)
@@ -105,9 +112,11 @@ impl Mapper {
     }
 
     pub fn map_to<A>(&mut self, page: Page, frame: Frame, flags: EntryFlags, allocator: &mut A)
-        where A: FrameAllocator
+    where
+        A: FrameAllocator,
     {
-        let p3 = self.top_table_mut().next_table_create(page.p4_index(), allocator);
+        let p3 = self.top_table_mut()
+            .next_table_create(page.p4_index(), allocator);
         let p2 = p3.next_table_create(page.p3_index(), allocator);
         let p1 = p2.next_table_create(page.p2_index(), allocator);
 
@@ -130,8 +139,8 @@ impl Mapper {
                         // address must be 1GiB aligned
                         assert!(start_frame.number % (ENTRY_COUNT * ENTRY_COUNT) == 0);
                         return Some(Frame {
-                            number: start_frame.number + page.p2_index() * ENTRY_COUNT +
-                                    page.p1_index(),
+                            number: start_frame.number + page.p2_index() * ENTRY_COUNT
+                                + page.p1_index(),
                         });
                     }
                 }
@@ -142,7 +151,9 @@ impl Mapper {
                         if p2_entry.flags().contains(HUGE_PAGE) {
                             // address must be 2MiB aligned
                             assert!(start_frame.number % ENTRY_COUNT == 0);
-                            return Some(Frame { number: start_frame.number + page.p1_index() });
+                            return Some(Frame {
+                                number: start_frame.number + page.p1_index(),
+                            });
                         }
                     }
                 }
@@ -158,7 +169,8 @@ impl Mapper {
 
     #[allow(unused)]
     pub fn unmap<A>(&mut self, page: Page, allocator: &mut A)
-        where A: FrameAllocator
+    where
+        A: FrameAllocator,
     {
         assert!(self.translate(page.start_address()).is_some());
 
@@ -179,7 +191,8 @@ impl Mapper {
 
 impl Mapper {
     pub fn map<A>(&mut self, page: Page, flags: EntryFlags, allocator: &mut A)
-        where A: FrameAllocator
+    where
+        A: FrameAllocator,
     {
         let frame = allocator.allocate_frame().expect("out of memory");
         self.map_to(page, frame, flags, allocator)
@@ -219,8 +232,10 @@ mod tests {
 
         // Test: Mapping code needs to create a P2 and P1 table
         //       Next returned frame is frame 3
-        assert_eq!(allocator.allocate_frame().expect("no more frames").number,
-                   3);
+        assert_eq!(
+            allocator.allocate_frame().expect("no more frames").number,
+            3
+        );
     }
 
     #[test]
@@ -244,7 +259,6 @@ mod tests {
 
         // last mapped byte
         assert!(page_table.translate(512 * 512 * 4096 - 1).is_some());
-
     }
 
     #[test]

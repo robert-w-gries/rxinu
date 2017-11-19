@@ -5,8 +5,10 @@ use syscall::io::{Io, Port, ReadOnly};
 const SERIAL_PORT1: u16 = 0x3F8;
 const SERIAL_PORT2: u16 = 0x2F8;
 
-pub static COM1: Mutex<SerialPort<Port<u8>>> = Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT1));
-pub static COM2: Mutex<SerialPort<Port<u8>>> = Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT2));
+pub static COM1: Mutex<SerialPort<Port<u8>>> =
+    Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT1));
+pub static COM2: Mutex<SerialPort<Port<u8>>> =
+    Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT2));
 
 // TODO: Replace arbitrary value for clearing rows
 const BUF_MAX_HEIGHT: usize = 25;
@@ -47,7 +49,7 @@ impl SerialPort<Port<u8>> {
             line_ctrl: Port::new(base + 3),
             modem_ctrl: Port::new(base + 4),
             line_sts: ReadOnly::new(Port::new(base + 5)),
-            modem_sts: ReadOnly::new(Port::new(base + 6))
+            modem_sts: ReadOnly::new(Port::new(base + 6)),
         }
     }
 }
@@ -60,14 +62,14 @@ impl<T: Io<Value = u8>> SerialPort<T> {
     }
 
     pub fn init(&mut self) {
-        self.int_en.write(0x00);        // disable interrupts
-        self.line_ctrl.write(0x80);     // enable DLAB (set baud rate divisor)
-        self.data.write(0x03);          // set divisor to 3 (lo byte) 38400 baud
-        self.int_en.write(0x00);        // (hi byte)
-        self.line_ctrl.write(0x03);     // 8 bits, no parity, one stop bit
-        self.fifo_ctrl.write(0xC7);     // enable fifo, clear them, 14 byte threshold
-        self.modem_ctrl.write(0x0B);    // IRQs enabled, RTS/DSR set
-        self.int_en.write(0x01);        // enable interrupts
+        self.int_en.write(0x00); // disable interrupts
+        self.line_ctrl.write(0x80); // enable DLAB (set baud rate divisor)
+        self.data.write(0x03); // set divisor to 3 (lo byte) 38400 baud
+        self.int_en.write(0x00); // (hi byte)
+        self.line_ctrl.write(0x03); // 8 bits, no parity, one stop bit
+        self.fifo_ctrl.write(0xC7); // enable fifo, clear them, 14 byte threshold
+        self.modem_ctrl.write(0x0B); // IRQs enabled, RTS/DSR set
+        self.int_en.write(0x01); // enable interrupts
     }
 
     fn line_sts(&self) -> LineStsFlags {
@@ -95,11 +97,11 @@ impl<T: Io<Value = u8>> SerialPort<T> {
                 wait_then_write(0x8);
                 wait_then_write(b' ');
                 wait_then_write(0x8);
-            },
+            }
             b'\r' | b'\n' => {
                 wait_then_write(b'\n');
                 wait_then_write(b'\r');
-            },
+            }
             _ => {
                 wait_then_write(data);
             }

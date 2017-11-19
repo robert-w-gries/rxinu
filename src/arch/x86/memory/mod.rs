@@ -1,7 +1,7 @@
 use multiboot2::BootInformation;
 use allocator;
 
-use self::paging::{PAGE_SIZE, PhysicalAddress};
+use self::paging::{PhysicalAddress, PAGE_SIZE};
 pub use self::area_frame_allocator::AreaFrameAllocator;
 pub use self::stack_allocator::Stack;
 pub use self::paging::remap_the_kernel;
@@ -13,45 +13,54 @@ mod stack_allocator;
 pub fn init(boot_info: &BootInformation) -> MemoryController {
     assert_has_not_been_called!("memory::init must be called only once");
 
-    #[cfg(target_arch = "x86_64")] super::enable_nxe_bit();
+    #[cfg(target_arch = "x86_64")]
+    super::enable_nxe_bit();
     super::enable_write_protect_bit();
 
-    let memory_map_tag = boot_info.memory_map_tag().expect(
-        "Memory map tag required");
-    let elf_sections_tag = boot_info.elf_sections_tag().expect(
-        "Elf sections tag required");
+    let memory_map_tag = boot_info.memory_map_tag().expect("Memory map tag required");
+    let elf_sections_tag = boot_info
+        .elf_sections_tag()
+        .expect("Elf sections tag required");
 
-    let kernel_start = elf_sections_tag.sections()
+    let kernel_start = elf_sections_tag
+        .sections()
         .filter(|s| s.is_allocated())
         .map(|s| s.start_address())
         .min()
         .unwrap();
-    let kernel_end = elf_sections_tag.sections()
+    let kernel_end = elf_sections_tag
+        .sections()
         .filter(|s| s.is_allocated())
         .map(|s| s.end_address())
         .max()
         .unwrap();
 
-    kprintln!("kernel start: {:#x}, kernel end: {:#x}",
-             kernel_start,
-             kernel_end);
-    kprintln!("multiboot start: {:#x}, multiboot end: {:#x}",
-             boot_info.start_address(),
-             boot_info.end_address());
+    kprintln!(
+        "kernel start: {:#x}, kernel end: {:#x}",
+        kernel_start,
+        kernel_end
+    );
+    kprintln!(
+        "multiboot start: {:#x}, multiboot end: {:#x}",
+        boot_info.start_address(),
+        boot_info.end_address()
+    );
 
     let mut frame_allocator = AreaFrameAllocator::new(
-        kernel_start as usize, kernel_end as usize,
-        boot_info.start_address(), boot_info.end_address(),
-        memory_map_tag.memory_areas());
+        kernel_start as usize,
+        kernel_end as usize,
+        boot_info.start_address(),
+        boot_info.end_address(),
+        memory_map_tag.memory_areas(),
+    );
 
-    let mut active_table = paging::remap_the_kernel(&mut frame_allocator,
-        boot_info);
+    let mut active_table = paging::remap_the_kernel(&mut frame_allocator, boot_info);
 
     use self::paging::page::Page;
-    use allocator::{HEAP_START, HEAP_SIZE};
+    use allocator::{HEAP_SIZE, HEAP_START};
 
     let heap_start_page = Page::containing_address(HEAP_START);
-    let heap_end_page = Page::containing_address(HEAP_START + HEAP_SIZE-1);
+    let heap_end_page = Page::containing_address(HEAP_START + HEAP_SIZE - 1);
 
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
         active_table.map(page, paging::entry::WRITABLE, &mut frame_allocator);
@@ -82,11 +91,15 @@ pub struct Frame {
 
 impl Frame {
     fn containing_address(address: usize) -> Frame {
-        Frame { number: address / PAGE_SIZE }
+        Frame {
+            number: address / PAGE_SIZE,
+        }
     }
 
     fn clone(&self) -> Frame {
-        Frame { number: self.number }
+        Frame {
+            number: self.number,
+        }
     }
 
     fn range_inclusive(start: Frame, end: Frame) -> FrameIter {
@@ -135,11 +148,12 @@ pub struct MemoryController {
 impl MemoryController {
     #[allow(dead_code)]
     pub fn alloc_stack(&mut self, size_in_pages: usize) -> Option<Stack> {
-        let &mut MemoryController { ref mut active_table,
-                                    ref mut frame_allocator,
-                                    ref mut stack_allocator } = self;
-        stack_allocator.alloc_stack(active_table, frame_allocator,
-                                    size_in_pages)
+        let &mut MemoryController {
+            ref mut active_table,
+            ref mut frame_allocator,
+            ref mut stack_allocator,
+        } = self;
+        stack_allocator.alloc_stack(active_table, frame_allocator, size_in_pages)
     }
 }
 
