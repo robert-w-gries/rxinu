@@ -1,30 +1,43 @@
-#![feature(asm)]
+#![feature(abi_x86_interrupt)]
 #![feature(alloc)]
+#![feature(asm)]
+#![feature(const_fn)]
+#![feature(const_unique_new)]
+#![feature(compiler_builtins_lib)]
 #![feature(const_fn)]
 #![feature(lang_items)]
+#![feature(unique)]
 #![no_std]
-#![feature(compiler_builtins_lib)]
-extern crate compiler_builtins;
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[macro_use]
-extern crate arch_x86 as arch;
-
 extern crate alloc;
+
+#[macro_use]
+extern crate bitflags;
+
+#[macro_use]
+extern crate once;
+
+extern crate bit_field;
+extern crate compiler_builtins;
+extern crate hole_list_allocator as allocator;
 extern crate multiboot2;
+extern crate rlibc;
+extern crate spin;
+extern crate volatile;
+extern crate x86;
+
+#[macro_use]
+pub mod arch;
+pub mod devices;
+pub mod syscall;
 
 #[no_mangle]
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
-    arch::device::init();
-    arch::console::init();
+    arch::init(multiboot_information_address);
+    arch::console::clear_screen();
 
-    let boot_info = unsafe { multiboot2::load(multiboot_information_address) };
-
-    let mut memory_controller = arch::memory::init(&boot_info);
-
-    arch::interrupts::init(&mut memory_controller);
-
-    println!("\nIt did not crash!");
+    kprintln!("\nIt did not crash!");
 
     loop {}
 }
@@ -38,8 +51,8 @@ pub extern "C" fn eh_personality() {}
 #[lang = "panic_fmt"]
 #[no_mangle]
 pub extern "C" fn panic_fmt(fmt: core::fmt::Arguments, file: &str, line: u32) -> ! {
-    println!("\n\nPANIC in {} at line {}:", file, line);
-    println!("    {}", fmt);
+    kprintln!("\n\nPANIC in {} at line {}:", file, line);
+    kprintln!("    {}", fmt);
     loop {}
 }
 

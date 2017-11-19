@@ -21,6 +21,15 @@ endif
 CFLAGS := --target=$(target)-unknown-none-elf -ffreestanding
 ASFLAGS := $(asm_target)
 LDFLAGS := -n --gc-sections -melf_$(ld_target)
+QEMUFLAGS := -nographic -serial telnet:127.0.0.1:4444,server
+CARGOFLAGS :=
+
+ifdef FEATURES
+	CARGOFLAGS += --no-default-features --features $(FEATURES)
+	ifeq ($(FEATURES),vga)
+		QEMUFLAGS :=
+	endif
+endif
 
 # Rust target
 rust_arch := $(target)
@@ -40,27 +49,27 @@ rust_target ?= $(rust_arch)-rxinu
 rust_os := target/$(rust_target)/debug/librxinu.a
 
 # Source files
-linker_script := arch/$(arch)/asm/linker.ld
-grub_cfg := arch/$(arch)/asm/grub.cfg
-ASM_SRC := $(wildcard arch/$(arch)/asm/*.nasm) \
-	$(wildcard arch/$(arch)/asm/$(target)/*.nasm)
+linker_script := src/arch/$(arch)/asm/linker.ld
+grub_cfg := src/arch/$(arch)/asm/grub.cfg
+ASM_SRC := $(wildcard src/arch/$(arch)/asm/*.nasm) \
+	$(wildcard src/arch/$(arch)/asm/$(target)/*.nasm)
 
 # Object files
-ASM_OBJ := $(patsubst arch/$(arch)/asm/%.nasm, build/arch/$(arch)/asm/%.o, $(ASM_SRC))
+ASM_OBJ := $(patsubst src/arch/$(arch)/asm/%.nasm, build/arch/$(arch)/asm/%.o, $(ASM_SRC))
 
-.PHONY: all cargo clean debug gdb iso run
+.PHONY: all cargo clean debug gdb iso run serial
 
 all: $(kernel)
 
 cargo:
-	@xargo build --target $(rust_target)
+	@xargo build --target $(rust_target) $(CARGOFLAGS)
 
 clean:
 	@cargo clean
 	@rm -rf build
 
 debug: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso) -d int -s -S
+	@qemu-system-x86_64 $(QEMUFLAGS) -cdrom $(iso) -d int -s -S
 
 gdb: $(kernel)
 	@$(GDB) "$(kernel)" -ex "target remote :1234"
@@ -68,7 +77,10 @@ gdb: $(kernel)
 iso: $(iso)
 
 run: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso) -s -nographic
+	@qemu-system-x86_64 $(QEMUFLAGS) -cdrom $(iso) -s
+
+serial:
+	@telnet 127.0.0.1 4444
 
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub
@@ -83,7 +95,7 @@ $(kernel): cargo $(rust_os) $(ASM_OBJ) $(linker_script)
 	@$(LD) $(LDFLAGS) -T $(linker_script) -o $(kernel) $(ASM_OBJ) $(rust_os)
 
 # compile architecture specific files
-build/arch/$(arch)/asm/%.o: arch/$(arch)/asm/%.nasm
+build/arch/$(arch)/asm/%.o: src/arch/$(arch)/asm/%.nasm
 	@mkdir -p $(shell dirname $@)
 	@echo "  Assembling $<"
 	@$(ASM) $(ASFLAGS) $< -o $@
