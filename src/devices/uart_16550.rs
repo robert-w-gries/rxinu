@@ -1,8 +1,22 @@
 use core::fmt::{self, Write};
-
+use spin::Mutex;
 use syscall::io::{Io, Port, ReadOnly};
 
-const MAX_HEIGHT: usize = 25;
+const SERIAL_PORT1: u16 = 0x3F8;
+const SERIAL_PORT2: u16 = 0x2F8;
+
+pub static COM1: Mutex<SerialPort<Port<u8>>> = Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT1));
+pub static COM2: Mutex<SerialPort<Port<u8>>> = Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT2));
+
+// TODO: Replace arbitrary value for clearing rows
+const BUF_MAX_HEIGHT: usize = 25;
+
+pub fn init() {
+    COM1.lock().init();
+    COM2.lock().init();
+
+    kprintln!("[ OK ] Serial Driver");
+}
 
 impl<T: Io<Value = u8>> Write for SerialPort<T> {
     fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
@@ -40,7 +54,7 @@ impl SerialPort<Port<u8>> {
 
 impl<T: Io<Value = u8>> SerialPort<T> {
     pub fn clear_screen(&mut self) {
-        for _ in 0..MAX_HEIGHT {
+        for _ in 0..BUF_MAX_HEIGHT {
             self.send(b'\n')
         }
     }

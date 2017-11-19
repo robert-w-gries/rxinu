@@ -57,7 +57,7 @@ ASM_SRC := $(wildcard src/arch/$(arch)/asm/*.nasm) \
 # Object files
 ASM_OBJ := $(patsubst src/arch/$(arch)/asm/%.nasm, build/arch/$(arch)/asm/%.o, $(ASM_SRC))
 
-.PHONY: all cargo clean debug gdb iso run
+.PHONY: all cargo clean debug gdb iso run serial
 
 all: $(kernel)
 
@@ -78,6 +78,9 @@ iso: $(iso)
 
 run: $(iso)
 	@qemu-system-x86_64 $(QEMUFLAGS) -cdrom $(iso) -s
+
+serial:
+	@telnet 127.0.0.1 4444
 
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub

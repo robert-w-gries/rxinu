@@ -2,10 +2,10 @@ use core::fmt::{self, Write};
 use spin::Mutex;
 
 #[cfg(feature = "serial")]
-use super::device::serial::COM1 as console;
+use devices::uart_16550::COM1 as console;
 
 #[cfg(feature = "vga")]
-use super::device::vga::VGA as console;
+use devices::vga::VGA as console;
 
 #[macro_export]
 macro_rules! kprint {
