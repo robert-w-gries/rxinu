@@ -4,7 +4,17 @@
 Rust implementation of [Xinu](https://github.com/xinu-os/xinu), based on the [excellent blog written by Philipp Oppermann](https://os.phil-opp.com/)
 ## Dependencies
   
-### Quick Start
+### Quick Run
+
+```bash
+sudo apt-get docker
+docker build -t rxinu-os .
+docker run --iter
+make run -it --rm -v $(pwd) rxinu-os
+```
+
+### Install Dependencies
+
 ```bash
 sudo apt-get install binutils clang curl grub nasm qemu xorriso -y
 curl https://sh.rustup.rs -sSf | sh

@@ -21,7 +21,8 @@ endif
 CFLAGS := --target=$(target)-unknown-none-elf -ffreestanding
 ASFLAGS := $(asm_target)
 LDFLAGS := -n --gc-sections -melf_$(ld_target)
-QEMUFLAGS := -nographic -serial telnet:127.0.0.1:4444,server
+#QEMUFLAGS := -nographic -serial telnet:127.0.0.1:4444,server
+QEMUFLAGS := -nographic
 CARGOFLAGS :=
 
 ifdef FEATURES
