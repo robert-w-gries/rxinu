@@ -28,6 +28,8 @@ ifdef FEATURES
 	CARGOFLAGS += --no-default-features --features $(FEATURES)
 	ifeq ($(FEATURES),vga)
 		QEMUFLAGS :=
+	else ifeq ($(FEATURES), serial)
+		QEMUFLAGS := -nographic
 	endif
 endif
 
@@ -48,6 +50,9 @@ iso := build/rxinu-$(arch)-$(target).iso
 rust_target ?= $(rust_arch)-rxinu
 rust_os := target/$(rust_target)/debug/librxinu.a
 
+# Docker
+docker_image ?= rxinu-os
+
 # Source files
 linker_script := src/arch/$(arch)/asm/linker.ld
 grub_cfg := src/arch/$(arch)/asm/grub.cfg
@@ -57,7 +62,7 @@ ASM_SRC := $(wildcard src/arch/$(arch)/asm/*.nasm) \
 # Object files
 ASM_OBJ := $(patsubst src/arch/$(arch)/asm/%.nasm, build/arch/$(arch)/asm/%.o, $(ASM_SRC))
 
-.PHONY: all cargo clean debug gdb iso run serial
+.PHONY: all cargo clean docker_build docker_run debug gdb iso run serial
 
 all: $(kernel)
 
@@ -70,6 +75,12 @@ clean:
 
 debug: $(iso)
 	@qemu-system-x86_64 $(QEMUFLAGS) -cdrom $(iso) -d int -s -S
+
+docker_build:
+	@docker build -t rxinu-os .
+
+docker_run:
+	@docker run -it --rm -v $(pwd) $(docker_image)
 
 gdb: $(kernel)
 	@$(GDB) "$(kernel)" -ex "target remote :1234"

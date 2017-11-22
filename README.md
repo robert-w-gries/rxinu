@@ -4,25 +4,26 @@
 Rust implementation of [Xinu](https://github.com/xinu-os/xinu), based on the [excellent blog written by Philipp Oppermann](https://os.phil-opp.com/)
 ## Dependencies
   
-### Quick Run
+### Quick Run (Docker)
+
+Clone this repo then run the following:
 
 ```bash
-sudo apt-get docker
-docker build -t rxinu-os .
-docker run --iter
-make run -it --rm -v $(pwd) rxinu-os
+sudo apt-get docker make
+make docker_build
+make docker_run
+make run # Inside of docker linux container
 ```
 
-### Install Dependencies
+### Build dependencies
 
 ```bash
 sudo apt-get install binutils clang curl grub nasm qemu xorriso -y
 curl https://sh.rustup.rs -sSf | sh
-source $HOME/.cargo/env
-# add $HOME/.cargo/bin to PATH env variable
+export PATH="${PATH}:$HOME/.cargo/bin"
 rustup install nightly
 rustup default nightly
-cargo install xargo --vers 0.3.8
+cargo install xargo
 rustup component add rust-src
 ```
 
