@@ -2,20 +2,21 @@
 
 # rxinu
 Rust implementation of [Xinu](https://github.com/xinu-os/xinu), based on the [excellent blog written by Philipp Oppermann](https://os.phil-opp.com/)
-## Dependencies
-  
-### Quick Run (Docker)
+
+## Quick Run (Docker)
 
 Clone this repo then run the following:
 
 ```bash
-sudo apt-get docker make
-make docker_build
-make docker_run
+sudo apt-get install docker.io make # use 'docker' repo for non-Ubuntu distros
+sudo make docker_build
+sudo make docker_run
 make run # Inside of docker linux container
 ```
 
-### Build dependencies
+## Dependencies
+
+### Quick Installation
 
 ```bash
 sudo apt-get install binutils clang curl grub nasm qemu xorriso -y
