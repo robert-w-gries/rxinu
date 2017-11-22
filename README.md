@@ -8,7 +8,7 @@ Rust implementation of [Xinu](https://github.com/xinu-os/xinu), based on the [ex
 Clone this repo then run the following:
 
 ```bash
-sudo apt-get install docker.io make # use 'docker' repo for non-Ubuntu distros
+sudo apt-get install docker.io make # use 'docker' package for non-Ubuntu distros
 sudo make docker_build
 sudo make docker_run
 make run # Inside of docker linux container
@@ -20,7 +20,7 @@ make run # Inside of docker linux container
 
 ```bash
 sudo apt-get install binutils clang curl grub nasm qemu xorriso -y
-curl https://sh.rustup.rs -sSf | sh
+curl https://sh.rustup.rs -sSf | sh -s -- -y
 export PATH="${PATH}:$HOME/.cargo/bin"
 rustup install nightly
 rustup default nightly
@@ -28,7 +28,14 @@ cargo install xargo
 rustup component add rust-src
 ```
 
-* Note: installing the `gcc-devel` apt repository was required to run `cargo install xargo`
+#### Distro Notes
+
+* Fedora
+  * `grub2` package was already installed
+  * `make run` fails due to wrong GRUB_MKRESCUE
+    * Use `make run GRUB_MKRESCUE=grub2-mkrescue` or `export GRUB_MKRESCUE=grub2-mkrescue`
+* OpenSUSE
+  * installing the `gcc-devel` apt repository was required to run `cargo install xargo`
 
 ### Required
 
