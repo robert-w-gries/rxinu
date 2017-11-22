@@ -18,7 +18,7 @@ make run # Inside of docker linux container
 
 ## Dependencies
 
-### Quick Installation
+### Installation
 
 ```bash
 sudo apt-get install binutils clang curl grub nasm qemu xorriso -y
@@ -38,31 +38,6 @@ rustup component add rust-src
     * Use `make run GRUB_MKRESCUE=grub2-mkrescue` or `export GRUB_MKRESCUE=grub2-mkrescue`
 * OpenSUSE
   * installing the `gcc-devel` apt repository was required to run `cargo install xargo`
-
-### Required
-
-* cargo
-  * Rust package tool
-* rustup
-  * Rust toolchain manager
-  * Used for managing nightly rust
-* nasm
-  * Least painful assembler available. Supports 32 bit and 64 bit output
-
-### Optional
-
-* binutils
-* lld
-  * [`lld`](http://lld.llvm.org/) can replace `ld` if desired
-  * As of `4.0`, lld does not seem to support the `--nmagic` flag
-    * TODO: Get `lld` to link the kernel
-* qemu
-  * Used in Makefile for testing the kernel
-* grub
-  * Used to build iso file, which is necessary to test x86_64 kernel with `qemu`
-  * `xorriso` package is required dependency for building iso file
-    * Note: `xorriso` is only available in `libisoburn` for some distros
-  * Note: some distributions, such as OpenSUSE, require `grub2-mkrescue` instead of `grub-mkrescue`
 
 ## Compilation
 
