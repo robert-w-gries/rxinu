@@ -8,7 +8,9 @@ Rust implementation of [Xinu](https://github.com/xinu-os/xinu), based on the [ex
 Clone this repo then run the following:
 
 ```bash
-sudo apt-get install docker.io make # use 'docker' package for non-Ubuntu distros
+sudo apt-get install make
+wget -qO- https://get.docker.com/ | sh
+# Fedora: sudo systemctl start docker
 sudo make docker_build
 sudo make docker_run
 make run # Inside of docker linux container

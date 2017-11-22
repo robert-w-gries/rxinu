@@ -51,7 +51,8 @@ rust_target ?= $(rust_arch)-rxinu
 rust_os := target/$(rust_target)/debug/librxinu.a
 
 # Docker
-docker_image ?= rxinu-os
+docker_image ?= robgries/rxinu-os
+tag ?= v0.1
 
 # Source files
 linker_script := src/arch/$(arch)/asm/linker.ld
@@ -77,10 +78,10 @@ debug: $(iso)
 	@qemu-system-x86_64 $(QEMUFLAGS) -cdrom $(iso) -d int -s -S
 
 docker_build:
-	@docker build -t $(docker_image) .
+	@docker build -t $(docker_image):$(tag) .
 
 docker_run:
-	@docker run -it --rm $(docker_image)
+	@docker run -it --rm $(docker_image):$(tag)
 
 gdb: $(kernel)
 	@$(GDB) "$(kernel)" -ex "target remote :1234"
