@@ -21,13 +21,15 @@ endif
 CFLAGS := --target=$(target)-unknown-none-elf -ffreestanding
 ASFLAGS := $(asm_target)
 LDFLAGS := -n --gc-sections -melf_$(ld_target)
-QEMUFLAGS := -nographic -serial telnet:127.0.0.1:4444,server
+QEMUFLAGS := -nographic
 CARGOFLAGS :=
 
 ifdef FEATURES
 	CARGOFLAGS += --no-default-features --features $(FEATURES)
 	ifeq ($(FEATURES),vga)
 		QEMUFLAGS :=
+	else ifeq ($(FEATURES), serial)
+		QEMUFLAGS := -nographic
 	endif
 endif
 
@@ -48,6 +50,10 @@ iso := build/rxinu-$(arch)-$(target).iso
 rust_target ?= $(rust_arch)-rxinu
 rust_os := target/$(rust_target)/debug/librxinu.a
 
+# Docker
+docker_image ?= robgries/rxinu-os
+tag ?= v0.1
+
 # Source files
 linker_script := src/arch/$(arch)/asm/linker.ld
 grub_cfg := src/arch/$(arch)/asm/grub.cfg
@@ -57,7 +63,7 @@ ASM_SRC := $(wildcard src/arch/$(arch)/asm/*.nasm) \
 # Object files
 ASM_OBJ := $(patsubst src/arch/$(arch)/asm/%.nasm, build/arch/$(arch)/asm/%.o, $(ASM_SRC))
 
-.PHONY: all cargo clean debug gdb iso run serial
+.PHONY: all cargo clean docker_build docker_run debug gdb iso run serial
 
 all: $(kernel)
 
@@ -70,6 +76,12 @@ clean:
 
 debug: $(iso)
 	@qemu-system-x86_64 $(QEMUFLAGS) -cdrom $(iso) -d int -s -S
+
+docker_build:
+	@docker build -t $(docker_image):$(tag) .
+
+docker_run:
+	@docker run -it --rm $(docker_image):$(tag)
 
 gdb: $(kernel)
 	@$(GDB) "$(kernel)" -ex "target remote :1234"
