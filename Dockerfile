@@ -26,7 +26,7 @@ RUN export PATH="$PATH:/$HOME/.cargo/bin" && \
     rustup component add rust-src && \
     cargo install xargo
 
-RUN git clone https://github.com/robert-w-gries/rxinu.git
+RUN mkdir rxinu
 
 ENV PATH="$PATH:/home/rxinu/.cargo/bin"
 WORKDIR /home/rxinu/rxinu
