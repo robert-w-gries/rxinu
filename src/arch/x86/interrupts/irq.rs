@@ -1,4 +1,4 @@
-use arch::x86::interrupts::exception::ExceptionStackFrame;
+use arch::x86::interrupts::exception::ExceptionStack;
 use devices::{ps2_controller_8042, ps2_keyboard};
 use devices::pic_8259 as pic;
 use devices::uart_16550 as serial;
@@ -14,11 +14,11 @@ fn trigger(irq: u8) {
     }
 }
 
-pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStack) {
     pic::MASTER.lock().ack();
 }
 
-pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStack) {
     // Read a single scancode off our keyboard port.
     let code = ps2_controller_8042::key_read();
 
@@ -29,17 +29,17 @@ pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStackFrame) {
 }
 
 #[allow(unused_variables)]
-pub extern "x86-interrupt" fn cascade(_stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn cascade(_stack_frame: &mut ExceptionStack) {
     pic::MASTER.lock().ack();
 }
 
-pub extern "x86-interrupt" fn com1(_stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn com1(_stack_frame: &mut ExceptionStack) {
     pic::MASTER.lock().ack();
     let data: u8 = serial::COM1.lock().receive();
     kprint!("{}", data as char);
 }
 
-pub extern "x86-interrupt" fn com2(_stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn com2(_stack_frame: &mut ExceptionStack) {
     pic::MASTER.lock().ack();
     let data: u8 = serial::COM2.lock().receive();
     kprint!("{}", data as char);

@@ -33,7 +33,7 @@ lazy_static! {
         idt[11] = fn_handler_entry(segment_not_present as usize);
         idt[12] = fn_handler_entry(stack_segment as usize);
         idt[13] = fn_handler_entry(protection as usize);
-        idt[14] = fn_handler_entry(page_fault as usize);
+        //idt[14] = fn_handler_entry(page_fault as usize);
         // 15 reserved
         idt[16] = fn_handler_entry(fpu as usize);
         idt[17] = fn_handler_entry(alignment_check as usize);

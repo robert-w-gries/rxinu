@@ -1,9 +1,19 @@
 use core::fmt;
 use x86::shared::irq::{InterruptDescription, EXCEPTIONS};
 
+#[cfg(target_arch = "x86")]
+mod x86;
+#[cfg(target_arch = "x86_64")]
+mod x86_64;
+
+#[cfg(target_arch = "x86")]
+pub use self::x86::*;
+#[cfg(target_arch = "x86_64")]
+pub use self::x86_64::*;
+
 macro_rules! exception {
     ($e:ident, $desc:expr, $func:block) => {
-        pub extern "x86-interrupt" fn $e(stack_frame: &mut ExceptionStackFrame) {
+        pub extern "x86-interrupt" fn $e(stack_frame: &mut ExceptionStack) {
             kprintln!("\n{:#?}\n{:#?}",
                       stack_frame,
                       $desc);
@@ -12,14 +22,14 @@ macro_rules! exception {
     };
     ($e:ident, $desc:expr, $err_type:ty, $func:block) => {
         #[cfg(target_arch = "x86")]
-        pub extern "x86-interrupt" fn $e(stack_frame: &mut ErrorExceptionStackFrame) {
+        pub extern "x86-interrupt" fn $e(stack_frame: &mut ErrorStack) {
             kprintln!("\n{:#?}\n{:#?}",
                       stack_frame,
                       $desc);
             $func
         }
         #[cfg(target_arch = "x86_64")]
-        pub extern "x86-interrupt" fn $e(stack_frame: &mut ExceptionStackFrame,
+        pub extern "x86-interrupt" fn $e(stack_frame: &mut ErrorStack,
                                          error_code: $err_type)
         {
             kprintln!("\nError code: {:#?}\n{:#?}\n{:#?}",
@@ -87,84 +97,23 @@ pub static SECURITY: InterruptDescription = InterruptDescription {
     source: "Security sensitive events",
 };
 
-/// Represents the exception stack frame pushed by the CPU on exception entry.
-#[cfg(target_arch = "x86")]
-#[repr(C)]
-pub struct ExceptionStackFrame {
-    pub instruction_pointer: u32,
-    pub code_segment: u32,
-    pub cpu_flags: u32,
-    pub stack_pointer: u32,
-    pub stack_segment: u32,
-}
-
-#[cfg(target_arch = "x86")]
-#[repr(C)]
-pub struct ErrorExceptionStackFrame {
-    pub error_code: u32,
-    pub instruction_pointer: u32,
-    pub code_segment: u32,
-    pub cpu_flags: u32,
-    pub stack_pointer: u32,
-    pub stack_segment: u32,
-}
-
-#[cfg(target_arch = "x86_64")]
-#[repr(C)]
-pub struct ExceptionStackFrame {
-    pub instruction_pointer: u64,
-    pub code_segment: u64,
-    pub cpu_flags: u64,
-    pub stack_pointer: u64,
-    pub stack_segment: u64,
-}
-
-impl fmt::Debug for ExceptionStackFrame {
+impl fmt::Debug for StackHex {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        #[cfg(target_arch = "x86")]
-        struct Hex(u32);
-        #[cfg(target_arch = "x86_64")]
-        struct Hex(u64);
-        impl fmt::Debug for Hex {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{:#x}", self.0)
-            }
-        }
-
-        let mut s = f.debug_struct("ExceptionStackFrame");
-        s.field("instruction_pointer", &Hex(self.instruction_pointer));
-        s.field("code_segment", &self.code_segment);
-        s.field("cpu_flags", &Hex(self.cpu_flags));
-        s.field("stack_pointer", &Hex(self.stack_pointer));
-        s.field("stack_segment", &self.stack_segment);
-        s.finish()
+        write!(f, "{:#x}", self.0)
     }
 }
 
-#[cfg(target_arch = "x86")]
-impl fmt::Debug for ErrorExceptionStackFrame {
+impl fmt::Debug for ExceptionStack {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        struct Hex(u32);
-        impl fmt::Debug for Hex {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{:#x}", self.0)
-            }
-        }
-
-        let mut s = f.debug_struct("ExceptionStackFrame");
-        s.field("error_code", &self.error_code);
-        s.field("instruction_pointer", &Hex(self.instruction_pointer));
-        s.field("code_segment", &self.code_segment);
-        s.field("cpu_flags", &Hex(self.cpu_flags));
-        s.field("stack_pointer", &Hex(self.stack_pointer));
-        s.field("stack_segment", &self.stack_segment);
+        let mut s = f.debug_struct("ExceptionStack");
+        s.field("instruction_pointer", &StackHex(self.instruction_pointer));
+        s.field("code_segment", &StackHex(self.code_segment));
+        s.field("cpu_flags", &StackHex(self.cpu_flags));
+        s.field("stack_pointer", &StackHex(self.stack_pointer));
+        s.field("stack_segment", &StackHex(self.stack_segment));
         s.finish()
     }
 }
-
-#[allow(dead_code)]
-#[derive(Debug)]
-pub struct ErrorCode(u64);
 
 bitflags! {
     /// Describes an page fault error code.
