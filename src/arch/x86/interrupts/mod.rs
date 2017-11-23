@@ -21,8 +21,7 @@ pub fn init(memory_controller: &mut MemoryController) {
 }
 
 #[cfg(target_arch = "x86")]
-#[allow(unused_variables)]
-fn tss(memory_controller: &mut MemoryController) -> TaskStateSegment {
+fn tss(_memory_controller: &mut MemoryController) -> TaskStateSegment {
     TaskStateSegment::new()
 }
 
