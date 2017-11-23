@@ -85,7 +85,7 @@ fn create_gdt(&tss: &TaskStateSegment) -> &'static GdtArray {
                 0,
                 Type::Code(CODE_READ),
                 false,
-                PrivilegeLevel::Ring0
+                PrivilegeLevel::Ring0,
             ),
             // Kernel Data
             SegmentDescriptor::new_memory(
@@ -93,7 +93,7 @@ fn create_gdt(&tss: &TaskStateSegment) -> &'static GdtArray {
                 0,
                 Type::Data(DATA_WRITE),
                 false,
-                PrivilegeLevel::Ring0
+                PrivilegeLevel::Ring0,
             ),
             // User Code
             SegmentDescriptor::new_memory(
@@ -101,7 +101,7 @@ fn create_gdt(&tss: &TaskStateSegment) -> &'static GdtArray {
                 0,
                 Type::Code(CODE_READ),
                 false,
-                PrivilegeLevel::Ring3
+                PrivilegeLevel::Ring3,
             ),
             // User Data
             SegmentDescriptor::new_memory(
@@ -109,7 +109,7 @@ fn create_gdt(&tss: &TaskStateSegment) -> &'static GdtArray {
                 0,
                 Type::Data(DATA_WRITE),
                 false,
-                PrivilegeLevel::Ring3
+                PrivilegeLevel::Ring3,
             ),
             SegmentDescriptor::new_tss(&tss, PrivilegeLevel::Ring3),
         ]

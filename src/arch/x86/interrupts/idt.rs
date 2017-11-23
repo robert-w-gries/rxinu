@@ -60,7 +60,9 @@ pub fn init() {
         base: IDT.as_ptr(),
     };
 
-    unsafe { dtables::lidt(&idtr); }
+    unsafe {
+        dtables::lidt(&idtr);
+    }
 }
 
 #[cfg(target_arch = "x86")]
