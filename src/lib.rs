@@ -16,6 +16,9 @@ extern crate alloc;
 extern crate bitflags;
 
 #[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
 extern crate once;
 
 extern crate bit_field;

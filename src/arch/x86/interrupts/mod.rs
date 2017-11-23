@@ -13,21 +13,21 @@ mod irq;
 
 const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
-#[cfg(target_arch = "x86")]
-pub fn init(_memory_controller: &mut MemoryController) {
-    let tss = TaskStateSegment::new();
+pub fn init(memory_controller: &mut MemoryController) {
+    let tss: TaskStateSegment = tss(memory_controller);
 
-    unsafe {
-        gdt::init(&tss);
-    }
-    unsafe {
-        idt::init();
-    }
+    gdt::init(&tss);
+    idt::init();
+}
+
+#[cfg(target_arch = "x86")]
+#[allow(unused_variables)]
+fn tss(memory_controller: &mut MemoryController) -> TaskStateSegment {
+    TaskStateSegment::new()
 }
 
 #[cfg(target_arch = "x86_64")]
-/// Initialize double fault stack and load gdt and idt
-pub fn init(memory_controller: &mut MemoryController) {
+fn tss(memory_controller: &mut MemoryController) -> TaskStateSegment {
     let mut tss = TaskStateSegment::new();
 
     let double_fault_stack = memory_controller
@@ -35,12 +35,7 @@ pub fn init(memory_controller: &mut MemoryController) {
         .expect("could not allocate double fault stack");
     tss.ist[DOUBLE_FAULT_IST_INDEX] = double_fault_stack.top() as u64;
 
-    unsafe {
-        gdt::init(&tss);
-    }
-    unsafe {
-        idt::init();
-    }
+    tss
 }
 
 /// Disable interrupts, execute code uninterrupted, re-enable interrupts
