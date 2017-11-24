@@ -39,8 +39,10 @@ fn enable_write_protect_bit() {
 use x86::shared::PrivilegeLevel;
 use x86::shared::segmentation::SegmentSelector;
 
-const USER_DATA: SegmentSelector = SegmentSelector::new(gdt::GDT_USER_DATA as u16, PrivilegeLevel::Ring3);
-const USER_CODE: SegmentSelector = SegmentSelector::new(gdt::GDT_USER_CODE as u16, PrivilegeLevel::Ring3);
+const USER_DATA: SegmentSelector =
+    SegmentSelector::new(gdt::GDT_USER_DATA as u16, PrivilegeLevel::Ring3);
+const USER_CODE: SegmentSelector =
+    SegmentSelector::new(gdt::GDT_USER_CODE as u16, PrivilegeLevel::Ring3);
 
 /// Enter usermode.
 /// To enter Ring3, we must pretend to raise an inter-privilege level interrupt.
@@ -48,7 +50,7 @@ const USER_CODE: SegmentSelector = SegmentSelector::new(gdt::GDT_USER_CODE as u1
 /// This function is pure assembly and is inherently unsafe
 #[allow(unreachable_code)]
 pub unsafe fn enter_usermode(ip: usize, sp: usize) -> ! {
-    use x86::shared::flags::{Flags, FLAGS_IOPL0, FLAGS_IF};
+    use x86::shared::flags::{FLAGS_IOPL0, Flags, FLAGS_IF};
 
     gdt::load_selectors(gdt::GDT_USER_DATA, PrivilegeLevel::Ring3);
 
