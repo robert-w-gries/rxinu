@@ -16,6 +16,9 @@ extern crate alloc;
 extern crate bitflags;
 
 #[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
 extern crate once;
 
 extern crate bit_field;
@@ -29,15 +32,15 @@ extern crate x86;
 
 #[macro_use]
 pub mod arch;
-pub mod devices;
+pub mod device;
 pub mod syscall;
 
 #[no_mangle]
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::init(multiboot_information_address);
-    arch::console::clear_screen();
-
     kprintln!("\nIt did not crash!");
+
+    arch::console::clear_screen();
 
     loop {}
 }

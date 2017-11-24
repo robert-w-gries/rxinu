@@ -78,10 +78,10 @@ debug: $(iso)
 	@qemu-system-x86_64 $(QEMUFLAGS) -cdrom $(iso) -d int -s -S
 
 docker_build:
-	@docker build -t $(docker_image):$(tag) .
+	@docker build --no-cache -t $(docker_image):$(tag) .
 
 docker_run:
-	@docker run -it --rm $(docker_image):$(tag)
+	@docker run -it --rm -v $(shell pwd):/home/rxinu/rxinu $(docker_image):$(tag)
 
 gdb: $(kernel)
 	@$(GDB) "$(kernel)" -ex "target remote :1234"

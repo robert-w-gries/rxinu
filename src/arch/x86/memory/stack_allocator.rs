@@ -1,7 +1,6 @@
-#![allow(dead_code)]
-
 use arch::x86::memory::FrameAllocator;
 use arch::x86::memory::paging::{ActivePageTable, PAGE_SIZE};
+use arch::x86::memory::paging::mapper::Mapper;
 use arch::x86::memory::paging::page::{Page, PageIter};
 use arch::x86::memory::paging::entry::WRITABLE;
 
@@ -76,6 +75,7 @@ impl Stack {
 }
 
 impl Stack {
+    #[allow(dead_code)]
     pub fn top(&self) -> usize {
         self.top
     }

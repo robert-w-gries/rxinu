@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use core::ops::Add;
 use super::{VirtualAddress, PAGE_SIZE};
 
@@ -21,34 +19,6 @@ impl Page {
         }
     }
 
-    pub fn p4_index(&self) -> usize {
-        (self.number >> 27) & 0o777
-    }
-
-    pub fn p3_index(&self) -> usize {
-        (self.number >> 18) & 0o777
-    }
-
-    #[cfg(target_arch = "x86")]
-    pub fn p2_index(&self) -> usize {
-        (self.number >> 10) & 0x3ff
-    }
-
-    #[cfg(target_arch = "x86")]
-    pub fn p1_index(&self) -> usize {
-        (self.number >> 0) & 0x3ff
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    pub fn p2_index(&self) -> usize {
-        (self.number >> 9) & 0o777
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    pub fn p1_index(&self) -> usize {
-        (self.number >> 0) & 0o777
-    }
-
     pub fn range_inclusive(start: Page, end: Page) -> PageIter {
         PageIter {
             start: start,
@@ -58,6 +28,36 @@ impl Page {
 
     pub fn start_address(&self) -> usize {
         self.number * PAGE_SIZE
+    }
+}
+
+#[cfg(target_arch = "x86")]
+impl Page {
+    pub fn p2_index(&self) -> usize {
+        (self.number >> 10) & 0x3ff
+    }
+
+    pub fn p1_index(&self) -> usize {
+        (self.number >> 0) & 0x3ff
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
+impl Page {
+    pub fn p4_index(&self) -> usize {
+        (self.number >> 27) & 0o777
+    }
+
+    pub fn p3_index(&self) -> usize {
+        (self.number >> 18) & 0o777
+    }
+
+    pub fn p2_index(&self) -> usize {
+        (self.number >> 9) & 0o777
+    }
+
+    pub fn p1_index(&self) -> usize {
+        (self.number >> 0) & 0o777
     }
 }
 

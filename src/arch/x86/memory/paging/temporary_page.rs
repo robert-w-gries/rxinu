@@ -1,6 +1,7 @@
 use arch::x86::memory::Frame;
 
 use super::{ActivePageTable, VirtualAddress};
+use super::mapper::Mapper;
 use super::page::Page;
 use super::table::{Level1, Table};
 

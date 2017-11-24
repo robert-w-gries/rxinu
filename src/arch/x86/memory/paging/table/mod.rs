@@ -6,10 +6,14 @@ use super::ENTRY_COUNT;
 use super::entry::{Entry, HUGE_PAGE, PRESENT, WRITABLE};
 
 #[cfg(target_arch = "x86")]
-pub const P2: *mut Table<Level2> = 0xffff_f000 as *mut _;
-
+pub mod bits32;
 #[cfg(target_arch = "x86_64")]
-pub const P4: *mut Table<Level4> = 0xffff_ffff_ffff_f000 as *mut _;
+pub mod bits64;
+
+#[cfg(target_arch = "x86")]
+pub use self::bits32::*;
+#[cfg(target_arch = "x86_64")]
+pub use self::bits64::*;
 
 pub struct Table<L: TableLevel> {
     entries: [Entry; ENTRY_COUNT],
@@ -65,12 +69,7 @@ where
         let entry_flags = self[index].flags();
         if entry_flags.contains(PRESENT) && !entry_flags.contains(HUGE_PAGE) {
             let table_address = self as *const _ as usize;
-
-            if cfg!(target_arch = "x86") {
-                Some((table_address << 10) | (index << 12))
-            } else {
-                Some((table_address << 9) | (index << 12))
-            }
+            Some(get_address(table_address, index))
         } else {
             None
         }
@@ -97,35 +96,17 @@ where
     }
 }
 
-
 pub trait TableLevel {}
 
-#[cfg(target_arch = "x86_64")]
-pub enum Level4 {}
-#[cfg(target_arch = "x86_64")]
-pub enum Level3 {}
+/// Table levels 1 and 2 are common to both all paging architectures
 pub enum Level2 {}
 pub enum Level1 {}
 
-#[cfg(target_arch = "x86_64")]
-impl TableLevel for Level4 {}
-#[cfg(target_arch = "x86_64")]
-impl TableLevel for Level3 {}
 impl TableLevel for Level2 {}
 impl TableLevel for Level1 {}
 
 pub trait HierarchicalLevel: TableLevel {
     type NextLevel: TableLevel;
-}
-
-#[cfg(target_arch = "x86_64")]
-impl HierarchicalLevel for Level4 {
-    type NextLevel = Level3;
-}
-
-#[cfg(target_arch = "x86_64")]
-impl HierarchicalLevel for Level3 {
-    type NextLevel = Level2;
 }
 
 impl HierarchicalLevel for Level2 {

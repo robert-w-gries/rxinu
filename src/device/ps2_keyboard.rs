@@ -1,6 +1,6 @@
 use alloc::Vec;
 use alloc::string::{String, ToString};
-use devices::{keyboard, ps2_controller_8042};
+use device::{keyboard, ps2_controller_8042};
 use spin::Mutex;
 
 #[derive(Debug)]

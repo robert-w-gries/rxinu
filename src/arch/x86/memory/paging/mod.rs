@@ -3,7 +3,7 @@ use core::ops::{Deref, DerefMut};
 use multiboot2::BootInformation;
 
 use self::entry::{EntryFlags, PRESENT, WRITABLE};
-use self::mapper::Mapper;
+use self::mapper::{Mapper, TableMapper};
 use self::page::Page;
 use self::temporary_page::TemporaryPage;
 
@@ -14,7 +14,7 @@ const ENTRY_COUNT: usize = 1024;
 #[cfg(target_arch = "x86")]
 const PHYS_ADDR_MASK: usize = 0xffff_f000;
 #[cfg(target_arch = "x86")]
-const TEMP_PAGE_ADDR: usize = 0x0000_beef;
+const TEMP_PAGE_ADDR: usize = 0xbeef;
 
 #[cfg(target_arch = "x86_64")]
 const ENTRY_COUNT: usize = 512;
@@ -27,25 +27,25 @@ pub type PhysicalAddress = usize;
 pub type VirtualAddress = usize;
 
 pub mod entry;
-mod mapper;
+pub mod mapper;
 pub mod page;
 mod table;
 mod temporary_page;
 
 pub struct ActivePageTable {
-    mapper: Mapper,
+    mapper: TableMapper,
 }
 
 impl Deref for ActivePageTable {
-    type Target = Mapper;
+    type Target = TableMapper;
 
-    fn deref(&self) -> &Mapper {
+    fn deref(&self) -> &TableMapper {
         &self.mapper
     }
 }
 
 impl DerefMut for ActivePageTable {
-    fn deref_mut(&mut self) -> &mut Mapper {
+    fn deref_mut(&mut self) -> &mut TableMapper {
         &mut self.mapper
     }
 }
@@ -53,7 +53,7 @@ impl DerefMut for ActivePageTable {
 impl ActivePageTable {
     unsafe fn new() -> ActivePageTable {
         ActivePageTable {
-            mapper: Mapper::new(),
+            mapper: TableMapper::new(),
         }
     }
 
@@ -75,7 +75,7 @@ impl ActivePageTable {
         temporary_page: &mut temporary_page::TemporaryPage, // new
         f: F,
     ) where
-        F: FnOnce(&mut Mapper),
+        F: FnOnce(&mut TableMapper),
     {
         use x86::shared::{control_regs, tlb};
 

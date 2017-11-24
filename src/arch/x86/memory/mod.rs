@@ -2,6 +2,7 @@ use multiboot2::BootInformation;
 use allocator;
 
 use self::paging::{PhysicalAddress, PAGE_SIZE};
+use self::paging::mapper::Mapper;
 pub use self::area_frame_allocator::AreaFrameAllocator;
 pub use self::stack_allocator::Stack;
 pub use self::paging::remap_the_kernel;
