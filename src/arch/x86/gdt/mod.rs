@@ -1,22 +1,18 @@
 use arch::x86::memory::MemoryController;
 use core::mem;
 use spin::Once;
-use x86::current::segmentation::set_cs;
 use x86::shared::PrivilegeLevel;
 use x86::shared::dtables::{self, DescriptorTablePointer};
 use x86::shared::segmentation::SegmentDescriptor;
-use x86::shared::task::load_tr;
 
 pub use self::current::{create_gdt, tss, GDT_SIZE};
 
 // Segment Selector Index
-const GDT_KERNEL_CODE: usize = 1;
-const GDT_KERNEL_DATA: usize = 2;
-#[allow(dead_code)]
-const GDT_USER_CODE: usize = 3;
-#[allow(dead_code)]
-const GDT_USER_DATA: usize = 4;
-const GDT_TSS: usize = 5;
+pub const GDT_KERNEL_CODE: usize = 1;
+pub const GDT_KERNEL_DATA: usize = 2;
+pub const GDT_USER_CODE: usize = 3;
+pub const GDT_USER_DATA: usize = 4;
+pub const GDT_TSS: usize = 5;
 
 pub type GdtArray = [SegmentDescriptor; GDT_SIZE];
 pub static GDT: Once<GdtArray> = Once::new();
@@ -31,7 +27,9 @@ pub fn init(memory_controller: &mut MemoryController) {
     };
 
     unsafe {
-        use x86::shared::segmentation::*;
+        use x86::current::segmentation::set_cs;
+        use x86::shared::segmentation::{load_ss, SegmentSelector};
+        use x86::shared::task::load_tr;
 
         dtables::lgdt(&gdtr);
 
@@ -39,22 +37,8 @@ pub fn init(memory_controller: &mut MemoryController) {
             GDT_KERNEL_CODE as u16,
             PrivilegeLevel::Ring0,
         ));
-        load_ds(SegmentSelector::new(
-            GDT_KERNEL_DATA as u16,
-            PrivilegeLevel::Ring0,
-        ));
-        load_es(SegmentSelector::new(
-            GDT_KERNEL_DATA as u16,
-            PrivilegeLevel::Ring0,
-        ));
-        load_fs(SegmentSelector::new(
-            GDT_KERNEL_DATA as u16,
-            PrivilegeLevel::Ring0,
-        ));
-        load_gs(SegmentSelector::new(
-            GDT_KERNEL_DATA as u16,
-            PrivilegeLevel::Ring0,
-        ));
+
+        load_selectors(GDT_KERNEL_DATA, PrivilegeLevel::Ring0);
         load_ss(SegmentSelector::new(
             GDT_KERNEL_DATA as u16,
             PrivilegeLevel::Ring0,
@@ -62,6 +46,19 @@ pub fn init(memory_controller: &mut MemoryController) {
 
         load_tr(SegmentSelector::new(GDT_TSS as u16, PrivilegeLevel::Ring3));
     }
+}
+
+/// Load all selectors except for Stack Segment
+/// Stack Segment cannot be loaded as PrivilegeLevel3 and it is not usually loaded anyway
+/// [unsafe]
+/// This function is purely assembly and is inherently unsafe
+pub unsafe fn load_selectors(selector_index: usize, privilege: PrivilegeLevel) {
+    use x86::shared::segmentation::{load_ds, load_es, load_fs, load_gs, SegmentSelector};
+
+    load_ds(SegmentSelector::new(selector_index as u16, privilege));
+    load_es(SegmentSelector::new(selector_index as u16, privilege));
+    load_fs(SegmentSelector::new(selector_index as u16, privilege));
+    load_gs(SegmentSelector::new(selector_index as u16, privilege));
 }
 
 #[cfg(target_arch = "x86")]
