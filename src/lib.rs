@@ -32,7 +32,7 @@ extern crate x86;
 
 #[macro_use]
 pub mod arch;
-pub mod devices;
+pub mod device;
 pub mod syscall;
 
 #[no_mangle]

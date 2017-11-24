@@ -1,6 +1,6 @@
-use devices::ps2_keyboard::{Key, KeyEvent};
-use devices::ps2_keyboard::Key::*;
-use devices::ps2_keyboard::Modifier::*;
+use device::ps2_keyboard::{Key, KeyEvent};
+use device::ps2_keyboard::Key::*;
+use device::ps2_keyboard::Modifier::*;
 
 macro_rules! key_press {
     ($x:expr) => (Some(KeyEvent::Pressed($x)))

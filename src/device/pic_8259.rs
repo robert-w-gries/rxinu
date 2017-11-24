@@ -5,8 +5,6 @@ pub static MASTER: Mutex<Pic> = Mutex::new(Pic::new(0x20));
 pub static SLAVE: Mutex<Pic> = Mutex::new(Pic::new(0xA0));
 
 pub fn init() {
-    use devices::pic_8259::{ICW1, ICW4};
-
     // We need to add a delay between writes to our PICs, especially on
     // older motherboards.  But we don't necessarily have any kind of
     // timers yet, because most of them require interrupts.  Various

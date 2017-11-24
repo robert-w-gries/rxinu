@@ -1,7 +1,7 @@
 use arch::x86::interrupts::exception::ExceptionStack;
-use devices::{ps2_controller_8042, ps2_keyboard};
-use devices::pic_8259 as pic;
-use devices::uart_16550 as serial;
+use device::{ps2_controller_8042, ps2_keyboard};
+use device::pic_8259 as pic;
+use device::uart_16550 as serial;
 
 #[allow(dead_code)]
 fn trigger(irq: u8) {
