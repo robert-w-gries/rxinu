@@ -1,6 +1,8 @@
 #[macro_use]
 pub mod console;
 mod device;
+mod gdt;
+mod idt;
 mod interrupts;
 mod memory;
 
@@ -9,14 +11,15 @@ pub fn init(multiboot_information_address: usize) {
 
     let mut memory_controller = memory::init(&boot_info);
 
-    // Make sure interrupts don't intefere with setup
+    gdt::init(&mut memory_controller);
+
     interrupts::disable_interrupts_then(|| {
-        interrupts::init(&mut memory_controller);
+        idt::init();
         device::init();
     });
 }
 
-#[allow(dead_code)]
+#[cfg(target_arch = "x86_64")]
 fn enable_nxe_bit() {
     use x86::shared::msr::{rdmsr, wrmsr, IA32_EFER};
 
