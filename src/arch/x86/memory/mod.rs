@@ -139,7 +139,6 @@ impl Iterator for FrameIter {
     }
 }
 
-#[allow(dead_code)]
 pub struct MemoryController {
     active_table: paging::ActivePageTable,
     frame_allocator: AreaFrameAllocator,
@@ -147,7 +146,6 @@ pub struct MemoryController {
 }
 
 impl MemoryController {
-    #[allow(dead_code)]
     pub fn alloc_stack(&mut self, size_in_pages: usize) -> Option<Stack> {
         let &mut MemoryController {
             ref mut active_table,

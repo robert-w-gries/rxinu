@@ -16,6 +16,14 @@ pub fn tss(memory_controller: &mut MemoryController) -> TaskStateSegment {
         .expect("could not allocate double fault stack");
     tss.ist[DOUBLE_FAULT_IST_INDEX] = double_fault_stack.top() as u64;
 
+    // Privilege Level stacks
+    for i in 0..3 {
+        tss.rsp[i] = memory_controller
+            .alloc_stack(1)
+            .expect("Could not allocate privilege level stack")
+            .top() as u64;
+    }
+
     tss
 }
 

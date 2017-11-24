@@ -7,8 +7,26 @@ use super::{GdtArray, GDT, GDT_TSS};
 
 pub const GDT_SIZE: usize = GDT_TSS + 1;
 
-pub fn tss(_memory_controller: &mut MemoryController) -> TaskStateSegment {
-    TaskStateSegment::new()
+pub fn tss(memory_controller: &mut MemoryController) -> TaskStateSegment {
+    let mut tss: TaskStateSegment = TaskStateSegment::new();
+
+    // Privilege Level stacks
+    tss.esp0 = memory_controller
+        .alloc_stack(1)
+        .expect("Could not allocate privilege level 0 stack")
+        .top() as u32;
+
+    tss.esp1 = memory_controller
+        .alloc_stack(1)
+        .expect("Could not allocate privilege level 1 stack")
+        .top() as u32;
+
+    tss.esp2 = memory_controller
+        .alloc_stack(1)
+        .expect("Could not allocate privilege level 2 stack")
+        .top() as u32;
+
+    tss
 }
 
 pub fn create_gdt(&tss: &TaskStateSegment) -> &'static GdtArray {
