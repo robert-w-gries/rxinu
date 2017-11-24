@@ -4,9 +4,11 @@ use arch::x86::memory::Frame;
 use arch::x86::memory::paging::PHYS_ADDR_MASK;
 
 #[cfg(target_arch = "x86")]
-pub struct Entry(u32);
+type EntryBits = u32;
 #[cfg(target_arch = "x86_64")]
-pub struct Entry(u64);
+type EntryBits = u64;
+
+pub struct Entry(EntryBits);
 
 impl Entry {
     pub fn is_unused(&self) -> bool {
@@ -20,6 +22,7 @@ impl Entry {
     pub fn flags(&self) -> EntryFlags {
         EntryFlags::from_bits_truncate(self.0)
     }
+
     pub fn pointed_frame(&self) -> Option<Frame> {
         if self.flags().contains(PRESENT) {
             Some(Frame::containing_address(self.0 as usize & PHYS_ADDR_MASK))
@@ -28,16 +31,9 @@ impl Entry {
         }
     }
 
-    #[cfg(target_arch = "x86")]
     pub fn set(&mut self, frame: Frame, flags: EntryFlags) {
         assert!((frame.start_address() & !PHYS_ADDR_MASK) == 0);
-        self.0 = (frame.start_address() as u32) | flags.bits();
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    pub fn set(&mut self, frame: Frame, flags: EntryFlags) {
-        assert!((frame.start_address() & !PHYS_ADDR_MASK) == 0);
-        self.0 = (frame.start_address() as u64) | flags.bits();
+        self.0 = (frame.start_address() as EntryBits) | flags.bits();
     }
 }
 
