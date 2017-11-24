@@ -43,7 +43,7 @@ impl Mapper for PageMapLevel4Mapper {
         self.map_to(page, frame, flags, allocator)
     }
 
-   fn map_to<A>(&mut self, page: Page, frame: Frame, flags: EntryFlags, allocator: &mut A)
+    fn map_to<A>(&mut self, page: Page, frame: Frame, flags: EntryFlags, allocator: &mut A)
     where
         A: FrameAllocator,
     {

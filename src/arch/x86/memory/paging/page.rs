@@ -19,7 +19,7 @@ impl Page {
         }
     }
 
-   pub fn range_inclusive(start: Page, end: Page) -> PageIter {
+    pub fn range_inclusive(start: Page, end: Page) -> PageIter {
         PageIter {
             start: start,
             end: end,
@@ -40,7 +40,6 @@ impl Page {
     pub fn p1_index(&self) -> usize {
         (self.number >> 0) & 0x3ff
     }
-
 }
 
 #[cfg(target_arch = "x86_64")]

@@ -17,9 +17,20 @@ pub use self::bits64::*;
 
 pub trait Mapper {
     unsafe fn new() -> TableMapper;
-    fn identity_map<A: FrameAllocator>(&mut self, frame: Frame, flags: EntryFlags, allocator: &mut A);
+    fn identity_map<A: FrameAllocator>(
+        &mut self,
+        frame: Frame,
+        flags: EntryFlags,
+        allocator: &mut A,
+    );
     fn map<A: FrameAllocator>(&mut self, page: Page, flags: EntryFlags, allocator: &mut A);
-    fn map_to<A: FrameAllocator>(&mut self, page: Page, frame: Frame, flags: EntryFlags, allocator: &mut A);
+    fn map_to<A: FrameAllocator>(
+        &mut self,
+        page: Page,
+        frame: Frame,
+        flags: EntryFlags,
+        allocator: &mut A,
+    );
     fn top_table(&self) -> &TopLevelTable;
     fn top_table_mut(&mut self) -> &mut TopLevelTable;
     fn translate(&self, virtual_address: VirtualAddress) -> Option<PhysicalAddress>;
