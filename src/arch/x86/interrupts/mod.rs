@@ -1,5 +1,6 @@
 pub mod exception;
 pub mod irq;
+pub mod syscall;
 
 pub const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
