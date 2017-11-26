@@ -32,8 +32,8 @@ extern crate x86;
 
 #[macro_use]
 pub mod arch;
-pub mod scheduler;
 pub mod device;
+pub mod scheduling;
 pub mod syscall;
 
 #[no_mangle]
@@ -44,7 +44,9 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::console::clear_screen();
 
     // ready(create(rxinu_main, "rxinu_main"));
-    loop {}
+    loop {
+        scheduling::SCHEDULER.resched();
+    }
 }
 
 #[cfg(not(test))]

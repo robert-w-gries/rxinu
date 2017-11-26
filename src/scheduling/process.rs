@@ -8,7 +8,7 @@ pub enum State {
 }
 
 #[derive(Eq, PartialEq, PartialOrd, Ord, Debug, Clone, Copy)]
-struct ProcessId(u64);
+struct ProcessId(pub u64);
 
 impl Add for ProcessId {
     type Output = ProcessId;
