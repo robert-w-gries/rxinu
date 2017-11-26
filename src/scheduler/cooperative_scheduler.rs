@@ -41,11 +41,10 @@ impl Scheduler for CoopScheduler {
     }
 
     fn resched(&self) {
-        let curr_proc: ProcessId = self.getid();
         let new_proc: ProcessId = self.ready_list.lock().pop_front();
         let proc: Process = self.proc_table.lock().get(new_proc);
 
-        context_switch()
+        context_switch(self.current_process(), new_proc)
     }
 }
 
