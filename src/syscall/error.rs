@@ -1,5 +1,5 @@
 enum Error {
-    Again(str),
+    TryAgain(str),
 }
 
 pub type Result<T> = result::Result<T, Error>;

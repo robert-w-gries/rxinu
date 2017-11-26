@@ -57,6 +57,11 @@ impl ActivePageTable {
         }
     }
 
+    pub unsafe fn address(&self) -> usize {
+        use x86::controlregs;
+        controlregs::cr3() as usize
+    }
+
     pub fn switch(&mut self, new_table: InactivePageTable) -> InactivePageTable {
         use x86::shared::control_regs;
 

@@ -43,7 +43,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 
     arch::console::clear_screen();
 
-    // ready(create(shell, "shell"));
+    // ready(create(rxinu_main, "rxinu_main"));
     loop {}
 }
 
