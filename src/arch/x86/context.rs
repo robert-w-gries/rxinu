@@ -1,3 +1,5 @@
+use scheduling::process::Process;
+
 pub struct Context {
     cr3: usize,
     reg_flags: usize,
@@ -33,7 +35,26 @@ impl Context {
         self.reg_sp = address;
     }
 
-    #[naked]
-    pub fn switch_to(&mut self, next: &mut Process) {
+    //#[naked]
+    pub unsafe fn switch_to(&mut self, next: &mut Context) {
+        asm!("mov $0, cr3" : "=r"(self.cr3) : : "memory" : "intel", "volatile");
+        asm!("mov $0, rbx" : "=r"(self.reg_bx) : : "memory" : "intel", "volatile");
+        asm!("mov $0, r12" : "=r"(self.reg_12) : : "memory" : "intel", "volatile");
+        asm!("mov $0, r13" : "=r"(self.reg_13) : : "memory" : "intel", "volatile");
+        asm!("mov $0, r14" : "=r"(self.reg_14) : : "memory" : "intel", "volatile");
+        asm!("mov $0, r15" : "=r"(self.reg_15) : : "memory" : "intel", "volatile");
+        asm!("mov $0, rsp" : "=r"(self.reg_sp) : : "memory" : "intel", "volatile");
+        asm!("mov $0, rbp" : "=r"(self.reg_bp) : : "memory" : "intel", "volatile");
+
+        if next.cr3 != self.cr3 {
+            asm!("mov cr3, $0" : : "r"(next.cr3) : "memory" : "intel", "volatile");
+        }
+        asm!("mov rbx, $0" : : "r"(next.reg_bx) : "memory" : "intel", "volatile");
+        asm!("mov r12, $0" : : "r"(next.reg_12) : "memory" : "intel", "volatile");
+        asm!("mov r13, $0" : : "r"(next.reg_13) : "memory" : "intel", "volatile");
+        asm!("mov r14, $0" : : "r"(next.reg_14) : "memory" : "intel", "volatile");
+        asm!("mov r15, $0" : : "r"(next.reg_15) : "memory" : "intel", "volatile");
+        asm!("mov rsp, $0" : : "r"(next.reg_sp) : "memory" : "intel", "volatile");
+        asm!("mov rbp, $0" : : "r"(next.reg_bp) : "memory" : "intel", "volatile");
     }
 }

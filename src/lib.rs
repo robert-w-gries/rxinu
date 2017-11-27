@@ -45,7 +45,8 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 
     // ready(create(rxinu_main, "rxinu_main"));
     loop {
-        scheduling::SCHEDULER.resched();
+        use self::scheduling::{Scheduler, SCHEDULER};
+        SCHEDULER.resched();
     }
 }
 

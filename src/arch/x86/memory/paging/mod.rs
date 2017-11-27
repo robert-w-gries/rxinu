@@ -51,15 +51,15 @@ impl DerefMut for ActivePageTable {
 }
 
 impl ActivePageTable {
-    unsafe fn new() -> ActivePageTable {
+    pub unsafe fn new() -> ActivePageTable {
         ActivePageTable {
             mapper: TableMapper::new(),
         }
     }
 
     pub unsafe fn address(&self) -> usize {
-        use x86::controlregs;
-        controlregs::cr3() as usize
+        use x86::shared::control_regs;
+        control_regs::cr3() as usize
     }
 
     pub fn switch(&mut self, new_table: InactivePageTable) -> InactivePageTable {

@@ -1,5 +1,6 @@
-enum Error {
-    TryAgain(str),
-}
+use alloc::String;
+use core::result;
 
-pub type Result<T> = result::Result<T, Error>;
+pub enum Error {
+    TryAgain(String),
+}

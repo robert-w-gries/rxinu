@@ -1,10 +1,11 @@
 #[macro_use]
 pub mod console;
+pub mod context;
 mod device;
 mod gdt;
 mod idt;
 mod interrupts;
-mod memory;
+pub mod memory;
 
 pub fn init(multiboot_information_address: usize) {
     let boot_info = unsafe { ::multiboot2::load(multiboot_information_address) };
