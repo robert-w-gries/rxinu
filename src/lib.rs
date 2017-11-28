@@ -2,6 +2,7 @@
 #![feature(alloc)]
 #![feature(asm)]
 #![feature(const_fn)]
+#![feature(const_max_value)]
 #![feature(const_unique_new)]
 #![feature(compiler_builtins_lib)]
 #![feature(const_fn)]
