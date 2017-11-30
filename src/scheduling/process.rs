@@ -3,6 +3,7 @@ use alloc::boxed::Box;
 use arch::context::Context;
 use scheduling::ProcessId;
 
+#[derive(Clone)]
 pub enum State {
     Free,
     Current,
@@ -10,13 +11,15 @@ pub enum State {
     Ready,
 }
 
+#[derive(Clone)]
 struct Priority(u64);
 
+#[derive(Clone)]
 pub struct Process {
     pid: ProcessId,
     state: State,
     prio: Priority,
-    context: Context,
+    pub context: Context,
     stack: Option<Box<[u8]>>,
     name: String,
 }
@@ -24,7 +27,7 @@ pub struct Process {
 impl Process {
     pub fn new(id: ProcessId) -> Process {
         Process {
-            pid: ProcessId::new(0),
+            pid: id,
             state: State::Suspended,
             prio: Priority(0),
             context: Context::new(),
@@ -33,23 +36,15 @@ impl Process {
         }
     }
 
-    pub fn context_mut(&self) -> &mut Context {
-        &mut self.context
-    }
-
-    pub fn pid(&mut self) -> ProcessId {
-        self.pid
-    }
-
     pub fn set_state(&mut self, new_state: State) {
         self.state = new_state;
     }
 
     pub fn set_page_table(&mut self, address: usize) {
-        self.context_mut().set_page_table(address);
+        self.context.set_page_table(address);
     }
 
     pub fn set_stack(&mut self, address: usize) {
-        self.context_mut().set_stack(address);
+        self.context.set_stack(address);
     }
 }

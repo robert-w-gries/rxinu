@@ -1,5 +1,4 @@
 use core::cmp;
-use core::ops::Add;
 use core::sync::atomic::{self, AtomicUsize};
 
 pub struct ProcessId(AtomicUsize);
@@ -24,8 +23,8 @@ impl Ord for ProcessId {
 }
 
 impl Clone for ProcessId {
-    fn clone(&self) -> ProcessId {
-        *self
+    fn clone(&self) -> Self {
+        ProcessId::new(self.get_usize())
     }
 }
 

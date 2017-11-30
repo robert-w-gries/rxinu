@@ -1,5 +1,4 @@
-use scheduling::process::Process;
-
+#[derive(Clone)]
 pub struct Context {
     cr3: usize,
     reg_flags: usize,
