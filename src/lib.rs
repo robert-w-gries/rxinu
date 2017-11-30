@@ -44,11 +44,18 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 
     arch::console::clear_screen();
 
-    // ready(create(rxinu_main, "rxinu_main"));
+    use scheduling::{DoesScheduling, Process, SCHEDULER};
+
+    let mut scheduler = SCHEDULER.lock();
+    let main_proc: Process = scheduler.create(rxinu_main).expect("Could not create process!");
+    scheduler.ready(main_proc.pid);
     loop {
-        use scheduling::{DoesScheduling, SCHEDULER};
-        SCHEDULER.lock().resched();
+        scheduler.resched();
     }
+}
+
+pub extern fn rxinu_main() {
+    kprintln!("TEST");
 }
 
 #[cfg(not(test))]
