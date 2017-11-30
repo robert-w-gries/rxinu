@@ -45,27 +45,28 @@ impl DoesScheduling for CoopScheduler {
     fn ready(&mut self, id: ProcessId) {
         self.ready_list.write().push_back(id);
     }
-/*
-    fn resched(&mut self) {
-        if let Some(next_id) = self.ready_list.pop_front() {
-            let mut next: &Process = self.proc_table
-                                         .get(next_id)
-                                         .expect("Could not find new process");
 
-            let mut current: &Process = self.proc_table
-                                            .get(*self.getid())
-                                            .expect("No process currently running");
+    fn resched(&mut self) {
+        let mut ready_list_lock = self.ready_list.write();
+
+        if let Some(next_id) = ready_list_lock.pop_front() {
+            let curr_id: ProcessId = self.getid().clone();
+
+            let mut proc_table_lock = self.proc_table.write();
+
+            let mut next = proc_table_lock.get(next_id).expect("Could not find new process").write();
+            let mut current = proc_table_lock.get(curr_id).expect("No process currently running").write();
 
             next.set_state(State::Current);
 
             unsafe {
-                current.context_mut().switch_to(next.context_mut());
+                current.context.switch_to(&mut next.context);
             }
 
-            self.current_pid.set(next.pid_mut());
+            self.current_pid.set(next.pid.clone());
         }
     }
-*/
+
 }
 
 impl CoopScheduler {

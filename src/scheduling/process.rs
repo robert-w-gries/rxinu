@@ -16,7 +16,7 @@ struct Priority(u64);
 
 #[derive(Clone)]
 pub struct Process {
-    pid: ProcessId,
+    pub pid: ProcessId,
     state: State,
     prio: Priority,
     pub context: Context,

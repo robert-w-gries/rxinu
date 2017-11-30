@@ -16,7 +16,7 @@ pub trait DoesScheduling {
     fn create(&mut self, func: extern fn()) -> Result<Process, Error>;
     fn getid(&self) -> &ProcessId;
     fn ready(&mut self, id: ProcessId);
-    //fn resched(&mut self);
+    fn resched(&mut self);
 }
 
 const MAX_PROCS: usize = usize::max_value() -1;
