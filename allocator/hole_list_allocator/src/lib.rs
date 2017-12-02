@@ -41,6 +41,10 @@ unsafe impl<'a> Alloc for &'a Allocator {
             panic!("heap not initalized");
         }
     }
+
+    fn oom(&mut self, _: AllocErr) -> ! {
+        panic!("Out of memory");
+    }
 }
 
 #[global_allocator]

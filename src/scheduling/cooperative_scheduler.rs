@@ -1,4 +1,4 @@
-use alloc::{BTreeMap, Vec, VecDeque};
+use alloc::{BTreeMap, VecDeque};
 use alloc::boxed::Box;
 use core::mem;
 use core::ops::Deref;
