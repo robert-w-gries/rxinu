@@ -1,4 +1,5 @@
-use alloc::{BTreeMap, VecDeque};
+use alloc::{BTreeMap, Vec, VecDeque};
+use alloc::boxed::Box;
 use core::mem;
 use core::ops::Deref;
 use scheduling::{Process, ProcessId, ProcessList, State, DoesScheduling, INIT_STK_SIZE, SCHEDULER};
@@ -18,7 +19,7 @@ impl DoesScheduling for CoopScheduler {
         use arch::context::Context;
         use arch::memory::paging;
 
-        let mut stack = vec![0; INIT_STK_SIZE].into_boxed_slice();
+        let mut stack: Box<[u8]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
 
         let offset = stack.len() - mem::size_of::<usize>();
         unsafe {
