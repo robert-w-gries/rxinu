@@ -39,34 +39,29 @@ pub mod scheduling;
 pub mod syscall;
 
 #[no_mangle]
+/// Entry point for rust code
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::init(multiboot_information_address);
     kprintln!("\nIt did not crash!");
-
-    arch::console::clear_screen();
 
     use scheduling::{DoesScheduling, Process, SCHEDULER};
 
     let mut scheduler = SCHEDULER.lock();
     let main_proc: Process = scheduler.create(rxinu_main).expect("Could not create process!");
     scheduler.ready(main_proc.pid);
-    loop {
-        arch::interrupts::disable_interrupts_then(|| {
-            scheduler.resched();
-        });
-    }
+    scheduler.resched();
+
+    kprintln!("Out of main!");
+
+    loop {}
 }
 
 // TODO: Fix interrupts re-enabling
+/// Main initialization process for rxinu
 pub extern fn rxinu_main() {
-    let a = 2;
-    let b = 3;
-    let c = a+b;
+    arch::console::clear_screen();
 
     kprintln!("In main process!");
-    kprintln!("2 + 3 = {}", c);
-
-    loop {}
 }
 
 #[cfg(not(test))]

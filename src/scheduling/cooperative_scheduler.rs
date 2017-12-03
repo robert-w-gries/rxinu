@@ -1,8 +1,7 @@
-use alloc::{BTreeMap, VecDeque};
+use alloc::VecDeque;
 use alloc::boxed::Box;
 use core::mem;
-use core::ops::Deref;
-use scheduling::{Process, ProcessId, ProcessList, State, DoesScheduling, INIT_STK_SIZE, SCHEDULER};
+use scheduling::{Process, ProcessId, ProcessList, State, DoesScheduling, INIT_STK_SIZE};
 use spin::RwLock;
 use syscall::error::Error;
 
@@ -16,18 +15,17 @@ pub struct CoopScheduler {
 
 impl DoesScheduling for CoopScheduler {
     fn create(&mut self, func: extern fn()) -> Result<Process, Error> {
-        use arch::context::Context;
         use arch::memory::paging;
 
+        // TODO: Investigate proper stack representation
         let mut stack: Box<[usize]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
 
         // TODO: Investigate proper offset
-        // let offset = stack.len() - mem::size_of::<usize>();
-        let offset = stack.len() - 1;
-        let offset2 = (stack.len() * mem::size_of::<usize>()) - mem::size_of::<usize>();
+        let index_offset: usize = stack.len() - 2;
+        let stack_offset: usize = (stack.len() * mem::size_of::<usize>()) - (2 * mem::size_of::<usize>());
 
         unsafe {
-            let func_ptr = stack.as_mut_ptr().offset(offset as isize);
+            let func_ptr = stack.as_mut_ptr().offset(index_offset as isize);
             *(func_ptr as *mut usize) = func as usize;
         }
 
@@ -37,7 +35,7 @@ impl DoesScheduling for CoopScheduler {
         {
             let mut process = process_lock.write();
             process.context.set_page_table(unsafe { paging::ActivePageTable::new().address() });
-            process.context.set_stack((stack.as_ptr() as usize) + offset2);
+            process.context.set_stack((stack.as_ptr() as usize) + stack_offset);
 
             Ok(process.clone())
         }
