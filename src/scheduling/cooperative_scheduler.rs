@@ -20,19 +20,14 @@ impl DoesScheduling for CoopScheduler {
         use arch::memory::paging;
 
         let mut stack: Box<[u64]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
-kprintln!("Stack ptr = {:x}", stack.as_ptr() as usize);
-kprintln!("Func address = {:x}", func as usize);
+
         // TODO: Investigate proper offset
         // let offset = stack.len() - mem::size_of::<usize>();
         let offset = stack.len() - 1;
         let offset2 = (stack.len() * mem::size_of::<usize>()) - mem::size_of::<usize>();
-kprintln!("Stack len = {}", stack.len());
-kprintln!("size of (usize) = {}", mem::size_of::<usize>());
-kprintln!("Offset = {}", offset);
+
         unsafe {
             let func_ptr = stack.as_mut_ptr().offset(offset as isize);
-kprintln!("Func ptr = {:x}", func_ptr as usize);
-kprintln!("Offset 2 = {:x}", (stack.as_ptr() as usize) + offset2);
             *(func_ptr as *mut usize) = func as usize;
         }
 
