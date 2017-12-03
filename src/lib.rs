@@ -7,6 +7,7 @@
 #![feature(compiler_builtins_lib)]
 #![feature(const_fn)]
 #![feature(lang_items)]
+#![feature(naked_functions)]
 #![feature(unique)]
 #![no_std]
 
@@ -50,12 +51,22 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     let main_proc: Process = scheduler.create(rxinu_main).expect("Could not create process!");
     scheduler.ready(main_proc.pid);
     loop {
-        scheduler.resched();
+        arch::interrupts::disable_interrupts_then(|| {
+            scheduler.resched();
+        });
     }
 }
 
+// TODO: Fix interrupts re-enabling
 pub extern fn rxinu_main() {
-    kprintln!("TEST");
+    let a = 2;
+    let b = 3;
+    let c = a+b;
+
+    kprintln!("In main process!");
+    kprintln!("2 + 3 = {}", c);
+
+    loop {}
 }
 
 #[cfg(not(test))]

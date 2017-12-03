@@ -29,6 +29,8 @@ impl Clone for ProcessId {
 }
 
 impl ProcessId {
+    pub const NULL: ProcessId = ProcessId(AtomicUsize::new(0));
+
     pub fn new(id: usize) -> ProcessId {
         ProcessId(AtomicUsize::new(id))
     }

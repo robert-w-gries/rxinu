@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Context {
     cr3: usize,
     reg_flags: usize,
@@ -34,7 +34,8 @@ impl Context {
         self.reg_sp = address;
     }
 
-    //#[naked]
+    #[cfg(target_arch = "x86_64")]
+    #[naked]
     pub unsafe fn switch_to(&mut self, next: &mut Context) {
         asm!("mov $0, cr3" : "=r"(self.cr3) : : "memory" : "intel", "volatile");
         asm!("mov $0, rbx" : "=r"(self.reg_bx) : : "memory" : "intel", "volatile");

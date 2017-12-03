@@ -19,11 +19,20 @@ impl DoesScheduling for CoopScheduler {
         use arch::context::Context;
         use arch::memory::paging;
 
-        let mut stack: Box<[u8]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
-
-        let offset = stack.len() - mem::size_of::<usize>();
+        let mut stack: Box<[u64]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
+kprintln!("Stack ptr = {:x}", stack.as_ptr() as usize);
+kprintln!("Func address = {:x}", func as usize);
+        // TODO: Investigate proper offset
+        // let offset = stack.len() - mem::size_of::<usize>();
+        let offset = stack.len() - 1;
+        let offset2 = (stack.len() * mem::size_of::<usize>()) - mem::size_of::<usize>();
+kprintln!("Stack len = {}", stack.len());
+kprintln!("size of (usize) = {}", mem::size_of::<usize>());
+kprintln!("Offset = {}", offset);
         unsafe {
             let func_ptr = stack.as_mut_ptr().offset(offset as isize);
+kprintln!("Func ptr = {:x}", func_ptr as usize);
+kprintln!("Offset 2 = {:x}", (stack.as_ptr() as usize) + offset2);
             *(func_ptr as *mut usize) = func as usize;
         }
 
@@ -33,7 +42,7 @@ impl DoesScheduling for CoopScheduler {
         {
             let mut process = process_lock.write();
             process.context.set_page_table(unsafe { paging::ActivePageTable::new().address() });
-            process.context.set_stack(stack.as_ptr() as usize + offset);
+            process.context.set_stack((stack.as_ptr() as usize) + offset2);
 
             Ok(process.clone())
         }
@@ -51,29 +60,27 @@ impl DoesScheduling for CoopScheduler {
         let mut ready_list_lock = self.ready_list.write();
 
         if let Some(next_id) = ready_list_lock.pop_front() {
-            let curr_id: ProcessId = self.getid().clone();
-
             let mut proc_table_lock = self.proc_table.write();
 
             let mut next = proc_table_lock.get(next_id).expect("Could not find new process").write();
-            let mut current = proc_table_lock.get(curr_id).expect("No process currently running").write();
-
             next.set_state(State::Current);
+
+            let curr_id: ProcessId = self.getid().clone();
+            let mut current = proc_table_lock.get(curr_id).expect("Could not find current process").write();
 
             unsafe {
                 current.context.switch_to(&mut next.context);
             }
 
-            self.current_pid.set(next.pid.clone());
+            self.current_pid = next.pid.clone();
         }
     }
-
 }
 
 impl CoopScheduler {
     pub fn new() -> CoopScheduler {
         CoopScheduler {
-            current_pid: ProcessId::new(0),
+            current_pid: ProcessId::NULL,
             proc_table: RwLock::new(ProcessList::new()),
             ready_list: RwLock::new(VecDeque::<ProcessId>::new()),
         }

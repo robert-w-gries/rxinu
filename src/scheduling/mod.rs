@@ -20,7 +20,9 @@ pub trait DoesScheduling {
 }
 
 const MAX_PROCS: usize = usize::max_value() -1;
-const INIT_STK_SIZE: usize = 65536;
+// TODO: Use the proper stack size
+//const INIT_STK_SIZE: usize = 65536;
+const INIT_STK_SIZE: usize = 10000;
 
 lazy_static! {
     pub static ref SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());

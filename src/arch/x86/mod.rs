@@ -4,7 +4,7 @@ pub mod context;
 mod device;
 mod gdt;
 mod idt;
-mod interrupts;
+pub mod interrupts;
 pub mod memory;
 
 pub fn init(multiboot_information_address: usize) {

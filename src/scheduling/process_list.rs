@@ -11,8 +11,11 @@ pub struct ProcessList {
 
 impl ProcessList {
     pub fn new() -> Self {
+        let mut new_list: BTreeMap<ProcessId, RwLock<Process>> = BTreeMap::new();
+        new_list.insert(ProcessId::NULL, RwLock::new(Process::new(ProcessId::NULL)));
+
         ProcessList {
-            collection: BTreeMap::new(),
+            collection: new_list,
             next_id: 1,
         }
     }
