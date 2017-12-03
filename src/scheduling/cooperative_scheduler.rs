@@ -19,7 +19,7 @@ impl DoesScheduling for CoopScheduler {
         use arch::context::Context;
         use arch::memory::paging;
 
-        let mut stack: Box<[u64]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
+        let mut stack: Box<[usize]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
 
         // TODO: Investigate proper offset
         // let offset = stack.len() - mem::size_of::<usize>();
