@@ -50,9 +50,6 @@ impl Context {
         asm!("mov $0, rsp" : "=r"(self.reg_sp) : : "memory" : "intel", "volatile");
         asm!("mov $0, rbp" : "=r"(self.reg_bp) : : "memory" : "intel", "volatile");
 
-        // TODO: Put return IP on stack
-        asm!("mov [$0+8], $1" : : "r"(next.reg_sp), "r"(self.reg_sp) : "memory" : "intel", "volatile");
-
         if next.cr3 != self.cr3 {
             asm!("mov cr3, $0" : : "r"(next.cr3) : "memory" : "intel", "volatile");
         }
