@@ -1,6 +1,6 @@
 use alloc::btree_map::{self, BTreeMap};
 use core::result::Result;
-use scheduling::{Process, ProcessId};
+use scheduling::{Process, ProcessId, State};
 use spin::RwLock;
 use syscall::error::Error;
 
@@ -12,7 +12,11 @@ pub struct ProcessList {
 impl ProcessList {
     pub fn new() -> Self {
         let mut new_list: BTreeMap<ProcessId, RwLock<Process>> = BTreeMap::new();
-        new_list.insert(ProcessId::NULL_PROCESS, RwLock::new(Process::new(ProcessId::NULL_PROCESS)));
+
+        let mut null_process: Process = Process::new(ProcessId::NULL_PROCESS);
+        null_process.state = State::Current;
+
+        new_list.insert(ProcessId::NULL_PROCESS, RwLock::new(null_process));
 
         ProcessList {
             collection: new_list,

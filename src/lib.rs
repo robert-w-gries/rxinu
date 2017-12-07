@@ -45,20 +45,19 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     kprintln!("\nIt did not crash!");
 
     use scheduling::{DoesScheduling, Process, Scheduler};
-    use scheduling::scheduler;
 
-    let scheduler: &'static Scheduler = scheduler();
+    let mut scheduler = Scheduler::new();
 
     let main_proc: Process = scheduler.create(rxinu_main).expect("Could not create process!");
     scheduler.ready(main_proc.pid);
-    scheduler.resched();
+    unsafe { scheduler.resched(); }
 
-    kprintln!("Out of main!");
+    kprintln!("Out of main process!");
 
-    loop {}
+    // TODO: Investigate returning from null process
+    loop { }
 }
 
-// TODO: Fix interrupts re-enabling
 /// Main initialization process for rxinu
 pub extern fn rxinu_main() {
     arch::console::clear_screen();

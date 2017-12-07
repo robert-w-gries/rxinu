@@ -1,6 +1,7 @@
 use core::cmp;
 use core::sync::atomic::{self, AtomicUsize};
 
+#[derive(Debug)]
 pub struct ProcessId(AtomicUsize);
 
 impl PartialEq for ProcessId {

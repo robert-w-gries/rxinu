@@ -3,7 +3,7 @@ use alloc::boxed::Box;
 use arch::context::Context;
 use scheduling::{ProcessId, Scheduler};
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum State {
     Free,
     Current,
@@ -11,17 +11,18 @@ pub enum State {
     Ready,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Priority(u64);
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Process {
     pub pid: ProcessId,
+    pub name: String,
     pub state: State,
     pub prio: Priority,
     pub context: Context,
     pub stack: Option<Box<[u8]>>,
-    pub name: String,
+    pub scheduler: Option<*const Scheduler>,
 }
 
 impl Process {
@@ -33,6 +34,7 @@ impl Process {
             context: Context::new(),
             stack: None,
             name: String::from("NEW"),
+            scheduler: None,
         }
     }
 
@@ -44,6 +46,10 @@ impl Process {
         self.context.set_page_table(address);
     }
 
+    pub fn set_scheduler(&mut self, scheduler: &Scheduler) {
+        self.scheduler = Some(scheduler as *const Scheduler);
+    }
+
     pub fn set_stack(&mut self, address: usize) {
         self.context.set_stack(address);
     }
@@ -53,16 +59,13 @@ impl Process {
 /// This is the function pointer stored on the stack when a process is created
 /// Note: We are inside the SCHEDULER singleton lock and cannot re-aquire the reference
 /// So we use dynamic dispatch to get scheduler Trait Object then call kill method
+#[naked]
 pub unsafe fn process_ret() {
     use scheduling::{DoesScheduling, scheduler};
-kprintln!("Return from process!");
 
-    //let scheduler: &mut Scheduler;
-    //asm!("pop $0" : "=r"(scheduler) : : "memory" : "intel", "volatile");
+    let scheduler: &mut Scheduler;
+    asm!("pop $0" : "=r"(scheduler) : : "memory" : "intel", "volatile");
 
-//kprintln!("Scheduler address = 0x{:x}", scheduler as *mut _ as usize);
-    let curr_id: ProcessId = scheduler().getid().clone();
-kprintln!("Cloned!");
-    scheduler().kill(curr_id);
-kprintln!("Done killing!");
+    let curr_id: ProcessId = scheduler.getid().clone();
+    scheduler.kill(curr_id);
 }
