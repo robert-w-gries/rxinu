@@ -14,7 +14,7 @@ pub use self::process_list::ProcessList;
 pub use self::scheduler::Scheduler;
 
 pub trait DoesScheduling {
-    fn create(&mut self, func: extern fn()) -> Result<Process, Error>;
+    fn create(&mut self, func: extern fn()) -> Result<ProcessId, Error>;
     fn getid(&self) -> &ProcessId;
     fn kill(&mut self, id: ProcessId);
     fn ready(&mut self, id: ProcessId);
@@ -24,7 +24,7 @@ pub trait DoesScheduling {
 const MAX_PROCS: usize = usize::max_value() -1;
 // TODO: Use the proper stack size
 //const INIT_STK_SIZE: usize = 65536;
-const INIT_STK_SIZE: usize = 10000;
+const INIT_STK_SIZE: usize = 1000;
 
 //lazy_static! {
 //    pub static ref SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());

@@ -16,7 +16,7 @@ pub struct CoopScheduler {
 }
 
 impl DoesScheduling for CoopScheduler {
-    fn create(&mut self, new_proc: extern fn()) -> Result<Process, Error> {
+    fn create(&mut self, new_proc: extern fn()) -> Result<ProcessId, Error> {
         use arch::memory::paging;
 
         // TODO: Investigate proper stack representation
@@ -47,7 +47,7 @@ impl DoesScheduling for CoopScheduler {
             process.context.set_page_table(unsafe { paging::ActivePageTable::new().address() });
             process.context.set_stack((stack.as_ptr() as usize) + stack_offset);
 
-            Ok(process.clone())
+            Ok(process.pid.clone())
         }
     }
 
@@ -74,6 +74,7 @@ impl DoesScheduling for CoopScheduler {
         self.ready_list.write().push_back(id);
     }
 
+    /// Safety: This method will deadlock if any scheduling locks are still held
     unsafe fn resched(&mut self) {
 
         // TODO: Investigate less hacky way of context switching without deadlocking

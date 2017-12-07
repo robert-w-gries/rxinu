@@ -44,23 +44,23 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::init(multiboot_information_address);
     kprintln!("\nIt did not crash!");
 
-    unsafe {
-        HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_START + HEAP_SIZE);
-    }
+    // TODO: Fix LockedHeap. It currently returns the same addresses for our processes stack in resched()
+    //unsafe {
+    //    HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_START + HEAP_SIZE);
+    //}
 
-    use scheduling::{DoesScheduling, Process, Scheduler};
+    use scheduling::{DoesScheduling, ProcessId, Scheduler};
 
     let mut scheduler = Scheduler::new();
 
-    let main_proc: Process = scheduler.create(rxinu_main).expect("Could not create process!");
-    scheduler.ready(main_proc.pid);
-
-    // TODO: Ready multiple processes at once
-    //let main_proc2: Process = scheduler.create(rxinu_main).expect("Could not create process!");
-    //scheduler.ready(main_proc2.pid);
+    let main_proc_id: ProcessId = scheduler.create(rxinu_main).expect("Could not create process!");
+    scheduler.ready(main_proc_id);
 
     // TODO: Investigate returning from null process
     loop {
+        let test_id: ProcessId = scheduler.create(process_test).expect("Could not create process!");
+        scheduler.ready(test_id);
+
         unsafe { scheduler.resched(); }
     }
 }
@@ -69,7 +69,11 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 pub extern fn rxinu_main() {
     arch::console::clear_screen();
 
-    kprintln!("In main process!");
+    kprintln!("In main process!\n");
+}
+
+pub extern fn process_test() {
+    kprintln!("In test process!");
 }
 
 #[cfg(not(test))]
@@ -92,10 +96,15 @@ pub extern "C" fn _Unwind_Resume() -> ! {
     loop {}
 }
 
-use linked_list_allocator::LockedHeap;
-
 const HEAP_START: usize = 0o_000_001_000_000_0000;
 const HEAP_SIZE: usize = 100 * 1024;
 
+// TODO: Fix LockedHeap and use it
+//use linked_list_allocator::LockedHeap;
+//#[global_allocator]
+//static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
+
+use arch::memory::heap_allocator::BumpAllocator;
+
 #[global_allocator]
-static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
+static HEAP_ALLOCATOR: BumpAllocator = BumpAllocator::new(HEAP_START, HEAP_START + HEAP_SIZE);
