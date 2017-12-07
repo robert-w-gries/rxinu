@@ -1,7 +1,0 @@
-[package]
-name = "bump_allocator"
-version = "0.1.0"
-authors = ["Rob Gries <robert.w.gries@gmail.com>"]
-
-[dependencies]
-spin = "0.4.5"

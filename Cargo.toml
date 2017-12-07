@@ -10,6 +10,7 @@ crate-type = ["staticlib"]
 [target.'cfg(any(target_arch = "x86", target_arch = "x86_64"))'.dependencies]
 bit_field = "0.7.0"
 bitflags = "0.9.1"
+linked_list_allocator = "0.4.2"
 # TODO: Submit issue for multiboot2-elf64 repo
 # multiboot2 = { git = "https://github.com/phil-opp/multiboot2-elf64", features = [] }
 multiboot2 = { git = "https://github.com/ahmedcharles/multiboot2-elf64", branch = "elf32" }
@@ -17,9 +18,6 @@ once = "0.3.2"
 rlibc = "1.0.0"
 spin = "0.4.6"
 volatile = "0.1.0"
-
-[dependencies.hole_list_allocator]
-path = "allocator/hole_list_allocator"
 
 [dependencies.lazy_static]
 version = "0.2.4"
