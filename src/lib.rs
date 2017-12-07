@@ -50,12 +50,15 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 
     let main_proc: Process = scheduler.create(rxinu_main).expect("Could not create process!");
     scheduler.ready(main_proc.pid);
-    unsafe { scheduler.resched(); }
 
-    kprintln!("Out of main process!");
+    // TODO: Ready multiple processes at once
+    //let main_proc2: Process = scheduler.create(rxinu_main).expect("Could not create process!");
+    //scheduler.ready(main_proc2.pid);
 
     // TODO: Investigate returning from null process
-    loop { }
+    loop {
+        unsafe { scheduler.resched(); }
+    }
 }
 
 /// Main initialization process for rxinu

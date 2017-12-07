@@ -60,9 +60,9 @@ impl DoesScheduling for CoopScheduler {
     fn kill(&mut self, id: ProcessId) {
         // TODO: free the allocated stack
 
-        // We need to scope the manipulation of process list so we don't deadlock in resched()
+        // We need to scope the manipulation of the process so we don't deadlock in resched()
         {
-            let mut proc_table_lock = self.proc_table.write();
+            let mut proc_table_lock = self.proc_table.read();
             let mut proc_lock = proc_table_lock.get(id).expect("Could not find process to kill");
             let mut killed_process = proc_lock.write();
             killed_process.set_state(State::Free);
@@ -77,50 +77,39 @@ impl DoesScheduling for CoopScheduler {
     unsafe fn resched(&mut self) {
 
         // TODO: Investigate less hacky way of context switching without deadlocking
-        let mut curr_process_ptr = 0 as *mut Process;
-        let mut next_process_ptr = 0 as *mut Process;
+        let mut old_ptr = 0 as *mut Process;
+        let mut next_ptr = 0 as *mut Process;
 
         // Separate the locks from the context switch through scoping
         {
-            let proc_table_lock = self.proc_table.write();
+            let proc_table_lock = self.proc_table.read();
             let mut ready_list_lock = self.ready_list.write();
 
-// TODO: Remove debugging code
-//kprintln!("\n\n");
-//
-//for process in ready_list_lock.iter() {
-//kprintln!("READY LIST:");
-//  kprintln!("Process: {:?}", process);
-//}
-//
-//kprintln!("\n\n");
-//
-//for process in proc_table_lock.iter() {
-//kprintln!("PROC LIST:");
-//  kprintln!("Process: {:?}", process);
-//}
-
             let curr_id: ProcessId = self.getid().clone();
-            let mut current = proc_table_lock.get(curr_id.clone()).expect("Could not find current process").write();
+            let mut old = proc_table_lock.get(curr_id.clone()).expect("Could not find old process").write();
 
-            if current.state == State::Current {
-                current.set_state(State::Ready);
+            if old.state == State::Current {
+                old.set_state(State::Ready);
                 ready_list_lock.push_back(curr_id);
             }
+
             if let Some(next_id) = ready_list_lock.pop_front() {
-                let mut next = proc_table_lock.get(next_id).expect("Could not find new process").write();
-                next.set_state(State::Current);
+                if next_id != self.current_pid {
+                    let mut next = proc_table_lock.get(next_id).expect("Could not find new process").write();
+                    next.set_state(State::Current);
 
-                self.current_pid = next.pid.clone();
+                    self.current_pid = next.pid.clone();
 
-                // Save process pointers for out of scope context switch
-                curr_process_ptr = current.deref_mut() as *mut Process;
-                next_process_ptr = next.deref_mut() as *mut Process;
+                    // Save process pointers for out of scope context switch
+                    old_ptr  = old.deref_mut() as *mut Process;
+                    next_ptr = next.deref_mut() as *mut Process;
+                }
             }
         }
 
-        if curr_process_ptr as usize != 0 && next_process_ptr as usize != 0 {
-            (&mut *curr_process_ptr).context.switch_to(&mut (&mut *next_process_ptr).context);
+        if next_ptr as usize != 0 {
+            assert!(old_ptr as usize != 0, "Pointer to old process has not been set!");
+            (&mut *old_ptr).context.switch_to(&mut (&mut *next_ptr).context);
         }
     }
 }
@@ -134,3 +123,18 @@ impl CoopScheduler {
         }
     }
 }
+
+// TODO: impl Debug for CoopScheduler
+//kprintln!("\n\n");
+//
+//for process in ready_list_lock.iter() {
+//kprintln!("READY LIST:");
+//  kprintln!("Process: {:?}", process);
+//}
+//
+//kprintln!("\n\n");
+//
+//for process in proc_table_lock.iter() {
+//kprintln!("PROC LIST:");
+//  kprintln!("Process: {:?}", process);
+//}
