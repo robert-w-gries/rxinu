@@ -1,8 +1,8 @@
 #![feature(abi_x86_interrupt)]
-#![feature(alloc)]
+#![feature(alloc, allocator_api, global_allocator)]
 #![feature(asm)]
 #![feature(const_fn)]
-#![feature(const_unique_new)]
+#![feature(const_unique_new, const_atomic_usize_new)]
 #![feature(compiler_builtins_lib)]
 #![feature(const_fn)]
 #![feature(lang_items)]
@@ -23,7 +23,7 @@ extern crate once;
 
 extern crate bit_field;
 extern crate compiler_builtins;
-extern crate hole_list_allocator as allocator;
+extern crate linked_list_allocator;
 extern crate multiboot2;
 extern crate rlibc;
 extern crate spin;
@@ -39,6 +39,12 @@ pub mod syscall;
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::init(multiboot_information_address);
     kprintln!("\nIt did not crash!");
+
+    unsafe {
+        HEAP_ALLOCATOR
+            .lock()
+            .init(HEAP_START, HEAP_START + HEAP_SIZE);
+    }
 
     arch::console::clear_screen();
 
@@ -64,3 +70,11 @@ pub extern "C" fn panic_fmt(fmt: core::fmt::Arguments, file: &str, line: u32) ->
 pub extern "C" fn _Unwind_Resume() -> ! {
     loop {}
 }
+
+use linked_list_allocator::LockedHeap;
+
+const HEAP_START: usize = 0o_000_001_000_000_0000;
+const HEAP_SIZE: usize = 100 * 1024;
+
+#[global_allocator]
+static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
