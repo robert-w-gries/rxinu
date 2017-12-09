@@ -12,7 +12,11 @@ pub struct BumpAllocator {
 
 impl BumpAllocator {
     pub const fn new(heap_start: usize, heap_end: usize) -> Self {
-        Self { heap_start, heap_end, next: AtomicUsize::new(heap_start) }
+        Self {
+            heap_start,
+            heap_end,
+            next: AtomicUsize::new(heap_start),
+        }
     }
 }
 
@@ -26,19 +30,20 @@ unsafe impl<'a> Alloc for &'a BumpAllocator {
 
             if alloc_end <= self.heap_end {
                 // update the `next` pointer if it still has the value `current_next`
-                let next_now = self.next.compare_and_swap(current_next, alloc_end,
-                    Ordering::Relaxed);
+                let next_now =
+                    self.next
+                        .compare_and_swap(current_next, alloc_end, Ordering::Relaxed);
                 if next_now == current_next {
                     // next address was successfully updated, allocation succeeded
                     return Ok(alloc_start as *mut u8);
                 }
             } else {
-                return Err(AllocErr::Exhausted{ request: layout })
+                return Err(AllocErr::Exhausted { request: layout });
             }
         }
     }
 
-    unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
+    unsafe fn dealloc(&mut self, _ptr: *mut u8, _layout: Layout) {
         // do nothing, leak memory
     }
 
