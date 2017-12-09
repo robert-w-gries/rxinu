@@ -1,7 +1,8 @@
 use alloc::VecDeque;
 use alloc::boxed::Box;
 use core::mem;
-use core::ops::{Deref, DerefMut};
+use core::ops::DerefMut;
+use core::sync::atomic::{AtomicUsize, Ordering};
 use scheduling::{Process, ProcessId, ProcessList, State, DoesScheduling, INIT_STK_SIZE};
 use scheduling::process;
 use spin::RwLock;
@@ -10,13 +11,13 @@ use syscall::error::Error;
 pub type Scheduler = CoopScheduler;
 
 pub struct CoopScheduler {
-    current_pid: ProcessId,
+    current_pid: AtomicUsize,
     proc_table: RwLock<ProcessList>,
     ready_list: RwLock<VecDeque<ProcessId>>,
 }
 
 impl DoesScheduling for CoopScheduler {
-    fn create(&mut self, new_proc: extern fn()) -> Result<ProcessId, Error> {
+    fn create(&self, new_proc: extern fn()) -> Result<ProcessId, Error> {
         use arch::memory::paging;
 
         // TODO: Investigate proper stack representation
@@ -27,8 +28,9 @@ impl DoesScheduling for CoopScheduler {
         let stack_offset: usize = index * mem::size_of::<usize>();
 
         unsafe {
-            let self_ptr = stack.as_mut_ptr().offset((stack.len() - 1) as isize);
-            *(self_ptr as *mut usize) = self as *mut _ as usize;
+            let self_idx = stack.as_mut_ptr().offset((stack.len() - 1) as isize);
+            let self_ptr: *const Scheduler = &*self as *const Scheduler;
+            *(self_idx as *mut usize) = self_ptr as usize;
 
             let ret_ptr = stack.as_mut_ptr().offset((stack.len() - 2) as isize);
             *(ret_ptr as *mut usize) = process::process_ret as usize;
@@ -43,7 +45,6 @@ impl DoesScheduling for CoopScheduler {
         {
             let mut process = process_lock.write();
 
-            process.set_scheduler(self);
             process.context.set_page_table(unsafe { paging::ActivePageTable::new().address() });
             process.context.set_stack((stack.as_ptr() as usize) + stack_offset);
 
@@ -51,31 +52,31 @@ impl DoesScheduling for CoopScheduler {
         }
     }
 
-    fn getid(&self) -> &ProcessId {
-        &self.current_pid
+    fn getid(&self) -> ProcessId {
+        ProcessId(self.current_pid.load(Ordering::SeqCst))
     }
 
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
-    fn kill(&mut self, id: ProcessId) {
+    fn kill(&self, id: ProcessId) {
         // TODO: free the allocated stack
 
         // We need to scope the manipulation of the process so we don't deadlock in resched()
         {
-            let mut proc_table_lock = self.proc_table.read();
-            let mut proc_lock = proc_table_lock.get(id).expect("Could not find process to kill");
+            let proc_table_lock = self.proc_table.read();
+            let proc_lock = proc_table_lock.get(id).expect("Could not find process to kill");
             let mut killed_process = proc_lock.write();
             killed_process.set_state(State::Free);
         }
         unsafe { self.resched(); }
     }
 
-    fn ready(&mut self, id: ProcessId) {
+    fn ready(&self, id: ProcessId) {
         self.ready_list.write().push_back(id);
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
-    unsafe fn resched(&mut self) {
+    unsafe fn resched(&self) {
 
         // TODO: Investigate less hacky way of context switching without deadlocking
         let mut old_ptr = 0 as *mut Process;
@@ -95,11 +96,11 @@ impl DoesScheduling for CoopScheduler {
             }
 
             if let Some(next_id) = ready_list_lock.pop_front() {
-                if next_id != self.current_pid {
+                if next_id != self.getid().clone() {
                     let mut next = proc_table_lock.get(next_id).expect("Could not find new process").write();
                     next.set_state(State::Current);
 
-                    self.current_pid = next.pid.clone();
+                    self.current_pid.store(next.pid.clone().0, Ordering::SeqCst);
 
                     // Save process pointers for out of scope context switch
                     old_ptr  = old.deref_mut() as *mut Process;
@@ -118,7 +119,7 @@ impl DoesScheduling for CoopScheduler {
 impl CoopScheduler {
     pub fn new() -> CoopScheduler {
         CoopScheduler {
-            current_pid: ProcessId::NULL_PROCESS,
+            current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
             proc_table: RwLock::new(ProcessList::new()),
             ready_list: RwLock::new(VecDeque::<ProcessId>::new()),
         }

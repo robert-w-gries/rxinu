@@ -38,14 +38,14 @@ impl ProcessList {
             self.next_id = 1;
         }
 
-        while self.collection.contains_key(&ProcessId::new(self.next_id)) {
+        while self.collection.contains_key(&ProcessId(self.next_id)) {
             self.next_id += 1;
         }
 
         if self.next_id >= super::MAX_PROCS {
             Err(Error::TryAgain)
         } else {
-            let id: ProcessId = ProcessId::new(self.next_id);
+            let id: ProcessId = ProcessId(self.next_id);
             self.next_id += 1;
 
             assert!(self.collection.insert(id.clone(), RwLock::new(Process::new(id.clone()))).is_none(), "Process id already exists!"); 

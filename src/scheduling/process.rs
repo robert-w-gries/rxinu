@@ -1,7 +1,7 @@
 use alloc::String;
 use alloc::boxed::Box;
 use arch::context::Context;
-use scheduling::{ProcessId, Scheduler};
+use scheduling::Scheduler;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum State {
@@ -14,6 +14,17 @@ pub enum State {
 #[derive(Clone, Debug)]
 pub struct Priority(u64);
 
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct ProcessId(pub usize);
+
+impl ProcessId {
+    pub const NULL_PROCESS: ProcessId = ProcessId(0);
+
+    pub fn get_usize(&self) -> usize {
+        self.0
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Process {
     pub pid: ProcessId,
@@ -22,7 +33,6 @@ pub struct Process {
     pub prio: Priority,
     pub context: Context,
     pub stack: Option<Box<[u8]>>,
-    pub scheduler: Option<*const Scheduler>,
 }
 
 impl Process {
@@ -34,7 +44,6 @@ impl Process {
             context: Context::new(),
             stack: None,
             name: String::from("NEW"),
-            scheduler: None,
         }
     }
 
@@ -44,10 +53,6 @@ impl Process {
 
     pub fn set_page_table(&mut self, address: usize) {
         self.context.set_page_table(address);
-    }
-
-    pub fn set_scheduler(&mut self, scheduler: &Scheduler) {
-        self.scheduler = Some(scheduler as *const Scheduler);
     }
 
     pub fn set_stack(&mut self, address: usize) {
@@ -61,7 +66,7 @@ impl Process {
 /// So we use dynamic dispatch to get scheduler Trait Object then call kill method
 #[naked]
 pub unsafe fn process_ret() {
-    use scheduling::{DoesScheduling, scheduler};
+    use scheduling::DoesScheduling;
 
     let scheduler: &mut Scheduler;
     asm!("pop $0" : "=r"(scheduler) : : "memory" : "intel", "volatile");
