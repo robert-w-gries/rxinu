@@ -57,7 +57,7 @@ pub fn init(boot_info: &BootInformation) -> MemoryController {
 
     let mut active_table = paging::remap_the_kernel(&mut frame_allocator, boot_info);
 
-    use {HEAP_START, HEAP_SIZE};
+    use {HEAP_SIZE, HEAP_START};
     use self::paging::page::Page;
 
     let heap_start_page = Page::containing_address(HEAP_START);
