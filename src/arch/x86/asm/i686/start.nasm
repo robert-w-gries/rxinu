@@ -14,4 +14,6 @@ _start:
   push edi
 
   call rust_main
+.os_returned
+  cli
   hlt

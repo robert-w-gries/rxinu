@@ -58,7 +58,6 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
             .expect("Could not create main process!"),
     );
 
-    // TODO: Investigate returning from null process
     loop {
         SCHEDULER.ready(
             SCHEDULER

@@ -178,11 +178,8 @@ where
         }
 
         // identity map the VGA text buffer
-        #[cfg(feature = "vga")]
-        {
-            let vga_buffer_frame = Frame::containing_address(0xb8000);
-            mapper.identity_map(vga_buffer_frame, WRITABLE, allocator);
-        }
+        let vga_buffer_frame = Frame::containing_address(0xb8000);
+        mapper.identity_map(vga_buffer_frame, WRITABLE, allocator);
 
         let multiboot_start = Frame::containing_address(boot_info.start_address());
         let multiboot_end = Frame::containing_address(boot_info.end_address() - 1);
