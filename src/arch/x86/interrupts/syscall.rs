@@ -25,7 +25,7 @@ pub struct SyscallStack {
 
 impl fmt::Debug for SyscallStack{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        struct StackHex(u64);
+        struct StackHex(Bits);
         impl fmt::Debug for StackHex {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "{:#x}", self.0)

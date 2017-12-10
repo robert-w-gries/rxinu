@@ -67,7 +67,7 @@ impl Process {
 /// Note:
 /// To support multiple scheduler objects, we use dynamic dispatch to get our scheduler then call kill method
 #[naked]
-pub unsafe fn process_ret() {
+pub unsafe extern "C" fn process_ret() {
     use scheduling::DoesScheduling;
 
     let scheduler: &mut Scheduler;
