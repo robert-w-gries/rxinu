@@ -65,7 +65,8 @@ impl Process {
 /// When a process returns, it pops an instruction pointer off the stack then jumps to it
 /// The instruction pointer on the stack points to this function
 /// Note:
-/// To support multiple scheduler objects, we use dynamic dispatch to get our scheduler then call kill method
+/// To support multiple scheduler objects, use dynamic dispatch
+/// The parent scheduler object will always be on the stack
 #[naked]
 pub unsafe extern "C" fn process_ret() {
     use scheduling::DoesScheduling;

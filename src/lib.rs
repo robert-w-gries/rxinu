@@ -44,33 +44,40 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::init(multiboot_information_address);
     kprintln!("\nIt did not crash!");
 
-    // TODO: Fix LockedHeap. It currently returns the same addresses for our processes stack in resched()
+    // TODO: Fix LockedHeap
+    // It always returns the same addresses for our processes stack in resched()
     //unsafe {
     //    HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_START + HEAP_SIZE);
     //}
 
     use scheduling::{DoesScheduling, ProcessId, SCHEDULER};
 
-    let main_proc_id: ProcessId = SCHEDULER.create(rxinu_main).expect("Could not create process!");
+    let main_proc_id: ProcessId = SCHEDULER
+        .create(rxinu_main)
+        .expect("Could not create process!");
     SCHEDULER.ready(main_proc_id);
 
     // TODO: Investigate returning from null process
     loop {
-        let test_id: ProcessId = SCHEDULER.create(process_test).expect("Could not create process!");
+        let test_id: ProcessId = SCHEDULER
+            .create(process_test)
+            .expect("Could not create process!");
         SCHEDULER.ready(test_id);
 
-        unsafe { SCHEDULER.resched(); }
+        unsafe {
+            SCHEDULER.resched();
+        }
     }
 }
 
 /// Main initialization process for rxinu
-pub extern fn rxinu_main() {
+pub extern "C" fn rxinu_main() {
     arch::console::clear_screen();
 
     kprintln!("In main process!\n");
 }
 
-pub extern fn process_test() {
+pub extern "C" fn process_test() {
     kprintln!("In test process!");
 }
 

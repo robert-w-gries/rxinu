@@ -23,7 +23,7 @@ pub struct SyscallStack {
     pub rflags: Bits,
 }
 
-impl fmt::Debug for SyscallStack{
+impl fmt::Debug for SyscallStack {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         struct StackHex(Bits);
         impl fmt::Debug for StackHex {

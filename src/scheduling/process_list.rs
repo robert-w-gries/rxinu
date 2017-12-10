@@ -48,7 +48,12 @@ impl ProcessList {
             let id: ProcessId = ProcessId(self.next_id);
             self.next_id += 1;
 
-            assert!(self.collection.insert(id, RwLock::new(Process::new(id))).is_none(), "Process id already exists!");
+            assert!(
+                self.collection
+                    .insert(id, RwLock::new(Process::new(id)))
+                    .is_none(),
+                "Process id already exists!"
+            );
 
             Ok(self.collection.get(&id).expect("Failed to add new process"))
         }
