@@ -48,7 +48,7 @@ impl DoesScheduling for CoopScheduler {
             process.context.set_page_table(unsafe { paging::ActivePageTable::new().address() });
             process.context.set_stack((stack.as_ptr() as usize) + stack_offset);
 
-            Ok(process.pid.clone())
+            Ok(process.pid)
         }
     }
 
@@ -87,8 +87,8 @@ impl DoesScheduling for CoopScheduler {
             let proc_table_lock = self.proc_table.read();
             let mut ready_list_lock = self.ready_list.write();
 
-            let curr_id: ProcessId = self.getid().clone();
-            let mut old = proc_table_lock.get(curr_id.clone()).expect("Could not find old process").write();
+            let curr_id: ProcessId = self.getid();
+            let mut old = proc_table_lock.get(curr_id).expect("Could not find old process").write();
 
             if old.state == State::Current {
                 old.set_state(State::Ready);
@@ -96,11 +96,11 @@ impl DoesScheduling for CoopScheduler {
             }
 
             if let Some(next_id) = ready_list_lock.pop_front() {
-                if next_id != self.getid().clone() {
+                if next_id != self.getid() {
                     let mut next = proc_table_lock.get(next_id).expect("Could not find new process").write();
                     next.set_state(State::Current);
 
-                    self.current_pid.store(next.pid.clone().0, Ordering::SeqCst);
+                    self.current_pid.store(next.pid.get_usize(), Ordering::SeqCst);
 
                     // Save process pointers for out of scope context switch
                     old_ptr  = old.deref_mut() as *mut Process;

@@ -71,6 +71,6 @@ pub unsafe fn process_ret() {
     let scheduler: &mut Scheduler;
     asm!("pop $0" : "=r"(scheduler) : : "memory" : "intel", "volatile");
 
-    let curr_id: ProcessId = scheduler.getid().clone();
+    let curr_id: ProcessId = scheduler.getid();
     scheduler.kill(curr_id);
 }
