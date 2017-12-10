@@ -60,10 +60,12 @@ impl Process {
     }
 }
 
-/// When a process returns, it pops off a return instruction pointer then jumps to it
-/// This is the function pointer stored on the stack when a process is created
-/// Note: We are inside the SCHEDULER singleton lock and cannot re-aquire the reference
-/// So we use dynamic dispatch to get scheduler Trait Object then call kill method
+/// Once the process it completed, kill it
+///
+/// When a process returns, it pops an instruction pointer off the stack then jumps to it
+/// The instruction pointer on the stack points to this function
+/// Note:
+/// To support multiple scheduler objects, we use dynamic dispatch to get our scheduler then call kill method
 #[naked]
 pub unsafe fn process_ret() {
     use scheduling::DoesScheduling;
