@@ -50,19 +50,21 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     //    HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_START + HEAP_SIZE);
     //}
 
-    use scheduling::{DoesScheduling, ProcessId, SCHEDULER};
+    use scheduling::{DoesScheduling, SCHEDULER};
 
-    let main_proc_id: ProcessId = SCHEDULER
-        .create(rxinu_main)
-        .expect("Could not create process!");
-    SCHEDULER.ready(main_proc_id);
+    SCHEDULER.ready(
+        SCHEDULER
+            .create(rxinu_main)
+            .expect("Could not create main process!"),
+    );
 
     // TODO: Investigate returning from null process
     loop {
-        let test_id: ProcessId = SCHEDULER
-            .create(process_test)
-            .expect("Could not create process!");
-        SCHEDULER.ready(test_id);
+        SCHEDULER.ready(
+            SCHEDULER
+                .create(process_test)
+                .expect("Could not create process!"),
+        );
 
         unsafe {
             SCHEDULER.resched();
