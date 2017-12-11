@@ -93,7 +93,10 @@ impl ActivePageTable {
             let top_table = temporary_page.map_table_frame(backup.clone(), self);
 
             // overwrite recursive mapping
-            self.top_table_mut()[ENTRY_COUNT - 1].set(table.frame.clone(), EntryFlags::PRESENT | EntryFlags::WRITABLE);
+            self.top_table_mut()[ENTRY_COUNT - 1].set(
+                table.frame.clone(),
+                EntryFlags::PRESENT | EntryFlags::WRITABLE,
+            );
             flush_tlb();
 
             // execute f in the new context
