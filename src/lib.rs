@@ -50,22 +50,13 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     //    HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_START + HEAP_SIZE);
     //}
 
-    use scheduling::{DoesScheduling, SCHEDULER};
-
-    SCHEDULER.ready(
-        SCHEDULER
-            .create(rxinu_main)
-            .expect("Could not create main process!"),
-    );
+    syscall::create(rxinu_main);
 
     loop {
-        SCHEDULER.ready(
-            SCHEDULER
-                .create(process_test)
-                .expect("Could not create process!"),
-        );
+        syscall::create(process_test);
 
         unsafe {
+            use scheduling::{DoesScheduling, SCHEDULER};
             SCHEDULER.resched();
         }
     }
