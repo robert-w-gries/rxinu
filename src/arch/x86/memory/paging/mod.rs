@@ -2,7 +2,7 @@ use arch::x86::memory::{Frame, FrameAllocator};
 use core::ops::{Deref, DerefMut};
 use multiboot2::BootInformation;
 
-use self::entry::{EntryFlags, PRESENT, WRITABLE};
+use self::entry::EntryFlags;
 use self::mapper::{Mapper, TableMapper};
 use self::page::Page;
 use self::temporary_page::TemporaryPage;
@@ -93,14 +93,14 @@ impl ActivePageTable {
             let top_table = temporary_page.map_table_frame(backup.clone(), self);
 
             // overwrite recursive mapping
-            self.top_table_mut()[ENTRY_COUNT - 1].set(table.frame.clone(), PRESENT | WRITABLE);
+            self.top_table_mut()[ENTRY_COUNT - 1].set(table.frame.clone(), EntryFlags::PRESENT | EntryFlags::WRITABLE);
             flush_tlb();
 
             // execute f in the new context
             f(self);
 
             // restore recursive mapping to original top table
-            top_table[ENTRY_COUNT - 1].set(backup, PRESENT | WRITABLE);
+            top_table[ENTRY_COUNT - 1].set(backup, EntryFlags::PRESENT | EntryFlags::WRITABLE);
             flush_tlb();
         }
 
@@ -122,7 +122,7 @@ impl InactivePageTable {
             let table = temporary_page.map_table_frame(frame.clone(), active_table);
             table.zero();
             // set up recursive mapping for the table
-            table[ENTRY_COUNT - 1].set(frame.clone(), PRESENT | WRITABLE);
+            table[ENTRY_COUNT - 1].set(frame.clone(), EntryFlags::PRESENT | EntryFlags::WRITABLE);
         }
         temporary_page.unmap(active_table);
 
@@ -179,12 +179,12 @@ where
 
         // identity map the VGA text buffer
         let vga_buffer_frame = Frame::containing_address(0xb8000);
-        mapper.identity_map(vga_buffer_frame, WRITABLE, allocator);
+        mapper.identity_map(vga_buffer_frame, EntryFlags::WRITABLE, allocator);
 
         let multiboot_start = Frame::containing_address(boot_info.start_address());
         let multiboot_end = Frame::containing_address(boot_info.end_address() - 1);
         for frame in Frame::range_inclusive(multiboot_start, multiboot_end) {
-            mapper.identity_map(frame, PRESENT, allocator);
+            mapper.identity_map(frame, EntryFlags::PRESENT, allocator);
         }
     });
 

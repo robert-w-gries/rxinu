@@ -59,12 +59,13 @@ pub fn init(boot_info: &BootInformation) -> MemoryController {
 
     use {HEAP_SIZE, HEAP_START};
     use self::paging::page::Page;
+    use self::paging::entry::EntryFlags;
 
     let heap_start_page = Page::containing_address(HEAP_START);
     let heap_end_page = Page::containing_address(HEAP_START + HEAP_SIZE - 1);
 
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
-        active_table.map(page, paging::entry::WRITABLE, &mut frame_allocator);
+        active_table.map(page, EntryFlags::WRITABLE, &mut frame_allocator);
     }
 
     let stack_allocator = {

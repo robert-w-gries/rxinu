@@ -2,7 +2,7 @@ use arch::x86::memory::FrameAllocator;
 use arch::x86::memory::paging::{ActivePageTable, PAGE_SIZE};
 use arch::x86::memory::paging::mapper::Mapper;
 use arch::x86::memory::paging::page::{Page, PageIter};
-use arch::x86::memory::paging::entry::WRITABLE;
+use arch::x86::memory::paging::entry::EntryFlags;
 
 pub struct StackAllocator {
     range: PageIter,
@@ -46,7 +46,7 @@ impl StackAllocator {
 
                 // map stack pages to physical frames
                 for page in Page::range_inclusive(start, end) {
-                    active_table.map(page, WRITABLE, frame_allocator);
+                    active_table.map(page, EntryFlags::WRITABLE, frame_allocator);
                 }
 
                 // create a new stack

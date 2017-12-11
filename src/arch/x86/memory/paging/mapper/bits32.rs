@@ -1,6 +1,6 @@
 use arch::x86::memory::{Frame, FrameAllocator};
 use arch::x86::memory::paging::{PhysicalAddress, VirtualAddress, PAGE_SIZE};
-use arch::x86::memory::paging::entry::{EntryFlags, PRESENT};
+use arch::x86::memory::paging::entry::EntryFlags;
 use arch::x86::memory::paging::page::Page;
 use arch::x86::memory::paging::mapper::Mapper;
 use arch::x86::memory::paging::table::{self, Table, RECURSIVE_ENTRY};
@@ -51,7 +51,7 @@ impl Mapper for PageDirectoryMapper {
             .next_table_create(page.p2_index(), allocator);
 
         assert!(p1[page.p1_index()].is_unused());
-        p1[page.p1_index()].set(frame, flags | PRESENT);
+        p1[page.p1_index()].set(frame, flags | EntryFlags::PRESENT);
     }
 
     fn translate(&self, virtual_address: VirtualAddress) -> Option<PhysicalAddress> {
