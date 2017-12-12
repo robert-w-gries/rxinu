@@ -40,15 +40,15 @@ impl Entry {
 impl EntryFlags {
     #[cfg(target_arch = "x86")]
     pub fn from_elf_section_flags(section: &ElfSection) -> EntryFlags {
-        use multiboot2::{ELF_SECTION_ALLOCATED, ELF_SECTION_WRITABLE};
+        use multiboot2::ElfSectionFlags;
 
         let mut flags = EntryFlags::empty();
 
-        if section.flags().contains(ELF_SECTION_ALLOCATED) {
+        if section.flags().contains(ElfSectionFlags::ALLOCATED) {
             // section is loaded to memory
             flags = flags | EntryFlags::PRESENT;
         }
-        if section.flags().contains(ELF_SECTION_WRITABLE) {
+        if section.flags().contains(ElfSectionFlags::WRITABLE) {
             flags = flags | EntryFlags::WRITABLE;
         }
         flags
@@ -56,18 +56,18 @@ impl EntryFlags {
 
     #[cfg(target_arch = "x86_64")]
     pub fn from_elf_section_flags(section: &ElfSection) -> EntryFlags {
-        use multiboot2::{ELF_SECTION_ALLOCATED, ELF_SECTION_EXECUTABLE, ELF_SECTION_WRITABLE};
+        use multiboot2::ElfSectionFlags;
 
         let mut flags = EntryFlags::empty();
 
-        if section.flags().contains(ELF_SECTION_ALLOCATED) {
+        if section.flags().contains(ElfSectionFlags::ALLOCATED) {
             // section is loaded to memory
             flags = flags | EntryFlags::PRESENT;
         }
-        if section.flags().contains(ELF_SECTION_WRITABLE) {
+        if section.flags().contains(ElfSectionFlags::WRITABLE) {
             flags = flags | EntryFlags::WRITABLE;
         }
-        if !section.flags().contains(ELF_SECTION_EXECUTABLE) {
+        if !section.flags().contains(ElfSectionFlags::EXECUTABLE) {
             flags = flags | EntryFlags::NO_EXECUTE;
         }
         flags
