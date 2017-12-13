@@ -1,4 +1,4 @@
-use alloc::VecDeque;
+use alloc::{String, VecDeque};
 use alloc::boxed::Box;
 use core::mem;
 use core::ops::DerefMut;
@@ -17,9 +17,10 @@ pub struct CoopScheduler {
 }
 
 impl DoesScheduling for CoopScheduler {
-    fn create(&self, new_proc: extern "C" fn()) -> Result<ProcessId, Error> {
+    fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
         use arch::memory::paging;
 
+kprintln!("Creating process '{}'", name);
         // TODO: Investigate proper stack representation
         let mut stack: Box<[usize]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
 
@@ -48,9 +49,13 @@ impl DoesScheduling for CoopScheduler {
             process
                 .context
                 .set_page_table(unsafe { paging::ActivePageTable::new().address() });
+
             process
                 .context
                 .set_stack((stack.as_ptr() as usize) + stack_offset);
+
+            process.kstack = Some(stack);
+            process.name = name;
 
             Ok(process.pid)
         }
@@ -68,11 +73,14 @@ impl DoesScheduling for CoopScheduler {
         // We need to scope the manipulation of the process so we don't deadlock in resched()
         {
             let proc_table_lock = self.proc_table.read();
-            let proc_lock = proc_table_lock
+            let mut proc_lock = proc_table_lock
                 .get(id)
-                .expect("Could not find process to kill");
-            let mut killed_process = proc_lock.write();
-            killed_process.set_state(State::Free);
+                .expect("Could not find process to kill")
+                .write();
+
+            proc_lock.set_state(State::Free);
+            proc_lock.kstack = None;
+            drop(&mut proc_lock.name);
         }
         unsafe {
             self.resched();
@@ -92,7 +100,6 @@ impl DoesScheduling for CoopScheduler {
         // Separate the locks from the context switch through scoping
         {
             let proc_table_lock = self.proc_table.read();
-            let mut ready_list_lock = self.ready_list.write();
 
             let curr_id: ProcessId = self.getid();
             let mut old = proc_table_lock
@@ -100,17 +107,20 @@ impl DoesScheduling for CoopScheduler {
                 .expect("Could not find old process")
                 .write();
 
+            // return to unfinished current process through context switch
             if old.state == State::Current {
                 old.set_state(State::Ready);
-                ready_list_lock.push_back(curr_id);
+                self.ready_list.write().push_back(curr_id);
             }
 
+            let mut ready_list_lock = self.ready_list.write();
             if let Some(next_id) = ready_list_lock.pop_front() {
                 if next_id != self.getid() {
                     let mut next = proc_table_lock
                         .get(next_id)
                         .expect("Could not find new process")
                         .write();
+
                     next.set_state(State::Current);
 
                     self.current_pid

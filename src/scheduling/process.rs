@@ -32,7 +32,7 @@ pub struct Process {
     pub state: State,
     pub prio: Priority,
     pub context: Context,
-    pub stack: Option<Box<[u8]>>,
+    pub kstack: Option<Box<[usize]>>,
 }
 
 impl Process {
@@ -42,7 +42,7 @@ impl Process {
             state: State::Suspended,
             prio: Priority(0),
             context: Context::new(),
-            stack: None,
+            kstack: None,
             name: String::from("NEW"),
         }
     }

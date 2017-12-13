@@ -38,27 +38,28 @@ pub mod device;
 pub mod scheduling;
 pub mod syscall;
 
+use alloc::String;
+
 #[no_mangle]
 /// Entry point for rust code
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::init(multiboot_information_address);
     kprintln!("\nIt did not crash!");
 
-    // TODO: Fix LockedHeap
-    // It always returns the same addresses for our processes stack in resched()
-    //unsafe {
-    //    HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_START + HEAP_SIZE);
-    //}
+    unsafe {
+        HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_START + HEAP_SIZE);
+    }
 
-    syscall::create(rxinu_main);
+    syscall::create(rxinu_main, String::from("rxinu_main"));
 
+    let mut i = 0;
     loop {
-        syscall::create(process_test);
-
+        syscall::create(process_test, format!("test_process_{}", i));
         unsafe {
             use scheduling::{DoesScheduling, SCHEDULER};
             SCHEDULER.resched();
         }
+        i += 1;
     }
 }
 
@@ -71,6 +72,7 @@ pub extern "C" fn rxinu_main() {
 
 pub extern "C" fn process_test() {
     kprintln!("In test process!");
+    //syscall::create(process_test, "recursive_create");
 }
 
 #[cfg(not(test))]
@@ -96,12 +98,7 @@ pub extern "C" fn _Unwind_Resume() -> ! {
 const HEAP_START: usize = 0o_000_001_000_000_0000;
 const HEAP_SIZE: usize = 100 * 1024;
 
-// TODO: Fix LockedHeap and use it
-//use linked_list_allocator::LockedHeap;
-//#[global_allocator]
-//static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
-
-use arch::memory::heap_allocator::BumpAllocator;
+use linked_list_allocator::LockedHeap;
 
 #[global_allocator]
-static HEAP_ALLOCATOR: BumpAllocator = BumpAllocator::new(HEAP_START, HEAP_START + HEAP_SIZE);
+static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
