@@ -60,6 +60,7 @@ impl DoesScheduling for CoopScheduler {
         }
     }
 
+    /// Get current process id
     fn getid(&self) -> ProcessId {
         ProcessId(self.current_pid.load(Ordering::SeqCst))
     }
@@ -81,6 +82,7 @@ impl DoesScheduling for CoopScheduler {
             proc_lock.kstack = None;
             drop(&mut proc_lock.name);
         }
+
         unsafe {
             self.resched();
         }
@@ -92,54 +94,58 @@ impl DoesScheduling for CoopScheduler {
 
     /// Safety: This method will deadlock if any scheduling locks are still held
     unsafe fn resched(&self) {
+        // skip expensive locks if possible
+        if self.ready_list.read().is_empty() {
+            return;
+        }
+
         // TODO: Investigate less hacky way of context switching without deadlocking
-        let mut old_ptr = 0 as *mut Process;
+        let mut prev_ptr = 0 as *mut Process;
         let mut next_ptr = 0 as *mut Process;
 
         // Separate the locks from the context switch through scoping
+        // This will avoid deadlocks on next resched() call
         {
             let proc_table_lock = self.proc_table.read();
+            let mut ready_list_lock = self.ready_list.write();
 
             let curr_id: ProcessId = self.getid();
-            let mut old = proc_table_lock
+
+            let mut prev = proc_table_lock
                 .get(curr_id)
-                .expect("Could not find old process")
+                .expect("Could not find previous process")
                 .write();
 
-            // return to unfinished current process through context switch
-            if old.state == State::Current {
-                old.set_state(State::Ready);
-                self.ready_list.write().push_back(curr_id);
+            // we want to be able to return to this process later
+            if prev.state == State::Current {
+                prev.set_state(State::Ready);
+                ready_list_lock.push_back(curr_id);
             }
 
-            let mut ready_list_lock = self.ready_list.write();
             if let Some(next_id) = ready_list_lock.pop_front() {
-                if next_id != self.getid() {
-                    let mut next = proc_table_lock
-                        .get(next_id)
-                        .expect("Could not find new process")
-                        .write();
+                let mut next = proc_table_lock
+                    .get(next_id)
+                    .expect("Could not find new process")
+                    .write();
 
-                    next.set_state(State::Current);
+                next.set_state(State::Current);
 
-                    self.current_pid
-                        .store(next.pid.get_usize(), Ordering::SeqCst);
+                self.current_pid.store(next.pid.get_usize(), Ordering::SeqCst);
 
-                    // Save process pointers for out of scope context switch
-                    old_ptr = old.deref_mut() as *mut Process;
-                    next_ptr = next.deref_mut() as *mut Process;
-                }
+                // Save process pointers since context switch is out of scope
+                prev_ptr = prev.deref_mut() as *mut Process;
+                next_ptr = next.deref_mut() as *mut Process;
             }
         }
 
         if next_ptr as usize != 0 {
             assert!(
-                old_ptr as usize != 0,
-                "Pointer to old process has not been set!"
+                prev_ptr as usize != 0,
+                "Pointer to previous process has not been set!"
             );
-            (&mut *old_ptr)
-                .context
-                .switch_to(&mut (&mut *next_ptr).context);
+            let prev: &mut Process = &mut *prev_ptr;
+            let next: &mut Process = &mut *next_ptr;
+            prev.context.switch_to(&mut next.context);
         }
     }
 }
