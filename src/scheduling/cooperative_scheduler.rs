@@ -20,7 +20,6 @@ impl DoesScheduling for CoopScheduler {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
         use arch::memory::paging;
 
-kprintln!("Creating process '{}'", name);
         // TODO: Investigate proper stack representation
         let mut stack: Box<[usize]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
 
