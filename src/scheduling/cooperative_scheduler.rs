@@ -67,8 +67,6 @@ impl DoesScheduling for CoopScheduler {
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, id: ProcessId) {
-        // TODO: free the allocated stack
-
         // We need to scope the manipulation of the process so we don't deadlock in resched()
         {
             let proc_table_lock = self.proc_table.read();
