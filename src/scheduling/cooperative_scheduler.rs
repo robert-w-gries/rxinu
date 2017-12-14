@@ -1,5 +1,4 @@
-use alloc::{String, VecDeque};
-use alloc::boxed::Box;
+use alloc::{String, Vec, VecDeque};
 use core::mem;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering};
@@ -20,23 +19,25 @@ impl DoesScheduling for CoopScheduler {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
         use arch::memory::paging;
 
-        // TODO: Investigate proper stack representation
-        let mut stack: Box<[usize]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
+        let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
 
-        // TODO: Modularize stack manipulation
-        let index: usize = stack.len() - 3;
-        let stack_offset: usize = index * mem::size_of::<usize>();
+        // Reserve 3 blocks in the stack for scheduler data
+        // Stack order (top -> bottom)
+        // len-1: pointer to scheduler object (self) is used in process return
+        // len-2: process return instruction pointer
+        // len-3: process instruction pointer (process stack pointer starts here and grows down)
+        let proc_top: usize = stack.len() - 3;
+        let proc_stack_pointer: usize =
+            stack.as_ptr() as usize + (proc_top * mem::size_of::<usize>());
 
-        unsafe {
-            let self_idx = stack.as_mut_ptr().offset((stack.len() - 1) as isize);
-            let self_ptr: *const Scheduler = &*self as *const Scheduler;
-            *(self_idx as *mut usize) = self_ptr as usize;
+        let stack_values: Vec<usize> = vec![
+            new_proc as usize,
+            process::process_ret as usize,
+            self as *const Scheduler as usize,
+        ];
 
-            let ret_ptr = stack.as_mut_ptr().offset((stack.len() - 2) as isize);
-            *(ret_ptr as *mut usize) = process::process_ret as usize;
-
-            let func_ptr = stack.as_mut_ptr().offset((stack.len() - 3) as isize);
-            *(func_ptr as *mut usize) = new_proc as usize;
+        for (i, val) in stack_values.iter().enumerate() {
+            stack[proc_top + i] = *val;
         }
 
         let mut proc_table_lock = self.proc_table.write();
@@ -45,16 +46,14 @@ impl DoesScheduling for CoopScheduler {
         {
             let mut process = process_lock.write();
 
+            process.kstack = Some(stack);
+            process.name = name;
+
             process
                 .context
                 .set_page_table(unsafe { paging::ActivePageTable::new().address() });
 
-            process
-                .context
-                .set_stack((stack.as_ptr() as usize) + stack_offset);
-
-            process.kstack = Some(stack);
-            process.name = name;
+            process.context.set_stack(proc_stack_pointer);
 
             Ok(process.pid)
         }
@@ -130,7 +129,8 @@ impl DoesScheduling for CoopScheduler {
 
                 next.set_state(State::Current);
 
-                self.current_pid.store(next.pid.get_usize(), Ordering::SeqCst);
+                self.current_pid
+                    .store(next.pid.get_usize(), Ordering::SeqCst);
 
                 // Save process pointers since context switch is out of scope
                 prev_ptr = prev.deref_mut() as *mut Process;
