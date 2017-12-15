@@ -1,4 +1,5 @@
 use alloc::btree_map::{self, BTreeMap};
+use core::fmt;
 use core::result::Result;
 use scheduling::{Process, ProcessId, State};
 use spin::RwLock;
@@ -7,6 +8,12 @@ use syscall::error::Error;
 pub struct ProcessList {
     collection: BTreeMap<ProcessId, RwLock<Process>>,
     next_id: usize,
+}
+
+impl fmt::Debug for ProcessList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ProcessList {{ collection: {:#?} }}", self.collection)
+    }
 }
 
 impl ProcessList {

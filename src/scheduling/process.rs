@@ -1,5 +1,6 @@
 use alloc::{String, Vec};
 use arch::context::Context;
+use core::fmt;
 use scheduling::Scheduler;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -10,11 +11,23 @@ pub enum State {
     Ready,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Priority(u64);
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+impl fmt::Debug for Priority {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Priority({})", self.0)
+    }
+}
+
+#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ProcessId(pub usize);
+
+impl fmt::Debug for ProcessId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ProcessId({})", self.0)
+    }
+}
 
 impl ProcessId {
     pub const NULL_PROCESS: ProcessId = ProcessId(0);
@@ -24,7 +37,7 @@ impl ProcessId {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Process {
     pub pid: ProcessId,
     pub name: String,
@@ -32,6 +45,21 @@ pub struct Process {
     pub prio: Priority,
     pub context: Context,
     pub kstack: Option<Vec<usize>>,
+}
+
+impl fmt::Debug for Process {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut s = f.debug_struct("Process");
+        s.field("pid", &self.pid);
+        s.field("name", &self.name);
+        s.field("prio", &self.prio);
+        s.field("context", &self.context);
+        match self.kstack {
+            Some(ref stk) => s.field("kstack", &(stk.as_ptr() as usize)),
+            None => s.field("kstack", &self.kstack),
+        };
+        s.finish()
+    }
 }
 
 impl Process {

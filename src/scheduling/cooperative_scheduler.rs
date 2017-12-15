@@ -9,6 +9,7 @@ use syscall::error::Error;
 
 pub type Scheduler = CoopScheduler;
 
+#[derive(Debug)]
 pub struct CoopScheduler {
     current_pid: AtomicUsize,
     proc_table: RwLock<ProcessList>,
@@ -157,18 +158,3 @@ impl CoopScheduler {
         }
     }
 }
-
-// TODO: impl Debug for CoopScheduler
-//kprintln!("\n\n");
-//
-//for process in ready_list_lock.iter() {
-//kprintln!("READY LIST:");
-//  kprintln!("Process: {:?}", process);
-//}
-//
-//kprintln!("\n\n");
-//
-//for process in proc_table_lock.iter() {
-//kprintln!("PROC LIST:");
-//  kprintln!("Process: {:?}", process);
-//}

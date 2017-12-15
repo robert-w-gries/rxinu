@@ -98,7 +98,7 @@ pub extern "C" fn _Unwind_Resume() -> ! {
 }
 
 const HEAP_START: usize = 0o_000_001_000_000_0000;
-const HEAP_SIZE: usize = 100 * 1024;
+const HEAP_SIZE: usize = 100 * 1024 * 1024;
 
 use linked_list_allocator::LockedHeap;
 

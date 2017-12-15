@@ -19,8 +19,7 @@ pub trait DoesScheduling {
 }
 
 const MAX_PROCS: usize = usize::max_value() - 1;
-//const INIT_STK_SIZE: usize = 65536; // 64 KB
-const INIT_STK_SIZE: usize = 1000;
+const INIT_STK_SIZE: usize = 32 * 100; // 100 KB
 
 lazy_static! {
     pub static ref SCHEDULER: Scheduler = Scheduler::new();
