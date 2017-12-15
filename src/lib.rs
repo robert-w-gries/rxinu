@@ -49,7 +49,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     unsafe {
         HEAP_ALLOCATOR
             .lock()
-            .init(HEAP_START, HEAP_START + HEAP_SIZE);
+            .init(HEAP_START, HEAP_SIZE);
     }
 
     syscall::create(rxinu_main, String::from("rxinu_main"));
