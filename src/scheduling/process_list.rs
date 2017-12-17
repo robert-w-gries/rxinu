@@ -1,3 +1,4 @@
+use alloc::Vec;
 use alloc::btree_map::{self, BTreeMap};
 use core::fmt;
 use core::result::Result;
@@ -22,6 +23,7 @@ impl ProcessList {
 
         let mut null_process: Process = Process::new(ProcessId::NULL_PROCESS);
         null_process.state = State::Current;
+        null_process.kstack = Some(Vec::new());
 
         new_list.insert(ProcessId::NULL_PROCESS, RwLock::new(null_process));
 

@@ -52,16 +52,23 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
             .init(HEAP_START, HEAP_SIZE);
     }
 
+    kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
+    kprintln!("HEAP END = 0x{:x}", HEAP_START + HEAP_SIZE);
+
     syscall::create(rxinu_main, String::from("rxinu_main"));
 
-    let mut i = 0;
-    loop {
+    let max_procs = 120;
+    for i in 0..max_procs {
         syscall::create(process_test, format!("test_process_{}", i));
-        unsafe {
+    }
+
+    loop {
+        arch::interrupts::disable_interrupts_then(|| {
             use scheduling::{DoesScheduling, SCHEDULER};
-            SCHEDULER.resched();
-        }
-        i += 1;
+            unsafe {
+                SCHEDULER.resched();
+            }
+        });
     }
 }
 
@@ -98,7 +105,7 @@ pub extern "C" fn _Unwind_Resume() -> ! {
 }
 
 const HEAP_START: usize = 0o_000_001_000_000_0000;
-const HEAP_SIZE: usize = 100 * 1024 * 1024;
+const HEAP_SIZE: usize = 1 * 1024 * 1024; // 1 MB
 
 use linked_list_allocator::LockedHeap;
 

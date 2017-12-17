@@ -1,7 +1,6 @@
 use alloc::{String, Vec};
 use arch::context::Context;
 use core::fmt;
-use scheduling::Scheduler;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum State {
@@ -70,7 +69,7 @@ impl Process {
             prio: Priority(0),
             context: Context::new(),
             kstack: None,
-            name: String::from("NEW"),
+            name: String::from("NULL"),
         }
     }
 
@@ -96,7 +95,7 @@ impl Process {
 /// The parent scheduler object will always be on the stack
 #[naked]
 pub unsafe extern "C" fn process_ret() {
-    use scheduling::DoesScheduling;
+    use scheduling::{DoesScheduling, Scheduler};
 
     let scheduler: &mut Scheduler;
     asm!("pop $0" : "=r"(scheduler) : : "memory" : "intel", "volatile");
