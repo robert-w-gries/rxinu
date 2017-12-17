@@ -47,9 +47,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     kprintln!("\nIt did not crash!");
 
     unsafe {
-        HEAP_ALLOCATOR
-            .lock()
-            .init(HEAP_START, HEAP_SIZE);
+        HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
     }
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
