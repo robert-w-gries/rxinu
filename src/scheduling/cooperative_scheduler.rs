@@ -1,4 +1,5 @@
 use alloc::{String, Vec, VecDeque};
+use alloc::boxed::Box;
 use core::mem;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering};
@@ -20,7 +21,7 @@ impl DoesScheduling for CoopScheduler {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
         use arch::memory::paging;
 
-        let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
+        let mut stack: Box<[usize]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
 
         // Reserve 3 blocks in the stack for scheduler data
         // Stack order (top -> bottom)
@@ -77,7 +78,7 @@ impl DoesScheduling for CoopScheduler {
                 .write();
 
             proc_lock.set_state(State::Free);
-            proc_lock.kstack = None;
+            drop(&mut proc_lock.kstack);
             drop(&mut proc_lock.name);
         }
 
@@ -125,6 +126,8 @@ impl DoesScheduling for CoopScheduler {
                     .get(next_id)
                     .expect("Could not find new process")
                     .write();
+
+                assert!(next.kstack.is_some());
 
                 next.set_state(State::Current);
 

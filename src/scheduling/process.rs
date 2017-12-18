@@ -1,4 +1,5 @@
-use alloc::{String, Vec};
+use alloc::String;
+use alloc::boxed::Box;
 use arch::context::Context;
 use core::fmt;
 
@@ -43,7 +44,7 @@ pub struct Process {
     pub state: State,
     pub prio: Priority,
     pub context: Context,
-    pub kstack: Option<Vec<usize>>,
+    pub kstack: Option<Box<[usize]>>,
 }
 
 impl fmt::Debug for Process {

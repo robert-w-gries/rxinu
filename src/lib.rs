@@ -51,14 +51,14 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     }
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
-    kprintln!("HEAP END = 0x{:x}", HEAP_START + HEAP_SIZE);
+    kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
+
+    let max_procs = 25;
+    for i in 0..max_procs {
+        syscall::create(test_process, format!("test_process_{}", i));
+    }
 
     syscall::create(rxinu_main, String::from("rxinu_main"));
-
-    let max_procs = 120;
-    for i in 0..max_procs {
-        syscall::create(process_test, format!("test_process_{}", i));
-    }
 
     loop {
         arch::interrupts::disable_interrupts_then(|| {
@@ -75,11 +75,16 @@ pub extern "C" fn rxinu_main() {
     arch::console::clear_screen();
 
     kprintln!("In main process!\n");
+    syscall::create(created_process, String::from("rxinu_test"));
 }
 
-pub extern "C" fn process_test() {
+pub extern "C" fn test_process() {
     kprintln!("In test process!");
-    //syscall::create(process_test, "recursive_create");
+}
+
+pub extern "C" fn created_process() {
+    kprintln!("\nIn rxinu_main::created_process!");
+    kprintln!("\nYou can now type...");
 }
 
 #[cfg(not(test))]
@@ -103,7 +108,7 @@ pub extern "C" fn _Unwind_Resume() -> ! {
 }
 
 const HEAP_START: usize = 0o_000_001_000_000_0000;
-const HEAP_SIZE: usize = 1 * 1024 * 1024; // 1 MB
+const HEAP_SIZE: usize = 500 * 1024; // 500 KB
 
 use linked_list_allocator::LockedHeap;
 
