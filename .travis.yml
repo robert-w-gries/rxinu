@@ -23,4 +23,5 @@ addons:
 
 script:
   - cargo fmt -- --write-mode=diff
+  - make clean
   - make
