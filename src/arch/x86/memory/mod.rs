@@ -59,12 +59,13 @@ pub fn init(boot_info: &BootInformation) -> MemoryController {
 
     use {HEAP_SIZE, HEAP_START};
     use self::paging::page::Page;
+    use self::paging::entry::EntryFlags;
 
     let heap_start_page = Page::containing_address(HEAP_START);
     let heap_end_page = Page::containing_address(HEAP_START + HEAP_SIZE - 1);
 
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
-        active_table.map(page, paging::entry::WRITABLE, &mut frame_allocator);
+        active_table.map(page, EntryFlags::WRITABLE, &mut frame_allocator);
     }
 
     let stack_allocator = {
@@ -135,7 +136,6 @@ impl Iterator for FrameIter {
     }
 }
 
-#[allow(dead_code)]
 pub struct MemoryController {
     active_table: paging::ActivePageTable,
     frame_allocator: AreaFrameAllocator,
@@ -143,7 +143,6 @@ pub struct MemoryController {
 }
 
 impl MemoryController {
-    #[allow(dead_code)]
     pub fn alloc_stack(&mut self, size_in_pages: usize) -> Option<Stack> {
         let &mut MemoryController {
             ref mut active_table,

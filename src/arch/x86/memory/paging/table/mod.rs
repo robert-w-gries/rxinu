@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
 use super::ENTRY_COUNT;
-use super::entry::{Entry, HUGE_PAGE, PRESENT, WRITABLE};
+use super::entry::{Entry, EntryFlags};
 
 #[cfg(target_arch = "x86")]
 pub mod bits32;
@@ -55,11 +55,11 @@ where
     {
         if self.next_table(index).is_none() {
             assert!(
-                !self.entries[index].flags().contains(HUGE_PAGE),
+                !self.entries[index].flags().contains(EntryFlags::HUGE_PAGE),
                 "mapping code does not support huge pages"
             );
             let frame = allocator.allocate_frame().expect("no frames available");
-            self.entries[index].set(frame, PRESENT | WRITABLE);
+            self.entries[index].set(frame, EntryFlags::PRESENT | EntryFlags::WRITABLE);
             self.next_table_mut(index).unwrap().zero();
         }
         self.next_table_mut(index).unwrap()
@@ -67,7 +67,8 @@ where
 
     fn next_table_address(&self, index: usize) -> Option<usize> {
         let entry_flags = self[index].flags();
-        if entry_flags.contains(PRESENT) && !entry_flags.contains(HUGE_PAGE) {
+        if entry_flags.contains(EntryFlags::PRESENT) && !entry_flags.contains(EntryFlags::HUGE_PAGE)
+        {
             let table_address = self as *const _ as usize;
             Some(get_address(table_address, index))
         } else {

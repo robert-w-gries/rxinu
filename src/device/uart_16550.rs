@@ -79,7 +79,7 @@ impl<T: Io<Value = u8>> SerialPort<T> {
     pub fn receive(&mut self) -> u8 {
         // TODO: implement a buffer so we don't lose data
         let mut data: u8 = 0x0;
-        while self.line_sts().contains(DATA_READY) {
+        while self.line_sts().contains(LineStsFlags::DATA_READY) {
             data = self.data.read();
         }
         data
@@ -87,7 +87,7 @@ impl<T: Io<Value = u8>> SerialPort<T> {
 
     pub fn send(&mut self, data: u8) {
         let mut wait_then_write = |data: u8| {
-            while !self.line_sts().contains(THR_EMPTY) {}
+            while !self.line_sts().contains(LineStsFlags::THR_EMPTY) {}
             self.data.write(data);
         };
 
