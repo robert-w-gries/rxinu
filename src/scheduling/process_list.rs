@@ -23,7 +23,7 @@ impl ProcessList {
 
         let mut null_process: Process = Process::new(ProcessId::NULL_PROCESS);
         null_process.state = State::Current;
-        null_process.kstack = Some(Vec::new().into_boxed_slice());
+        null_process.kstack = Some(Vec::new());
 
         new_list.insert(ProcessId::NULL_PROCESS, RwLock::new(null_process));
 

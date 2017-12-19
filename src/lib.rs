@@ -53,7 +53,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
-    let max_procs = 25;
+    let max_procs = 50;
     for i in 0..max_procs {
         syscall::create(test_process, format!("test_process_{}", i));
     }

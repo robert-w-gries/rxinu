@@ -1,5 +1,4 @@
 use alloc::{String, Vec, VecDeque};
-use alloc::boxed::Box;
 use core::mem;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering};
@@ -21,7 +20,7 @@ impl DoesScheduling for CoopScheduler {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
         use arch::memory::paging;
 
-        let mut stack: Box<[usize]> = vec![0; INIT_STK_SIZE].into_boxed_slice();
+        let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
 
         // Reserve 3 blocks in the stack for scheduler data
         // Stack order (top -> bottom)
