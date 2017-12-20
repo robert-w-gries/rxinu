@@ -96,10 +96,13 @@ impl Process {
 /// The parent scheduler object will always be on the stack
 #[naked]
 pub unsafe extern "C" fn process_ret() {
-    use scheduling::{DoesScheduling, Scheduler};
+    use alloc::boxed::Box;
+    use scheduling::DoesScheduling;
 
-    let scheduler: &mut Scheduler;
-    asm!("pop $0" : "=r"(scheduler) : : "memory" : "intel", "volatile");
+    let scheduler_ptr: *mut &DoesScheduling;
+    asm!("pop $0" : "=r"(scheduler_ptr) : : "memory" : "intel", "volatile");
+
+    let scheduler = Box::from_raw(scheduler_ptr);
 
     let curr_id: ProcessId = scheduler.getid();
     scheduler.kill(curr_id);

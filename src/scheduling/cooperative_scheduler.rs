@@ -31,10 +31,13 @@ impl DoesScheduling for CoopScheduler {
         let proc_stack_pointer: usize =
             stack.as_ptr() as usize + (proc_top * mem::size_of::<usize>());
 
+        use alloc::boxed::Box;
+        let self_ptr: Box<&DoesScheduling> = Box::new(self);
+
         let stack_values: Vec<usize> = vec![
             new_proc as usize,
             process::process_ret as usize,
-            self as *const Scheduler as usize,
+            Box::into_raw(self_ptr) as usize,
         ];
 
         for (i, val) in stack_values.iter().enumerate() {
