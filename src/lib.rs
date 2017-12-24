@@ -87,6 +87,16 @@ pub extern "C" fn created_process() {
     kprintln!("\nYou can now type...");
 }
 
+pub extern "C" fn cycle_process_a() {
+    kprint!(".");
+    syscall::create(cycle_process_b, String::from("cycle_process_b"));
+}
+
+pub extern "C" fn cycle_process_b() {
+    kprint!(".");
+    syscall::create(cycle_process_a, String::from("cycle_process_a"));
+}
+
 #[cfg(not(test))]
 #[lang = "eh_personality"]
 #[no_mangle]
@@ -108,7 +118,7 @@ pub extern "C" fn _Unwind_Resume() -> ! {
 }
 
 const HEAP_START: usize = 0o_000_001_000_000_0000;
-const HEAP_SIZE: usize = 500 * 1024; // 500 KB
+const HEAP_SIZE: usize = 100 * 1024 * 1024; // 100 MB
 
 use linked_list_allocator::LockedHeap;
 
