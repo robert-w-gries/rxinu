@@ -18,12 +18,18 @@ fn trigger(irq: u8) {
 }
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStack) {
+    use arch::x86::interrupts;
+
     pic::MASTER.lock().ack();
 
     if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= 10 {
+        PIT_TICKS.store(0, Ordering::SeqCst);
+
         unsafe {
-            SCHEDULER.resched();
-        } 
+            interrupts::disable_interrupts_then(|| {
+                SCHEDULER.resched();
+            });
+        }
     }
 }
 
