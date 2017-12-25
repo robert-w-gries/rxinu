@@ -21,15 +21,18 @@ pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStack) {
     use arch::x86::interrupts;
 
     pic::MASTER.lock().ack();
-
+    
+    //This counter variable is updated every time an timer interrupt occurs. The timer is set to
+    //interrupt every 2ms, so this means a reschedule will occur if 20ms have passed.
     if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= 10 {
         PIT_TICKS.store(0, Ordering::SeqCst);
 
+        //Find another process to run.
         unsafe {
             interrupts::disable_interrupts_then(|| {
                 SCHEDULER.resched();
-            });
-        }
+            })
+        };
     }
 }
 
