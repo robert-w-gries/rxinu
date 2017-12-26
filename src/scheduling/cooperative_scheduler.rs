@@ -81,7 +81,7 @@ impl DoesScheduling for CoopScheduler {
                 .write();
 
             proc_lock.set_state(State::Free);
-            drop(&mut proc_lock.kstack);
+            proc_lock.kstack = None;
             drop(&mut proc_lock.name);
         }
 
