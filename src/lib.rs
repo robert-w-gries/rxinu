@@ -60,14 +60,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
 
     syscall::create(rxinu_main, String::from("rxinu_main"));
 
-    loop {
-        arch::interrupts::disable_interrupts_then(|| {
-            use scheduling::{DoesScheduling, SCHEDULER};
-            unsafe {
-                SCHEDULER.resched();
-            }
-        });
-    }
+    loop {}
 }
 
 /// Main initialization process for rxinu

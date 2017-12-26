@@ -2,6 +2,9 @@ use arch::x86::interrupts::exception::ExceptionStack;
 use device::{ps2_controller_8042, ps2_keyboard};
 use device::pic_8259 as pic;
 use device::uart_16550 as serial;
+use device::pit::PIT_TICKS;
+use core::sync::atomic::Ordering;
+use scheduling::{SCHEDULER, DoesScheduling};
 
 #[allow(dead_code)]
 fn trigger(irq: u8) {
@@ -15,7 +18,22 @@ fn trigger(irq: u8) {
 }
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStack) {
+    use arch::x86::interrupts;
+
     pic::MASTER.lock().ack();
+    
+    //This counter variable is updated every time an timer interrupt occurs. The timer is set to
+    //interrupt every 2ms, so this means a reschedule will occur if 20ms have passed.
+    if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= 10 {
+        PIT_TICKS.store(0, Ordering::SeqCst);
+
+        //Find another process to run.
+        unsafe {
+            interrupts::disable_interrupts_then(|| {
+                SCHEDULER.resched();
+            })
+        };
+    }
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStack) {

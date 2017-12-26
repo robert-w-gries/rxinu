@@ -5,17 +5,19 @@ pub mod syscall;
 pub const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
 /// Disable interrupts, execute code uninterrupted, re-enable interrupts
-pub fn disable_interrupts_then<T>(uninterrupted_fn: T) -> ()
+pub fn disable_interrupts_then<F, T>(uninterrupted_fn: F) -> T
 where
-    T: FnOnce() -> (),
+    F: FnOnce() -> T,
 {
     unsafe {
         ::x86::shared::irq::disable();
     }
-    uninterrupted_fn();
+    let result: T = uninterrupted_fn();
     unsafe {
         ::x86::shared::irq::enable();
     }
+
+    result
 }
 
 #[cfg(test)]
