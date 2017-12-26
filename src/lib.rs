@@ -80,6 +80,16 @@ pub extern "C" fn created_process() {
     kprintln!("\nYou can now type...");
 }
 
+pub extern "C" fn cycle_process_a() {
+    kprint!(".");
+    syscall::create(cycle_process_b, String::from("cycle_process_b"));
+}
+
+pub extern "C" fn cycle_process_b() {
+    kprint!(".");
+    syscall::create(cycle_process_a, String::from("cycle_process_a"));
+}
+
 #[cfg(not(test))]
 #[lang = "eh_personality"]
 #[no_mangle]

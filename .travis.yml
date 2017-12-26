@@ -1,7 +1,9 @@
 language: rust
 rust:
   - nightly
-cache: cargo
+cache:
+  directories:
+    - $HOME/.cargo
 
 env:
   - ['target=i686', 'FEATURES="vga"']
@@ -23,5 +25,4 @@ addons:
 
 script:
   - cargo fmt -- --write-mode=diff
-  - make clean
   - make
