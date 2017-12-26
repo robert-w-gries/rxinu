@@ -5,7 +5,7 @@ use scheduling::{DoesScheduling, ProcessId, SCHEDULER};
 pub fn create(new_proc: extern "C" fn(), name: String) -> ProcessId {
     use arch::interrupts;
 
-    interrupts::disable_interrupts_then(|| -> ProcessId {
+    interrupts::disable_then_restore(|| -> ProcessId {
         let pid = SCHEDULER
             .create(new_proc, name)
             .expect("Could not create new process!");

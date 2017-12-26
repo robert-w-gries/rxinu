@@ -14,10 +14,8 @@ pub fn init(multiboot_information_address: usize) {
 
     gdt::init(&mut memory_controller);
 
-    interrupts::disable_interrupts_then(|| {
-        idt::init();
-        device::init();
-    });
+    idt::init();
+    device::init();
 }
 
 #[cfg(target_arch = "x86_64")]

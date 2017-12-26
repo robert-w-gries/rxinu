@@ -29,7 +29,7 @@ pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStack) {
 
         //Find another process to run.
         unsafe {
-            interrupts::disable_interrupts_then(|| {
+            interrupts::disable_then_restore(|| {
                 SCHEDULER.resched();
             })
         };

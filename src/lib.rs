@@ -43,12 +43,16 @@ use alloc::String;
 #[no_mangle]
 /// Entry point for rust code
 pub extern "C" fn rust_main(multiboot_information_address: usize) {
-    arch::init(multiboot_information_address);
-    kprintln!("\nIt did not crash!");
+    arch::interrupts::disable();
+    {
+        arch::init(multiboot_information_address);
+        kprintln!("\nIt did not crash!");
 
-    unsafe {
-        HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+        unsafe {
+            HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+        }
     }
+    arch::interrupts::enable();
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);

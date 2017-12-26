@@ -8,10 +8,15 @@ use device::uart_16550::COM1 as console;
 use device::vga::VGA as console;
 
 #[macro_export]
+/// Ensure lock are kept safe while printing
 macro_rules! kprint {
     ($($arg:tt)*) => ({
-            use core::fmt::Write;
-            let _ = write!($crate::arch::x86::console::CONSOLE.lock(), $($arg)*);
+            use arch::interrupts;
+
+            interrupts::disable_then_restore(|| {
+                use core::fmt::Write;
+                let _ = write!($crate::arch::x86::console::CONSOLE.lock(), $($arg)*);
+            });
     });
 }
 
