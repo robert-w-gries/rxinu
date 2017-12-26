@@ -16,6 +16,8 @@ where
     unsafe {
         ::x86::shared::irq::enable();
     }
+
+    result
 }
 
 #[cfg(test)]
