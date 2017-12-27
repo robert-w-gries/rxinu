@@ -39,6 +39,7 @@ pub mod scheduling;
 pub mod syscall;
 
 use alloc::String;
+use arch::memory::heap::{HEAP_SIZE, HEAP_START};
 
 #[no_mangle]
 /// Entry point for rust code
@@ -49,7 +50,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
         kprintln!("\nIt did not crash!");
 
         unsafe {
-            HEAP_ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+            HEAP_ALLOCATOR.init(HEAP_START, HEAP_SIZE);
         }
     }
     arch::interrupts::enable();
@@ -114,10 +115,7 @@ pub extern "C" fn _Unwind_Resume() -> ! {
     loop {}
 }
 
-const HEAP_START: usize = 0o_000_001_000_000_0000;
-const HEAP_SIZE: usize = 500 * 1024; // 500 KB
-
-use linked_list_allocator::LockedHeap;
+use arch::memory::heap::HeapAllocator;
 
 #[global_allocator]
-static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
+static HEAP_ALLOCATOR: HeapAllocator = HeapAllocator::new();

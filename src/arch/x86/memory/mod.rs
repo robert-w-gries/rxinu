@@ -7,7 +7,7 @@ pub use self::stack_allocator::Stack;
 pub use self::paging::remap_the_kernel;
 
 mod area_frame_allocator;
-pub mod heap_allocator;
+pub mod heap;
 pub mod paging;
 mod stack_allocator;
 
@@ -57,7 +57,7 @@ pub fn init(boot_info: &BootInformation) -> MemoryController {
 
     let mut active_table = paging::remap_the_kernel(&mut frame_allocator, boot_info);
 
-    use {HEAP_SIZE, HEAP_START};
+    use self::heap::{HEAP_SIZE, HEAP_START};
     use self::paging::page::Page;
     use self::paging::entry::EntryFlags;
 
