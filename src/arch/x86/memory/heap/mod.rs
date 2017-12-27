@@ -16,7 +16,9 @@ pub struct HeapAllocator {
 impl HeapAllocator {
     /// Creates an empty heap. All allocate calls will return `None`.
     pub const fn new() -> Self {
-        HeapAllocator { inner: LockedHeap::empty() }
+        HeapAllocator {
+            inner: LockedHeap::empty(),
+        }
     }
 
     /// Initializes an empty heap
