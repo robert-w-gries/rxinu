@@ -20,8 +20,8 @@ pub fn init() {
         wait_port.write(0);
     };
 
-    //let saved_mask1 = MASTER.lock().data.read();
-    //let saved_mask2 = SLAVE.lock().data.read();
+    let saved_mask1 = MASTER.lock().data.read();
+    let saved_mask2 = SLAVE.lock().data.read();
 
     // Start initialization
     let init_value: u8 = (ICW1::INIT as u8) + (ICW1::ICW4_NOT_NEEDED as u8);
@@ -41,10 +41,8 @@ pub fn init() {
     write_then_wait(SLAVE.lock().data, ICW4::MODE_8086 as u8);
 
     // Restore saved masks
-    //write_then_wait(MASTER.lock().data, 0x0);
-    //write_then_wait(SLAVE.lock().data, 0x0);
-    //write_then_wait(MASTER.lock().data, saved_mask1);
-    //write_then_wait(SLAVE.lock().data, saved_mask2);
+    write_then_wait(MASTER.lock().data, saved_mask1);
+    write_then_wait(SLAVE.lock().data, saved_mask2);
 
     kprintln!("[ OK ] PIC Driver");
 }

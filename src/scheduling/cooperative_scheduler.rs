@@ -6,7 +6,6 @@ use scheduling::{DoesScheduling, Process, ProcessId, ProcessList, State, INIT_ST
 use scheduling::process;
 use spin::RwLock;
 use syscall::error::Error;
-use device::pit::PIT_TICKS;
 
 pub type Scheduler = CoopScheduler;
 
@@ -81,7 +80,7 @@ impl DoesScheduling for CoopScheduler {
                 .write();
 
             proc_lock.set_state(State::Free);
-            drop(&mut proc_lock.kstack);
+            proc_lock.kstack = None;
             drop(&mut proc_lock.name);
         }
 
@@ -95,14 +94,14 @@ impl DoesScheduling for CoopScheduler {
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
-    unsafe fn resched(&self) { 
+    unsafe fn resched(&self) {
         // Ensure lock to ready list is not held.
         {
             //skip expensive locks if possible.
             if self.ready_list.read().is_empty() {
                 return;
             }
-        } 
+        }
 
         // TODO: Investigate less hacky way of context switching without deadlocking
         let mut prev_ptr = 0 as *mut Process;

@@ -17,7 +17,10 @@ macro_rules! exception {
             kprintln!("\n{:#?}\n{:#?}",
                       stack_frame,
                       $desc);
-            $func
+            use arch::interrupts;
+            interrupts::disable_then_restore(|| {
+                $func
+            });
         }
     };
     ($e:ident, $desc:expr, $err_type:ty, $func:block) => {
@@ -26,7 +29,10 @@ macro_rules! exception {
             kprintln!("\n{:#?}\n{:#?}",
                       stack_frame,
                       $desc);
-            $func
+            use arch::interrupts;
+            interrupts::disable_then_restore(|| {
+                $func
+            });
         }
         #[cfg(target_arch = "x86_64")]
         pub extern "x86-interrupt" fn $e(stack_frame: &mut ErrorStack,
@@ -36,7 +42,10 @@ macro_rules! exception {
                       error_code,
                       stack_frame,
                       $desc);
-            $func
+            use arch::interrupts;
+            interrupts::disable_then_restore(|| {
+                $func
+            });
         }
     };
 }
