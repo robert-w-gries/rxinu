@@ -7,14 +7,14 @@ use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT};
 const PIT_SET: u8 = 0x36;
 static DIVISOR: u16 = 2685;
 
-pub static PIT: Mutex<[Port<u8>; 2]> = Mutex::new(unsafe {
+pub static PIT: Mutex<[Port<u8>; 2]> = Mutex::new(
     [
         // Command register.
         Port::new(0x43),
         // Channel 0.
         Port::new(0x40),
     ]
-});
+);
 
 pub fn init() {
     PIT.lock()[0].write(PIT_SET);

@@ -6,7 +6,6 @@ use scheduling::{DoesScheduling, Process, ProcessId, ProcessList, State, INIT_ST
 use scheduling::process;
 use spin::RwLock;
 use syscall::error::Error;
-use device::pit::PIT_TICKS;
 
 pub type Scheduler = CoopScheduler;
 
