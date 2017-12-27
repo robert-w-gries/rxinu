@@ -25,4 +25,4 @@ addons:
 
 script:
   - cargo fmt -- --write-mode=diff
-  - make
+  - make RUST_TARGET_PATH=`pwd`
