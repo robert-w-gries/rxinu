@@ -1,22 +1,26 @@
-use core::fmt::{self, Write};
-use spin::Mutex;
-
-#[cfg(feature = "serial")]
-use device::uart_16550::COM1 as console;
-
-#[cfg(feature = "vga")]
-use device::vga::VGA as console;
-
 #[macro_export]
-/// Ensure lock are kept safe while printing
 macro_rules! kprint {
     ($($arg:tt)*) => ({
-            use arch::interrupts;
-
-            interrupts::disable_then_restore(|| {
+        use arch::interrupts;
+        interrupts::disable_then_restore(|| {
+            #[cfg(feature = "serial")]
+            {
                 use core::fmt::Write;
-                let _ = write!($crate::arch::x86::console::CONSOLE.lock(), $($arg)*);
-            });
+                use $crate::device::uart_16550::COM1;
+
+                // ignore write result
+                let _  = write!(COM1.lock(), $($arg)*);
+            }
+
+            #[cfg(feature = "vga")]
+            {
+                use core::fmt::Write;
+                use $crate::device::vga::VGA;
+
+                // ignore write result
+                let _ = write!(VGA.lock(), $($arg)*);
+            }
+        });
     });
 }
 
@@ -26,16 +30,16 @@ macro_rules! kprintln {
     ($fmt:expr, $($arg:tt)*) => (kprint!(concat!($fmt, "\n"), $($arg)*));
 }
 
-pub static CONSOLE: Mutex<Console> = Mutex::new(Console);
-
-pub struct Console;
-
-impl Write for Console {
-    fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
-        console.lock().write_str(s)
-    }
-}
-
 pub fn clear_screen() {
-    console.lock().clear_screen();
+    #[cfg(feature = "serial")]
+    {
+        use device::uart_16550::COM1;
+        COM1.lock().clear_screen();
+    }
+
+    #[cfg(feature = "vga")]
+    {
+        use device::vga::VGA;
+        VGA.lock().clear_screen();
+    }
 }
