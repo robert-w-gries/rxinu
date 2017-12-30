@@ -29,13 +29,13 @@ pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStack) {
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStack) {
     interrupts::disable_then_restore(|| {
+        pic::MASTER.lock().ack();
+
         // Read a single scancode off our keyboard port.
         let code = ps2_controller_8042::key_read();
 
         // Pass scan code to ps2_keyboard driver
         ps2_keyboard::parse_key(code);
-
-        pic::MASTER.lock().ack();
     });
 }
 
@@ -49,15 +49,23 @@ pub extern "x86-interrupt" fn cascade(_stack_frame: &mut ExceptionStack) {
 pub extern "x86-interrupt" fn com1(_stack_frame: &mut ExceptionStack) {
     interrupts::disable_then_restore(|| {
         pic::MASTER.lock().ack();
-        let data: u8 = serial::COM1.lock().receive();
-        kprint!("{}", data as char);
+
+        let (bytes, count) = serial::COM1.lock().receive();
+
+        for i in 0..count {
+            kprint!("{}", bytes[i] as char);
+        }
     });
 }
 
 pub extern "x86-interrupt" fn com2(_stack_frame: &mut ExceptionStack) {
     interrupts::disable_then_restore(|| {
         pic::MASTER.lock().ack();
-        let data: u8 = serial::COM2.lock().receive();
-        kprint!("{}", data as char);
+
+        let (bytes, count) = serial::COM2.lock().receive();
+
+        for i in 0..count {
+            kprint!("{}", bytes[i] as char);
+        }
     });
 }

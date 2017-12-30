@@ -12,6 +12,7 @@ pub static COM2: Mutex<SerialPort<Port<u8>>> =
 
 // TODO: Replace arbitrary value for clearing rows
 const BUF_MAX_HEIGHT: usize = 25;
+const FIFO_BYTE_THRESHOLD: usize = 14;
 
 pub fn init() {
     COM1.lock().init();
@@ -29,7 +30,6 @@ impl<T: Io<Value = u8>> Write for SerialPort<T> {
     }
 }
 
-#[allow(dead_code)]
 pub struct SerialPort<T: Io<Value = u8>> {
     data: T,
     int_en: T,
@@ -37,7 +37,7 @@ pub struct SerialPort<T: Io<Value = u8>> {
     line_ctrl: T,
     modem_ctrl: T,
     line_sts: ReadOnly<T>,
-    modem_sts: ReadOnly<T>,
+    _modem_sts: ReadOnly<T>,
 }
 
 impl SerialPort<Port<u8>> {
@@ -49,7 +49,7 @@ impl SerialPort<Port<u8>> {
             line_ctrl: Port::new(base + 3),
             modem_ctrl: Port::new(base + 4),
             line_sts: ReadOnly::new(Port::new(base + 5)),
-            modem_sts: ReadOnly::new(Port::new(base + 6)),
+            _modem_sts: ReadOnly::new(Port::new(base + 6)),
         }
     }
 }
@@ -62,27 +62,35 @@ impl<T: Io<Value = u8>> SerialPort<T> {
     }
 
     pub fn init(&mut self) {
-        self.int_en.write(0x00); // disable interrupts
-        self.line_ctrl.write(0x80); // enable DLAB (set baud rate divisor)
-        self.data.write(0x03); // set divisor to 3 (lo byte) 38400 baud
-        self.int_en.write(0x00); // (hi byte)
-        self.line_ctrl.write(0x03); // 8 bits, no parity, one stop bit
-        self.fifo_ctrl.write(0xC7); // enable fifo, clear them, 14 byte threshold
-        self.modem_ctrl.write(0x0B); // IRQs enabled, RTS/DSR set
-        self.int_en.write(0x01); // enable interrupts
+        self.int_en.write(0x00);          // disable interrupts
+        self.line_ctrl.write(0x80);       // enable DLAB (set baud rate divisor)
+        self.data.write(0x03);            // set divisor to 3 (lo byte) 38400 baud
+        self.int_en.write(0x00);          // (hi byte)
+        self.line_ctrl.write(0x03);       // 8 bits, no parity, one stop bit
+
+        // 16550 specific FIFO Control Register
+        let fifo_byte = get_fifo_ctrl_byte();
+        self.fifo_ctrl.write(fifo_byte);
+
+        self.modem_ctrl.write(0x0B);      // IRQs enabled, RTS/DSR set
+        self.int_en.write(0x01);          // enable interrupts
     }
 
     fn line_sts(&self) -> LineStsFlags {
         LineStsFlags::from_bits_truncate(self.line_sts.read())
     }
 
-    pub fn receive(&mut self) -> u8 {
-        // TODO: implement a buffer so we don't lose data
-        let mut data: u8 = 0x0;
+    pub fn receive(&mut self) -> ([u8; FIFO_BYTE_THRESHOLD], usize) {
+        let mut data: [u8; FIFO_BYTE_THRESHOLD] = [0; FIFO_BYTE_THRESHOLD];
+
+        // TODO: Investigate why there's always 14 bytes no matter what we set FIFO to
+        let mut count = 0;
         while self.line_sts().contains(LineStsFlags::DATA_READY) {
-            data = self.data.read();
+            data[count] = self.data.read();
+            count += 1;
         }
-        data
+
+        (data, count)
     }
 
     pub fn send(&mut self, data: u8) {
@@ -107,6 +115,23 @@ impl<T: Io<Value = u8>> SerialPort<T> {
             }
         }
     }
+}
+
+fn get_fifo_ctrl_byte() -> u8 {
+    let mut byte = 1 << 0;  // enable FIFO
+    byte |= 1 << 1;         // clear Receive FIFO
+    byte |= 1 << 2;         // clear Transmit FIFO
+
+    // set FIFO bye threshold
+    match FIFO_BYTE_THRESHOLD {
+        1 => byte |= 0x0 << 6,
+        4 => byte |= 0x1 << 6,
+        8 => byte |= 0x2 << 6,
+        14 => byte |= 0x3 << 6,
+        _ => byte |= 0x3 << 6, // default to 14 bytes
+    }
+
+    byte
 }
 
 bitflags! {
