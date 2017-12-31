@@ -49,7 +49,7 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
         arch::init(multiboot_information_address);
 
         kprintln!("\nIt did not crash!");
-   }
+    }
     arch::interrupts::enable();
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
