@@ -25,6 +25,7 @@ extern crate once;
 
 extern crate bit_field;
 extern crate compiler_builtins;
+extern crate heapless;
 extern crate linked_list_allocator;
 extern crate multiboot2;
 extern crate rlibc;
@@ -58,14 +59,13 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
-    let max_procs = 50;
-    for i in 0..max_procs {
-        syscall::create(test_process, format!("test_process_{}", i));
-    }
-
     syscall::create(rxinu_main, String::from("rxinu_main"));
 
-    loop {}
+    loop {
+        // Continue reading and printing from uart buffer
+        use device::uart_16550 as uart;
+        uart::read(uart::BUF_LEN);
+    }
 }
 
 /// Main initialization process for rxinu

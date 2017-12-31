@@ -1,4 +1,5 @@
 use core::fmt::{self, Write};
+use heapless::RingBuffer;
 use spin::Mutex;
 use syscall::io::{Io, Port, ReadOnly};
 
@@ -11,14 +12,66 @@ pub static COM2: Mutex<SerialPort<Port<u8>>> =
     Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT2));
 
 // TODO: Replace arbitrary value for clearing rows
+pub const BUF_LEN: usize = 1024;
 const BUF_MAX_HEIGHT: usize = 25;
 const FIFO_BYTE_THRESHOLD: usize = 14;
+
+type UartBytes = RingBuffer<u8, [u8; BUF_LEN]>;
+
+bitflags! {
+    /// Interrupt enable register flags
+    struct IntEnFlags: u8 {
+        const RECEIVED =        1 << 0;
+        const SENT =            1 << 1;
+        const ERRORED =         1 << 2;
+        const STATUS_CHANGE =   1 << 3;
+        // 4 to 7 are unused
+    }
+}
+
+bitflags! {
+    /// Line status flags
+    struct LineStsFlags: u8 {
+        const DATA_READY =    1 << 0;
+        // 1 to 4 unknown
+        const THR_EMPTY =     1 << 5;
+        const TRANS_EMPTY =   1 << 6;
+        // 6 and 7 unknown
+    }
+}
 
 pub fn init() {
     COM1.lock().init();
     COM2.lock().init();
 
     kprintln!("[ OK ] Serial Driver");
+}
+
+pub fn read(len: usize) {
+    use arch::interrupts;
+    interrupts::disable_then_restore(|| {
+        let bytes = COM1.lock().read(len);
+        for &byte in bytes.iter() {
+            kprint!("{}", byte as char);
+        }
+    });
+}
+
+fn get_fifo_ctrl_byte() -> u8 {
+    let mut byte = 1 << 0;  // enable FIFO
+    byte |= 1 << 1;         // clear Receive FIFO
+    byte |= 1 << 2;         // clear Transmit FIFO
+
+    // bits 6-7 represent num bytes in interrupt trigger
+    byte |= match FIFO_BYTE_THRESHOLD {
+        1 => 0x0,
+        4 => 0x1,
+        8 => 0x2,
+        14 => 0x3,
+        _ => 0x3, // default to 14 bytes
+    };
+
+    byte
 }
 
 impl<T: Io<Value = u8>> Write for SerialPort<T> {
@@ -38,6 +91,7 @@ pub struct SerialPort<T: Io<Value = u8>> {
     modem_ctrl: T,
     line_sts: ReadOnly<T>,
     _modem_sts: ReadOnly<T>,
+    buffer: RingBuffer<u8, [u8; BUF_LEN]>,
 }
 
 impl SerialPort<Port<u8>> {
@@ -50,6 +104,7 @@ impl SerialPort<Port<u8>> {
             modem_ctrl: Port::new(base + 4),
             line_sts: ReadOnly::new(Port::new(base + 5)),
             _modem_sts: ReadOnly::new(Port::new(base + 6)),
+            buffer: RingBuffer::new(),
         }
     }
 }
@@ -80,17 +135,24 @@ impl<T: Io<Value = u8>> SerialPort<T> {
         LineStsFlags::from_bits_truncate(self.line_sts.read())
     }
 
-    pub fn receive(&mut self) -> ([u8; FIFO_BYTE_THRESHOLD], usize) {
-        let mut data: [u8; FIFO_BYTE_THRESHOLD] = [0; FIFO_BYTE_THRESHOLD];
-
-        // TODO: Investigate why there's always 14 bytes no matter what we set FIFO to
-        let mut count = 0;
-        while self.line_sts().contains(LineStsFlags::DATA_READY) {
-            data[count] = self.data.read();
-            count += 1;
+    pub fn read(&mut self, len: usize) -> UartBytes {
+        let mut bytes: UartBytes = RingBuffer::new();
+        for _ in 0..len {
+            if let Some(byte) = self.buffer.dequeue() {
+                // ignore result
+                let _ = bytes.enqueue(byte);
+            } else {
+                break;
+            }
         }
+        bytes
+    }
 
-        (data, count)
+    pub fn receive(&mut self) {
+        while self.line_sts().contains(LineStsFlags::DATA_READY) {
+            // ignore result
+            let _ = self.buffer.enqueue(self.data.read());
+        }
     }
 
     pub fn send(&mut self, data: u8) {
@@ -114,44 +176,5 @@ impl<T: Io<Value = u8>> SerialPort<T> {
                 wait_then_write(data);
             }
         }
-    }
-}
-
-fn get_fifo_ctrl_byte() -> u8 {
-    let mut byte = 1 << 0;  // enable FIFO
-    byte |= 1 << 1;         // clear Receive FIFO
-    byte |= 1 << 2;         // clear Transmit FIFO
-
-    // set FIFO bye threshold
-    match FIFO_BYTE_THRESHOLD {
-        1 => byte |= 0x0 << 6,
-        4 => byte |= 0x1 << 6,
-        8 => byte |= 0x2 << 6,
-        14 => byte |= 0x3 << 6,
-        _ => byte |= 0x3 << 6, // default to 14 bytes
-    }
-
-    byte
-}
-
-bitflags! {
-    /// Interrupt enable register flags
-    struct IntEnFlags: u8 {
-        const RECEIVED =        1 << 0;
-        const SENT =            1 << 1;
-        const ERRORED =         1 << 2;
-        const STATUS_CHANGE =   1 << 3;
-        // 4 to 7 are unused
-    }
-}
-
-bitflags! {
-    /// Line status flags
-    struct LineStsFlags: u8 {
-        const DATA_READY =    1 << 0;
-        // 1 to 4 unknown
-        const THR_EMPTY =     1 << 5;
-        const TRANS_EMPTY =   1 << 6;
-        // 6 and 7 unknown
     }
 }

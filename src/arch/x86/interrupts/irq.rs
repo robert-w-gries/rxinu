@@ -49,23 +49,13 @@ pub extern "x86-interrupt" fn cascade(_stack_frame: &mut ExceptionStack) {
 pub extern "x86-interrupt" fn com1(_stack_frame: &mut ExceptionStack) {
     interrupts::disable_then_restore(|| {
         pic::MASTER.lock().ack();
-
-        let (bytes, count) = serial::COM1.lock().receive();
-
-        for i in 0..count {
-            kprint!("{}", bytes[i] as char);
-        }
+        serial::COM1.lock().receive();
     });
 }
 
 pub extern "x86-interrupt" fn com2(_stack_frame: &mut ExceptionStack) {
     interrupts::disable_then_restore(|| {
         pic::MASTER.lock().ack();
-
-        let (bytes, count) = serial::COM2.lock().receive();
-
-        for i in 0..count {
-            kprint!("{}", bytes[i] as char);
-        }
+        serial::COM2.lock().receive();
     });
 }
