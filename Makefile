@@ -23,6 +23,7 @@ ASFLAGS := $(asm_target)
 LDFLAGS := -n --gc-sections -melf_$(ld_target)
 QEMUFLAGS := -nographic
 CARGOFLAGS :=
+PWD := $(shell pwd)
 
 ifdef FEATURES
 	CARGOFLAGS += --no-default-features --features "$(FEATURES)"
@@ -64,7 +65,7 @@ ASM_OBJ := $(patsubst src/arch/$(arch)/asm/%.nasm, build/arch/$(arch)/asm/%.o, $
 all: $(kernel)
 
 cargo:
-	@xargo build --target $(rust_target) $(CARGOFLAGS)
+	@RUST_TARGET_PATH="$(PWD)" xargo build --target $(rust_target) $(CARGOFLAGS)
 
 clean:
 	@cargo clean
