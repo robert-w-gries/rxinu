@@ -6,10 +6,8 @@ cache:
     - $HOME/.cargo
 
 env:
-  - ['target=i686', 'FEATURES="vga"']
-  - ['target=i686', 'FEATURES="serial"']
-  - ['target=x86_64', 'FEATURES="vga"']
-  - ['target=x86_64', 'FEATURES="serial"']
+  - ['target=i686']
+  - ['target=x86_64']
 
 before_script:
   - rustup component add rust-src
@@ -25,4 +23,4 @@ addons:
 
 script:
   - cargo fmt -- --write-mode=diff
-  - make RUST_TARGET_PATH=`pwd`
+  - make FEATURES="vga serial" RUST_TARGET_PATH=`pwd`
