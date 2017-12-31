@@ -11,8 +11,8 @@ pub static COM1: Mutex<SerialPort<Port<u8>>> =
 pub static COM2: Mutex<SerialPort<Port<u8>>> =
     Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT2));
 
-// TODO: Replace arbitrary value for clearing rows
 pub const BUF_LEN: usize = 1024;
+// TODO: Replace arbitrary value for clearing rows
 const BUF_MAX_HEIGHT: usize = 25;
 const FIFO_BYTE_THRESHOLD: usize = 14;
 
