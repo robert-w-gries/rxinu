@@ -58,9 +58,9 @@ pub fn read(len: usize) {
 }
 
 fn get_fifo_ctrl_byte() -> u8 {
-    let mut byte = 1 << 0;  // enable FIFO
-    byte |= 1 << 1;         // clear Receive FIFO
-    byte |= 1 << 2;         // clear Transmit FIFO
+    let mut byte = 1 << 0; // enable FIFO
+    byte |= 1 << 1; // clear Receive FIFO
+    byte |= 1 << 2; // clear Transmit FIFO
 
     // bits 6-7 represent num bytes in interrupt trigger
     byte |= match FIFO_BYTE_THRESHOLD {
@@ -117,18 +117,18 @@ impl<T: Io<Value = u8>> SerialPort<T> {
     }
 
     pub fn init(&mut self) {
-        self.int_en.write(0x00);          // disable interrupts
-        self.line_ctrl.write(0x80);       // enable DLAB (set baud rate divisor)
-        self.data.write(0x03);            // set divisor to 3 (lo byte) 38400 baud
-        self.int_en.write(0x00);          // (hi byte)
-        self.line_ctrl.write(0x03);       // 8 bits, no parity, one stop bit
+        self.int_en.write(0x00); // disable interrupts
+        self.line_ctrl.write(0x80); // enable DLAB (set baud rate divisor)
+        self.data.write(0x03); // set divisor to 3 (lo byte) 38400 baud
+        self.int_en.write(0x00); // (hi byte)
+        self.line_ctrl.write(0x03); // 8 bits, no parity, one stop bit
 
         // 16550 specific FIFO Control Register
         let fifo_byte = get_fifo_ctrl_byte();
         self.fifo_ctrl.write(fifo_byte);
 
-        self.modem_ctrl.write(0x0B);      // IRQs enabled, RTS/DSR set
-        self.int_en.write(0x01);          // enable interrupts
+        self.modem_ctrl.write(0x0B); // IRQs enabled, RTS/DSR set
+        self.int_en.write(0x01); // enable interrupts
     }
 
     fn line_sts(&self) -> LineStsFlags {
