@@ -1,5 +1,5 @@
+use alloc::vec_deque::VecDeque;
 use core::fmt::{self, Write};
-use heapless::RingBuffer;
 use spin::Mutex;
 use syscall::io::{Io, Port, ReadOnly};
 
@@ -15,8 +15,6 @@ pub static COM2: Mutex<SerialPort<Port<u8>>> =
 pub const BUF_LEN: usize = 1024;
 const BUF_MAX_HEIGHT: usize = 25;
 const FIFO_BYTE_THRESHOLD: usize = 14;
-
-type UartBytes = RingBuffer<u8, [u8; BUF_LEN]>;
 
 bitflags! {
     /// Interrupt enable register flags
@@ -91,7 +89,7 @@ pub struct SerialPort<T: Io<Value = u8>> {
     modem_ctrl: T,
     line_sts: ReadOnly<T>,
     _modem_sts: ReadOnly<T>,
-    buffer: RingBuffer<u8, [u8; BUF_LEN]>,
+    buffer: Option<VecDeque<u8>>,
 }
 
 impl SerialPort<Port<u8>> {
@@ -104,12 +102,20 @@ impl SerialPort<Port<u8>> {
             modem_ctrl: Port::new(base + 4),
             line_sts: ReadOnly::new(Port::new(base + 5)),
             _modem_sts: ReadOnly::new(Port::new(base + 6)),
-            buffer: RingBuffer::new(),
+            buffer: None,
         }
     }
 }
 
 impl<T: Io<Value = u8>> SerialPort<T> {
+    pub fn buffer(&self) -> &VecDeque<u8> {
+        self.buffer.as_ref().unwrap()
+    }
+
+    pub fn buffer_mut(&mut self) -> &mut VecDeque<u8> {
+        self.buffer.as_mut().unwrap()
+    }
+
     pub fn clear_screen(&mut self) {
         for _ in 0..BUF_MAX_HEIGHT {
             self.send(b'\n')
@@ -129,18 +135,19 @@ impl<T: Io<Value = u8>> SerialPort<T> {
 
         self.modem_ctrl.write(0x0B); // IRQs enabled, RTS/DSR set
         self.int_en.write(0x01); // enable interrupts
+
+        self.buffer = Some(VecDeque::new());
     }
 
     fn line_sts(&self) -> LineStsFlags {
         LineStsFlags::from_bits_truncate(self.line_sts.read())
     }
 
-    pub fn read(&mut self, len: usize) -> UartBytes {
-        let mut bytes: UartBytes = RingBuffer::new();
+    pub fn read(&mut self, len: usize) -> VecDeque<u8> {
+        let mut bytes: VecDeque<u8> = VecDeque::new();
         for _ in 0..len {
-            if let Some(byte) = self.buffer.dequeue() {
-                // ignore result
-                let _ = bytes.enqueue(byte);
+            if let Some(byte) = self.buffer_mut().pop_front() {
+                bytes.push_back(byte);
             } else {
                 break;
             }
@@ -150,8 +157,8 @@ impl<T: Io<Value = u8>> SerialPort<T> {
 
     pub fn receive(&mut self) {
         while self.line_sts().contains(LineStsFlags::DATA_READY) {
-            // ignore result
-            let _ = self.buffer.enqueue(self.data.read());
+            let data = self.data.read();
+            self.buffer_mut().push_back(data);
         }
     }
 

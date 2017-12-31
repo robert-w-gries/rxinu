@@ -25,7 +25,6 @@ extern crate once;
 
 extern crate bit_field;
 extern crate compiler_builtins;
-extern crate heapless;
 extern crate linked_list_allocator;
 extern crate multiboot2;
 extern crate rlibc;
@@ -48,12 +47,9 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::interrupts::disable();
     {
         arch::init(multiboot_information_address);
-        kprintln!("\nIt did not crash!");
 
-        unsafe {
-            HEAP_ALLOCATOR.init(HEAP_START, HEAP_SIZE);
-        }
-    }
+        kprintln!("\nIt did not crash!");
+   }
     arch::interrupts::enable();
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
