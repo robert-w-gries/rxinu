@@ -25,12 +25,8 @@ QEMUFLAGS := -nographic
 CARGOFLAGS :=
 
 ifdef FEATURES
-	CARGOFLAGS += --no-default-features --features $(FEATURES)
-	ifeq ($(FEATURES),vga)
-		QEMUFLAGS :=
-	else ifeq ($(FEATURES), serial)
-		QEMUFLAGS := -nographic
-	endif
+	CARGOFLAGS += --no-default-features --features "$(FEATURES)"
+	QEMUFLAGS :=
 endif
 
 # Rust target
