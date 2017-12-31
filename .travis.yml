@@ -13,8 +13,9 @@ before_script:
   - rustup component add rust-src
   - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
   - (test -x $HOME/.cargo/bin/xargo || cargo install xargo)
-  - rustup run nightly cargo install rustfmt-nightly --force
+  - (test -x $HOME/.cargo/bin/rustup || rustup run nightly cargo install rustfmt-nightly)
   - cargo install-update -a
+  - rustup component add rustfmt-preview
 
 addons:
   apt:
