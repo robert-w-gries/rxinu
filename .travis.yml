@@ -24,4 +24,4 @@ addons:
 
 script:
   - cargo fmt -- --write-mode=diff
-  - make FEATURES="vga serial" RUST_TARGET_PATH=`pwd`
+  - make FEATURES="vga serial"
