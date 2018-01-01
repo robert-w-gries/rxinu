@@ -15,8 +15,9 @@ before_script:
   - (test -x $HOME/.cargo/bin/xargo || cargo install xargo)
   - (test -x $HOME/.cargo/bin/rustfmt || rustup run nightly cargo install rustfmt-nightly)
   - cargo install-update -a
-  - rustup update
   - rustup component add rustfmt-preview
+  - rustup self update
+  - rustup update
 
 addons:
   apt:
