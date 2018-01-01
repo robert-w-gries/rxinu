@@ -1,14 +1,8 @@
-use device::ps2_keyboard::{Key, KeyEvent};
-use device::ps2_keyboard::Key::*;
-use device::ps2_keyboard::Modifier::*;
-
-macro_rules! key_press {
-    ($x:expr) => (Some(KeyEvent::Pressed($x)))
-}
-
-macro_rules! key_release {
-    ($x:expr) => (Some(KeyEvent::Released($x)))
-}
+use alloc::Vec;
+use alloc::string::String;
+use device::keyboard::{Key, KeyEvent, STATE};
+use device::keyboard::Key::*;
+use device::keyboard::Modifier::*;
 
 pub fn get_key(scancode: u64) -> Option<Key> {
     match get_key_event(scancode) {
@@ -82,5 +76,48 @@ fn match_scancode(scancode: u64) -> Option<KeyEvent> {
         0xE0B8 => key_release!(Meta(AltRight(false))),
 
         _ => None,
+    }
+}
+
+/// Get all bytes from keyboard and translate to key
+pub fn parse_key(scancode: u8) {
+    let byte_sequence: u64 = retrieve_bytes(scancode);
+    if let Some(key) = get_key(byte_sequence) {
+        match key {
+            Key::Ascii(k) => print_char(k as char),
+            Key::Meta(modifier) => STATE.lock().update(modifier),
+            Key::LowerAscii(byte) => print_str(STATE.lock().apply_to(byte as char)),
+        }
+    }
+}
+
+/// Keep reading bytes until sequence is finished and combine bytes into an integer
+fn retrieve_bytes(scancode: u8) -> u64 {
+    let mut byte_sequence: Vec<u8> = vec![scancode];
+
+    // if byte is start of sequence, start reading bytes until end of sequence
+    // TODO: Design system that reads more than two bytes
+    if scancode == 0xE0 || scancode == 0xE1 {
+        use device::ps2_controller_8042;
+        let check_byte: u8 = ps2_controller_8042::key_read();
+        if let Some(byte) = is_special_key(check_byte) {
+            byte_sequence.push(byte);
+        }
+    }
+
+    byte_sequence
+        .iter()
+        .rev()
+        .fold(0, |acc, &b| (acc << 1) + b as u64)
+}
+
+fn print_str(s: String) {
+    kprint!("{}", s);
+}
+
+fn print_char(byte: char) {
+    match byte {
+        '\n' | ' ' | '\t' => kprint!("{}", byte),
+        _ => (),
     }
 }

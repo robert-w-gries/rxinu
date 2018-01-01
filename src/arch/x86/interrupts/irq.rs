@@ -1,6 +1,5 @@
 use arch::x86::interrupts;
 use arch::x86::interrupts::exception::ExceptionStack;
-use device::{ps2_controller_8042, ps2_keyboard};
 use device::pic_8259 as pic;
 use device::uart_16550 as serial;
 use device::pit::PIT_TICKS;
@@ -29,13 +28,16 @@ pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStack) {
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStack) {
     interrupts::disable_then_restore(|| {
+        use device::ps2_controller_8042;
+        use device::keyboard;
+
         pic::MASTER.lock().ack();
 
         // Read a single scancode off our keyboard port.
         let code = ps2_controller_8042::key_read();
 
         // Pass scan code to ps2_keyboard driver
-        ps2_keyboard::parse_key(code);
+        keyboard::ps2::parse_key(code);
     });
 }
 
