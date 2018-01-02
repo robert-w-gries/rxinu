@@ -9,6 +9,11 @@ macro_rules! key_release {
         ($x:expr) => (Some(KeyEvent::Released($x)))
 }
 
+pub mod layout;
+pub mod ps2;
+
+pub static STATE: Mutex<ModifierState> = Mutex::new(ModifierState::new());
+
 #[derive(Debug)]
 struct KeyPair {
     left: bool,
@@ -67,11 +72,11 @@ impl ModifierState {
         self.shift.is_pressed() ^ self.caps_lock
     }
 
-    /// Apply all of our modifiers to an ASCII character, and return a new
-    /// ASCII character.
+    /// Apply all of our modifiers to character and convert to String
     pub fn apply_to(&self, ascii: char) -> String {
         if self.is_uppercase() {
-            ascii.to_uppercase().collect()
+            use self::layout;
+            layout::us_std::map_to_upper(ascii).iter().collect()
         } else {
             ascii.to_string()
         }
@@ -104,7 +109,3 @@ pub enum Key {
     Meta(Modifier),
     LowerAscii(u8),
 }
-
-pub static STATE: Mutex<ModifierState> = Mutex::new(ModifierState::new());
-
-pub mod ps2;
