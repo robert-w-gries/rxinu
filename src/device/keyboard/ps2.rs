@@ -72,9 +72,7 @@ pub struct Ps2 {
 
 impl Ps2 {
     pub const fn new() -> Ps2 {
-        Ps2 {
-            buffer: None,
-        }
+        Ps2 { buffer: None }
     }
 
     fn init(&mut self) {
