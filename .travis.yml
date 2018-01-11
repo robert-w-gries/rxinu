@@ -4,6 +4,8 @@ rust:
 cache:
   directories:
     - $HOME/.cargo
+    - $HOME/.xargo
+    - $TRAVIS_BUILD_DIR/target
 
 env:
   - ['target=i686']
