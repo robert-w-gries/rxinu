@@ -47,25 +47,28 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     arch::interrupts::disable();
     {
         arch::init(multiboot_information_address);
-        kprintln!("\nIt did not crash!");
 
-        unsafe {
-            HEAP_ALLOCATOR.init(HEAP_START, HEAP_SIZE);
-        }
+        kprintln!("\nIt did not crash!");
     }
     arch::interrupts::enable();
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
-    let max_procs = 50;
-    for i in 0..max_procs {
-        syscall::create(test_process, format!("test_process_{}", i));
-    }
-
     syscall::create(rxinu_main, String::from("rxinu_main"));
 
-    loop {}
+    loop {
+        #[cfg(feature = "serial")]
+        {
+            use device::uart_16550 as uart;
+            uart::read(1024);
+        }
+        #[cfg(feature = "vga")]
+        {
+            use device::keyboard::ps2 as kbd;
+            kbd::read(1024);
+        }
+    }
 }
 
 /// Main initialization process for rxinu

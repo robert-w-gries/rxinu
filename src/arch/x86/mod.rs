@@ -12,6 +12,11 @@ pub fn init(multiboot_information_address: usize) {
 
     let mut memory_controller = memory::init(&boot_info);
 
+    unsafe {
+        use self::memory::heap::{HEAP_SIZE, HEAP_START};
+        ::HEAP_ALLOCATOR.init(HEAP_START, HEAP_SIZE);
+    }
+
     gdt::init(&mut memory_controller);
 
     idt::init();

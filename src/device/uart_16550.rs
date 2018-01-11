@@ -1,4 +1,6 @@
+use alloc::vec_deque::VecDeque;
 use core::fmt::{self, Write};
+use device::{BufferedDevice, InputDevice};
 use spin::Mutex;
 use syscall::io::{Io, Port, ReadOnly};
 
@@ -12,12 +14,62 @@ pub static COM2: Mutex<SerialPort<Port<u8>>> =
 
 // TODO: Replace arbitrary value for clearing rows
 const BUF_MAX_HEIGHT: usize = 25;
+const FIFO_BYTE_THRESHOLD: usize = 14;
+
+bitflags! {
+    /// Interrupt enable register flags
+    struct IntEnFlags: u8 {
+        const RECEIVED =        1 << 0;
+        const SENT =            1 << 1;
+        const ERRORED =         1 << 2;
+        const STATUS_CHANGE =   1 << 3;
+        // 4 to 7 are unused
+    }
+}
+
+bitflags! {
+    /// Line status flags
+    struct LineStsFlags: u8 {
+        const DATA_READY =    1 << 0;
+        // 1 to 4 unknown
+        const THR_EMPTY =     1 << 5;
+        const TRANS_EMPTY =   1 << 6;
+        // 6 and 7 unknown
+    }
+}
 
 pub fn init() {
     COM1.lock().init();
     COM2.lock().init();
 
     kprintln!("[ OK ] Serial Driver");
+}
+
+pub fn read(len: usize) {
+    use arch::interrupts;
+    interrupts::disable_then_restore(|| {
+        let bytes = COM1.lock().read(len);
+        for &byte in bytes.iter() {
+            kprint!("{}", byte);
+        }
+    });
+}
+
+fn get_fifo_ctrl_byte() -> u8 {
+    let mut byte = 1 << 0; // enable FIFO
+    byte |= 1 << 1; // clear Receive FIFO
+    byte |= 1 << 2; // clear Transmit FIFO
+
+    // bits 6-7 represent num bytes in interrupt trigger
+    byte |= match FIFO_BYTE_THRESHOLD {
+        1 => 0x0,
+        4 => 0x1,
+        8 => 0x2,
+        14 => 0x3,
+        _ => 0x3, // default to 14 bytes
+    };
+
+    byte
 }
 
 impl<T: Io<Value = u8>> Write for SerialPort<T> {
@@ -29,7 +81,32 @@ impl<T: Io<Value = u8>> Write for SerialPort<T> {
     }
 }
 
-#[allow(dead_code)]
+impl<T: Io<Value = u8>> BufferedDevice for SerialPort<T> {
+    fn buffer(&self) -> &VecDeque<u8> {
+        self.buffer.as_ref().unwrap()
+    }
+
+    fn buffer_mut(&mut self) -> &mut VecDeque<u8> {
+        self.buffer.as_mut().unwrap()
+    }
+}
+
+impl<T: Io<Value = u8>> InputDevice for SerialPort<T> {
+    /// Read buffered input bytes
+    fn read(&mut self, num_bytes: usize) -> VecDeque<char> {
+        let mut bytes: VecDeque<char> = VecDeque::new();
+        for _ in 0..num_bytes {
+            if let Some(byte) = self.buffer_mut().pop_front() {
+                // TODO: Support unicode
+                bytes.push_back(byte as char);
+            } else {
+                break;
+            }
+        }
+        bytes
+    }
+}
+
 pub struct SerialPort<T: Io<Value = u8>> {
     data: T,
     int_en: T,
@@ -37,7 +114,8 @@ pub struct SerialPort<T: Io<Value = u8>> {
     line_ctrl: T,
     modem_ctrl: T,
     line_sts: ReadOnly<T>,
-    modem_sts: ReadOnly<T>,
+    _modem_sts: ReadOnly<T>,
+    buffer: Option<VecDeque<u8>>,
 }
 
 impl SerialPort<Port<u8>> {
@@ -49,7 +127,8 @@ impl SerialPort<Port<u8>> {
             line_ctrl: Port::new(base + 3),
             modem_ctrl: Port::new(base + 4),
             line_sts: ReadOnly::new(Port::new(base + 5)),
-            modem_sts: ReadOnly::new(Port::new(base + 6)),
+            _modem_sts: ReadOnly::new(Port::new(base + 6)),
+            buffer: None,
         }
     }
 }
@@ -67,22 +146,26 @@ impl<T: Io<Value = u8>> SerialPort<T> {
         self.data.write(0x03); // set divisor to 3 (lo byte) 38400 baud
         self.int_en.write(0x00); // (hi byte)
         self.line_ctrl.write(0x03); // 8 bits, no parity, one stop bit
-        self.fifo_ctrl.write(0xC7); // enable fifo, clear them, 14 byte threshold
+
+        // 16550 specific FIFO Control Register
+        let fifo_byte = get_fifo_ctrl_byte();
+        self.fifo_ctrl.write(fifo_byte);
+
         self.modem_ctrl.write(0x0B); // IRQs enabled, RTS/DSR set
         self.int_en.write(0x01); // enable interrupts
+
+        self.buffer = Some(VecDeque::new());
     }
 
     fn line_sts(&self) -> LineStsFlags {
         LineStsFlags::from_bits_truncate(self.line_sts.read())
     }
 
-    pub fn receive(&mut self) -> u8 {
-        // TODO: implement a buffer so we don't lose data
-        let mut data: u8 = 0x0;
+    pub fn receive(&mut self) {
         while self.line_sts().contains(LineStsFlags::DATA_READY) {
-            data = self.data.read();
+            let data = self.data.read();
+            self.buffer_mut().push_back(data);
         }
-        data
     }
 
     pub fn send(&mut self, data: u8) {
@@ -106,27 +189,5 @@ impl<T: Io<Value = u8>> SerialPort<T> {
                 wait_then_write(data);
             }
         }
-    }
-}
-
-bitflags! {
-    /// Interrupt enable register flags
-    struct IntEnFlags: u8 {
-        const RECEIVED =        1 << 0;
-        const SENT =            1 << 1;
-        const ERRORED =         1 << 2;
-        const STATUS_CHANGE =   1 << 3;
-        // 4 to 7 are unused
-    }
-}
-
-bitflags! {
-    /// Line status flags
-    struct LineStsFlags: u8 {
-        const DATA_READY =    1 << 0;
-        // 1 to 4 unknown
-        const THR_EMPTY =     1 << 5;
-        const TRANS_EMPTY =   1 << 6;
-        // 6 and 7 unknown
     }
 }
