@@ -1,5 +1,6 @@
 use alloc::vec_deque::VecDeque;
 use core::fmt::{self, Write};
+use device::{BufferedDevice, InputDevice};
 use spin::Mutex;
 use syscall::io::{Io, Port, ReadOnly};
 
@@ -11,7 +12,6 @@ pub static COM1: Mutex<SerialPort<Port<u8>>> =
 pub static COM2: Mutex<SerialPort<Port<u8>>> =
     Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT2));
 
-pub const BUF_LEN: usize = 1024;
 // TODO: Replace arbitrary value for clearing rows
 const BUF_MAX_HEIGHT: usize = 25;
 const FIFO_BYTE_THRESHOLD: usize = 14;
@@ -50,7 +50,7 @@ pub fn read(len: usize) {
     interrupts::disable_then_restore(|| {
         let bytes = COM1.lock().read(len);
         for &byte in bytes.iter() {
-            kprint!("{}", byte as char);
+            kprint!("{}", byte);
         }
     });
 }
@@ -81,6 +81,32 @@ impl<T: Io<Value = u8>> Write for SerialPort<T> {
     }
 }
 
+impl<T: Io<Value = u8>> BufferedDevice for SerialPort<T> {
+    fn buffer(&self) -> &VecDeque<u8> {
+        self.buffer.as_ref().unwrap()
+    }
+
+    fn buffer_mut(&mut self) -> &mut VecDeque<u8> {
+        self.buffer.as_mut().unwrap()
+    }
+}
+
+impl<T: Io<Value = u8>> InputDevice for SerialPort<T> {
+    /// Read buffered input bytes
+    fn read(&mut self, num_bytes: usize) -> VecDeque<char> {
+        let mut bytes: VecDeque<char> = VecDeque::new();
+        for _ in 0..num_bytes {
+            if let Some(byte) = self.buffer_mut().pop_front() {
+                // TODO: Support unicode
+                bytes.push_back(byte as char);
+            } else {
+                break;
+            }
+        }
+        bytes
+    }
+}
+
 pub struct SerialPort<T: Io<Value = u8>> {
     data: T,
     int_en: T,
@@ -108,14 +134,6 @@ impl SerialPort<Port<u8>> {
 }
 
 impl<T: Io<Value = u8>> SerialPort<T> {
-    pub fn buffer(&self) -> &VecDeque<u8> {
-        self.buffer.as_ref().unwrap()
-    }
-
-    pub fn buffer_mut(&mut self) -> &mut VecDeque<u8> {
-        self.buffer.as_mut().unwrap()
-    }
-
     pub fn clear_screen(&mut self) {
         for _ in 0..BUF_MAX_HEIGHT {
             self.send(b'\n')
@@ -141,18 +159,6 @@ impl<T: Io<Value = u8>> SerialPort<T> {
 
     fn line_sts(&self) -> LineStsFlags {
         LineStsFlags::from_bits_truncate(self.line_sts.read())
-    }
-
-    pub fn read(&mut self, len: usize) -> VecDeque<u8> {
-        let mut bytes: VecDeque<u8> = VecDeque::new();
-        for _ in 0..len {
-            if let Some(byte) = self.buffer_mut().pop_front() {
-                bytes.push_back(byte);
-            } else {
-                break;
-            }
-        }
-        bytes
     }
 
     pub fn receive(&mut self) {

@@ -1,8 +1,15 @@
-use alloc::Vec;
-use alloc::string::String;
+use alloc::{Vec, VecDeque};
+use device::{BufferedDevice, InputDevice};
 use device::keyboard::{Key, KeyEvent, STATE};
 use device::keyboard::Key::*;
 use device::keyboard::Modifier::*;
+use spin::Mutex;
+
+pub static PS2_KEYBOARD: Mutex<Ps2> = Mutex::new(Ps2::new());
+
+pub fn init() {
+    PS2_KEYBOARD.lock().init();
+}
 
 pub fn get_key(scancode: u64) -> Option<Key> {
     match get_key_event(scancode) {
@@ -14,6 +21,92 @@ pub fn get_key(scancode: u64) -> Option<Key> {
 
 pub fn get_key_event(scancode: u64) -> Option<KeyEvent> {
     match_scancode(scancode)
+}
+
+/// Get all bytes from keyboard and translate to key
+pub fn parse_key(scancode: u8) -> Option<u8> {
+    let byte_sequence: u64 = retrieve_bytes(scancode);
+    if let Some(key) = get_key(byte_sequence) {
+        match key {
+            Key::Ascii(k) => return Some(k),
+            Key::Meta(modifier) => STATE.lock().update(modifier),
+            Key::LowerAscii(byte) => return Some(STATE.lock().apply_to(byte)),
+        }
+    }
+    None
+}
+
+pub fn read(len: usize) {
+    use arch::interrupts;
+    interrupts::disable_then_restore(|| {
+        let bytes = PS2_KEYBOARD.lock().read(len);
+        for &byte in bytes.iter() {
+            kprint!("{}", byte);
+        }
+    });
+}
+
+/// Keep reading bytes until sequence is finished and combine bytes into an integer
+fn retrieve_bytes(scancode: u8) -> u64 {
+    let mut byte_sequence: Vec<u8> = vec![scancode];
+
+    // if byte is start of sequence, start reading bytes until end of sequence
+    // TODO: Design system that reads more than two bytes
+    if scancode == 0xE0 || scancode == 0xE1 {
+        use device::ps2_controller_8042;
+        let check_byte: u8 = ps2_controller_8042::key_read();
+        if let Some(byte) = is_special_key(check_byte) {
+            byte_sequence.push(byte);
+        }
+    }
+
+    byte_sequence
+        .iter()
+        .rev()
+        .fold(0, |acc, &b| (acc << 1) + b as u64)
+}
+
+pub struct Ps2 {
+    buffer: Option<VecDeque<u8>>,
+}
+
+impl Ps2 {
+    pub const fn new() -> Ps2 {
+        Ps2 {
+            buffer: None,
+        }
+    }
+
+    fn init(&mut self) {
+        self.buffer = Some(VecDeque::new());
+    }
+}
+
+impl BufferedDevice for Ps2 {
+    fn buffer(&self) -> &VecDeque<u8> {
+        self.buffer.as_ref().unwrap()
+    }
+
+    fn buffer_mut(&mut self) -> &mut VecDeque<u8> {
+        self.buffer.as_mut().unwrap()
+    }
+}
+
+impl InputDevice for Ps2 {
+    /// Read buffered input bytes
+    fn read(&mut self, num_bytes: usize) -> VecDeque<char> {
+        let mut bytes: VecDeque<char> = VecDeque::new();
+        for _ in 0..num_bytes {
+            if let Some(scancode) = self.buffer_mut().pop_front() {
+                if let Some(byte) = parse_key(scancode) {
+                    bytes.push_back(byte as char);
+                }
+            } else {
+                break;
+            }
+        }
+        bytes
+    }
 }
 
 pub fn is_special_key(byte: u8) -> Option<u8> {
@@ -76,48 +169,5 @@ fn match_scancode(scancode: u64) -> Option<KeyEvent> {
         0xE0B8 => key_release!(Meta(AltRight(false))),
 
         _ => None,
-    }
-}
-
-/// Get all bytes from keyboard and translate to key
-pub fn parse_key(scancode: u8) {
-    let byte_sequence: u64 = retrieve_bytes(scancode);
-    if let Some(key) = get_key(byte_sequence) {
-        match key {
-            Key::Ascii(k) => print_char(k as char),
-            Key::Meta(modifier) => STATE.lock().update(modifier),
-            Key::LowerAscii(byte) => print_str(STATE.lock().apply_to(byte as char)),
-        }
-    }
-}
-
-/// Keep reading bytes until sequence is finished and combine bytes into an integer
-fn retrieve_bytes(scancode: u8) -> u64 {
-    let mut byte_sequence: Vec<u8> = vec![scancode];
-
-    // if byte is start of sequence, start reading bytes until end of sequence
-    // TODO: Design system that reads more than two bytes
-    if scancode == 0xE0 || scancode == 0xE1 {
-        use device::ps2_controller_8042;
-        let check_byte: u8 = ps2_controller_8042::key_read();
-        if let Some(byte) = is_special_key(check_byte) {
-            byte_sequence.push(byte);
-        }
-    }
-
-    byte_sequence
-        .iter()
-        .rev()
-        .fold(0, |acc, &b| (acc << 1) + b as u64)
-}
-
-fn print_str(s: String) {
-    kprint!("{}", s);
-}
-
-fn print_char(byte: char) {
-    match byte {
-        '\n' | ' ' | '\t' => kprint!("{}", byte),
-        _ => (),
     }
 }

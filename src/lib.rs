@@ -58,9 +58,16 @@ pub extern "C" fn rust_main(multiboot_information_address: usize) {
     syscall::create(rxinu_main, String::from("rxinu_main"));
 
     loop {
-        // Continue reading and printing from uart buffer
-        use device::uart_16550 as uart;
-        uart::read(uart::BUF_LEN);
+        #[cfg(feature = "serial")]
+        {
+            use device::uart_16550 as uart;
+            uart::read(1024);
+        }
+        #[cfg(feature = "vga")]
+        {
+            use device::keyboard::ps2 as kbd;
+            kbd::read(1024);
+        }
     }
 }
 
