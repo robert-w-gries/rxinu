@@ -138,8 +138,8 @@ fn match_scancode(scancode: u64) -> Option<KeyEvent> {
         0x10...0x1B => key_press!(LowerAscii(b"qwertyuiop[]"[idx - 0x10])),
         0x1E...0x28 => key_press!(LowerAscii(b"asdfghjkl;'"[idx - 0x1E])),
         0x2C...0x35 => key_press!(LowerAscii(b"zxcvbnm,./"[idx - 0x2C])),
-        0x29 => key_press!(LowerAscii((b'`'))),
-        0x2B => key_press!(LowerAscii((b'\\'))),
+        0x29 => key_press!(LowerAscii(b'`')),
+        0x2B => key_press!(LowerAscii(b'\\')),
 
         // Non-modifiable ASCII keys
         0x01 => key_press!(Ascii(0x1B)),  // escape

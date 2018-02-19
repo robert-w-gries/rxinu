@@ -8,6 +8,7 @@
 #![feature(const_fn)]
 #![feature(lang_items)]
 #![feature(naked_functions)]
+#![feature(ptr_internals)]
 #![feature(unique)]
 #![no_std]
 
