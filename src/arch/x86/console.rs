@@ -26,6 +26,7 @@ macro_rules! kprint {
 
 #[macro_export]
 macro_rules! kprintln {
+    () => (kprint!("\n"));
     ($fmt:expr) => (kprint!(concat!($fmt, "\n")));
     ($fmt:expr, $($arg:tt)*) => (kprint!(concat!($fmt, "\n"), $($arg)*));
 }
