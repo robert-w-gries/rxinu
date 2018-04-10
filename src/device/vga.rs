@@ -27,8 +27,8 @@ impl Writer {
         }
     }
 
-    fn write_byte(&mut self, byte: &u8) {
-        match *byte {
+    fn write_byte(&mut self, byte: u8) {
+        match byte {
             b'\n' => self.new_line(),
             byte => {
                 if self.column_position >= MAX_WIDTH {
@@ -44,6 +44,17 @@ impl Writer {
                     color_code: color_code,
                 });
                 self.column_position += 1;
+            }
+        }
+    }
+
+    fn write_string(&mut self, s: &str) {
+        for byte in s.bytes() {
+            match byte {
+                // printable ASCII byte or newline
+                0x20...0x7e | b'\n' => self.write_byte(byte),
+                // not part of printable ASCII range
+                _ => self.write_byte(0xfe),
             }
         }
     }
@@ -78,10 +89,7 @@ impl Writer {
 
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> ::core::fmt::Result {
-        for byte in s.as_bytes() {
-            self.write_byte(byte)
-        }
-
+        self.write_string(s);
         Ok(())
     }
 }
