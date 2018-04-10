@@ -4,7 +4,6 @@
 #![feature(const_fn)]
 #![feature(const_max_value)]
 #![feature(const_unique_new, const_atomic_usize_new)]
-#![feature(compiler_builtins_lib)]
 #![feature(const_fn)]
 #![feature(lang_items)]
 #![feature(naked_functions)]
@@ -25,7 +24,6 @@ extern crate lazy_static;
 extern crate once;
 
 extern crate bit_field;
-extern crate compiler_builtins;
 extern crate linked_list_allocator;
 extern crate multiboot2;
 extern crate rlibc;
