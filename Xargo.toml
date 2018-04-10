@@ -3,9 +3,3 @@ alloc = {}
 
 [target.x86_64-rxinu.dependencies]
 alloc = {}
-
-[dependencies.core]
-stage = 0
-
-[dependencies.compiler_builtins]
-stage = 1
