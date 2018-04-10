@@ -1,5 +1,5 @@
 {
-  "llvm-target": "i686-unknown-linux-gnu",
+  "llvm-target": "i686-unknown-none",
   "data-layout": "e-m:e-p:32:32-f64:32:64-f80:32-n8:16:32-S128",
   "target-endian": "little",
   "target-pointer-width": "32",
@@ -8,6 +8,6 @@
   "os": "none",
   "features": "-mmx,-sse,+soft-float",
   "disable-redzone": true,
-  "linker-flavor": "gcc",
-  "panic": "abort"
+  "linker-flavor": "ld.lld",
+  "panic-strategy": "abort"
 }
