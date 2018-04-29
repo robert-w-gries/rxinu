@@ -51,10 +51,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     arch::interrupts::disable();
     {
         arch::init(boot_info_address);
-
-        kprintln!("\nIt did not crash!");
     }
-    loop{}
     arch::interrupts::enable();
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);

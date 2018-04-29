@@ -5,7 +5,7 @@ use x86_64::structures::paging::{Page, PageTable, PageTableFlags, PhysFrame, Map
 pub mod console;
 pub mod context;
 mod device;
-//mod gdt;
+mod gdt;
 mod idt;
 pub mod interrupts;
 pub mod memory;
@@ -32,15 +32,14 @@ pub fn init(boot_info_address: usize) {
 
     let mut memory_controller = memory::init(boot_info, rec_page_table);
 
-    //unsafe {
-    //    use self::memory::heap::{HEAP_SIZE, HEAP_START};
-    //    ::HEAP_ALLOCATOR.init(HEAP_START, HEAP_SIZE);
-    //}
+    unsafe {
+        use self::memory::heap::{HEAP_SIZE, HEAP_START};
+        ::HEAP_ALLOCATOR.init(HEAP_START as usize, HEAP_SIZE as usize);
+    }
 
-    //gdt::init(&mut memory_controller);
-
-    //idt::init();
-    //device::init();
+    gdt::init(&mut memory_controller);
+    idt::init();
+    device::init();
 }
 
 use x86::shared::PrivilegeLevel;

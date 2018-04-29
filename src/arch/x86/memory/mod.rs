@@ -2,14 +2,11 @@ use os_bootinfo::{BootInfo, MemoryRegion};
 use x86_64::VirtAddr;
 use x86_64::structures::paging::{Page, PageTable, PageTableFlags, PhysFrame, Mapper, RecursivePageTable};
 
-//use self::paging::{PhysicalAddress, PAGE_SIZE};
-//use self::paging::mapper::Mapper;
 pub use self::area_frame_allocator::AreaFrameAllocator;
 pub use self::stack_allocator::Stack;
 
 mod area_frame_allocator;
 pub mod heap;
-//pub mod paging;
 mod stack_allocator;
 
 pub fn init<'a>(boot_info: &BootInfo, mut rec_page_table: RecursivePageTable<'a>) -> MemoryController<'a> {
@@ -26,9 +23,10 @@ pub fn init<'a>(boot_info: &BootInfo, mut rec_page_table: RecursivePageTable<'a>
 
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
         let frame = frame_allocator.allocate_frame().expect("OOM - Cannot allocate frame");
-        rec_page_table.map_to(page, frame, PageTableFlags::WRITABLE, &mut || {
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+        rec_page_table.map_to(page, frame, flags, &mut || {
             frame_allocator.allocate_frame()
-        });
+        }).expect("Failed to map heap").flush();
     }
 
     let stack_allocator = {
