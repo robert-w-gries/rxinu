@@ -1,4 +1,5 @@
 .gdbinit
+bootimage.bin
 Cargo.lock
 build/
 target/

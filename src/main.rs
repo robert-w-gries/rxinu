@@ -9,6 +9,8 @@
 #![feature(naked_functions)]
 #![feature(ptr_internals)]
 #![feature(unique)]
+
+#![no_main]
 #![no_std]
 
 #[macro_use]
@@ -26,10 +28,12 @@ extern crate once;
 extern crate bit_field;
 extern crate linked_list_allocator;
 extern crate multiboot2;
+extern crate os_bootinfo;
 extern crate rlibc;
 extern crate spin;
 extern crate volatile;
 extern crate x86;
+extern crate x86_64;
 
 #[macro_use]
 pub mod arch;
@@ -39,16 +43,18 @@ pub mod syscall;
 
 use alloc::String;
 use arch::memory::heap::{HEAP_SIZE, HEAP_START};
+use os_bootinfo::BootInfo;
 
 #[no_mangle]
 /// Entry point for rust code
-pub extern "C" fn rust_main(multiboot_information_address: usize) {
+pub extern "C" fn _start(boot_info_address: usize) -> ! {
     arch::interrupts::disable();
     {
-        arch::init(multiboot_information_address);
+        arch::init(boot_info_address);
 
         kprintln!("\nIt did not crash!");
     }
+    loop{}
     arch::interrupts::enable();
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);

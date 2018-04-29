@@ -50,9 +50,10 @@ impl TemporaryPage {
     }
 }
 
-struct TinyAllocator([Option<Frame>; 3]);
-
 use arch::x86::memory::FrameAllocator;
+use x86_64::structures::paging::PhysFrame;
+
+struct TinyAllocator([Option<PhysFrame>; 3]);
 
 impl TinyAllocator {
     fn new<A>(allocator: &mut A) -> TinyAllocator
@@ -66,7 +67,7 @@ impl TinyAllocator {
 }
 
 impl FrameAllocator for TinyAllocator {
-    fn allocate_frame(&mut self) -> Option<Frame> {
+    fn allocate_frame(&mut self) -> Option<PhysFrame> {
         for frame_option in &mut self.0 {
             if frame_option.is_some() {
                 return frame_option.take();
@@ -75,7 +76,7 @@ impl FrameAllocator for TinyAllocator {
         None
     }
 
-    fn deallocate_frame(&mut self, frame: Frame) {
+    fn deallocate_frame(&mut self, frame: PhysFrame) {
         for frame_option in &mut self.0 {
             if frame_option.is_none() {
                 *frame_option = Some(frame);

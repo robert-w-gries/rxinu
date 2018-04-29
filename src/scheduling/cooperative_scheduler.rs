@@ -18,7 +18,7 @@ pub struct CoopScheduler {
 
 impl DoesScheduling for CoopScheduler {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
-        use arch::memory::paging;
+        //use arch::memory::paging;
 
         let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
 
@@ -53,9 +53,9 @@ impl DoesScheduling for CoopScheduler {
             process.kstack = Some(stack);
             process.name = name;
 
-            process
-                .context
-                .set_page_table(unsafe { paging::ActivePageTable::new().address() });
+            //process
+            //    .context
+            //    .set_page_table(unsafe { paging::ActivePageTable::new().address() });
 
             process.context.set_stack(proc_stack_pointer);
 

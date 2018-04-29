@@ -1,6 +1,7 @@
 use arch::x86::memory::{Frame, FrameAllocator};
 use core::ops::{Deref, DerefMut};
 use multiboot2::BootInformation;
+use x86_64::structures::paging::PhysFrame;
 
 use self::entry::EntryFlags;
 use self::mapper::{Mapper, TableMapper};
@@ -112,12 +113,12 @@ impl ActivePageTable {
 }
 
 pub struct InactivePageTable {
-    frame: Frame,
+    frame: PhysFrame,
 }
 
 impl InactivePageTable {
     pub fn new(
-        frame: Frame,
+        frame: PhysFrame,
         active_table: &mut ActivePageTable,
         temporary_page: &mut TemporaryPage,
     ) -> InactivePageTable {

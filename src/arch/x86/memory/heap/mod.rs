@@ -6,8 +6,8 @@ use alloc::allocator::{Alloc, AllocErr, Layout};
 use arch::interrupts;
 use linked_list_allocator::LockedHeap;
 
-pub const HEAP_START: usize = 0o_000_001_000_000_0000;
-pub const HEAP_SIZE: usize = 500 * 1024; // 500 KB
+pub const HEAP_START: u64 = 0o_000_001_000_000_0000;
+pub const HEAP_SIZE: u64 = 500 * 1024; // 500 KB
 
 pub struct HeapAllocator {
     inner: LockedHeap,
