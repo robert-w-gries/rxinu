@@ -28,7 +28,7 @@ impl FrameAllocator for AreaFrameAllocator {
             .filter(|region| region.region_type == MemoryRegionType::Usable)
             .next();
 
-        let mut frame_range: &mut FrameRange = &mut region.as_mut()
+        let frame_range: &mut FrameRange = &mut region.as_mut()
             .expect("Could not find usable memory region")
             .range;
 

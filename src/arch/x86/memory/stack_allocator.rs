@@ -14,7 +14,7 @@ impl StackAllocator {
 impl StackAllocator {
     pub fn alloc_stack<FA: FrameAllocator>(
         &mut self,
-        active_table: &mut RecursivePageTable,
+        page_table: &mut RecursivePageTable,
         frame_allocator: &mut FA,
         size_in_pages: usize,
     ) -> Option<Stack> {
@@ -44,9 +44,11 @@ impl StackAllocator {
                 // map stack pages to physical frames
                 for page in Page::range_inclusive(start, end) {
 			        let frame = frame_allocator.allocate_frame().expect("OOM - Cannot allocate frame"); 
-			        active_table.map_to(page, frame, PageTableFlags::WRITABLE, &mut || {
+                    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+
+			        page_table.map_to(page, frame, flags, &mut || {
 			            frame_allocator.allocate_frame()
-                    });
+                    }).expect("Could not map stack page").flush();
                 }
 
                 // create a new stack

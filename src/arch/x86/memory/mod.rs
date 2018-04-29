@@ -1,6 +1,6 @@
-use os_bootinfo::{BootInfo, MemoryRegion};
+use os_bootinfo::BootInfo;
 use x86_64::VirtAddr;
-use x86_64::structures::paging::{Page, PageTable, PageTableFlags, PhysFrame, Mapper, RecursivePageTable};
+use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Mapper, RecursivePageTable};
 
 pub use self::area_frame_allocator::AreaFrameAllocator;
 pub use self::stack_allocator::Stack;

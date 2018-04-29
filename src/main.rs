@@ -27,7 +27,6 @@ extern crate once;
 
 extern crate bit_field;
 extern crate linked_list_allocator;
-extern crate multiboot2;
 extern crate os_bootinfo;
 extern crate rlibc;
 extern crate spin;
@@ -43,7 +42,6 @@ pub mod syscall;
 
 use alloc::String;
 use arch::memory::heap::{HEAP_SIZE, HEAP_START};
-use os_bootinfo::BootInfo;
 
 #[no_mangle]
 /// Entry point for rust code

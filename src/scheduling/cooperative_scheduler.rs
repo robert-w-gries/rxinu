@@ -18,8 +18,6 @@ pub struct CoopScheduler {
 
 impl DoesScheduling for CoopScheduler {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
-        //use arch::memory::paging;
-
         let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
 
         // Reserve 3 blocks in the stack for scheduler data

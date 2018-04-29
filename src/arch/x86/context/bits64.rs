@@ -32,7 +32,7 @@ impl Context {
         asm!("pushfq ; pop $0" : "=r"(self.reg_flags) : : "memory" : "intel", "volatile");
         asm!("push $0 ; popfq" : : "r"(next.reg_flags) : "memory" : "intel", "volatile");
 
-        asm!("mov $0, cr3" : "=r"(self.cr3) : : "memory" : "intel", "volatile");
+        //asm!("mov $0, cr3" : "=r"(self.cr3) : : "memory" : "intel", "volatile");
         asm!("mov $0, rbx" : "=r"(self.rbx) : : "memory" : "intel", "volatile");
         asm!("mov $0, r12" : "=r"(self.r12) : : "memory" : "intel", "volatile");
         asm!("mov $0, r13" : "=r"(self.r13) : : "memory" : "intel", "volatile");
@@ -41,9 +41,9 @@ impl Context {
         asm!("mov $0, rsp" : "=r"(self.reg_sp) : : "memory" : "intel", "volatile");
         asm!("mov $0, rbp" : "=r"(self.reg_bp) : : "memory" : "intel", "volatile");
 
-        if next.cr3 != self.cr3 {
-            asm!("mov cr3, $0" : : "r"(next.cr3) : "memory" : "intel", "volatile");
-        }
+        //if next.cr3 != self.cr3 {
+        //    asm!("mov cr3, $0" : : "r"(next.cr3) : "memory" : "intel", "volatile");
+        //}
         asm!("mov rbx, $0" : : "r"(next.rbx) : "memory" : "intel", "volatile");
         asm!("mov r12, $0" : : "r"(next.r12) : "memory" : "intel", "volatile");
         asm!("mov r13, $0" : : "r"(next.r13) : "memory" : "intel", "volatile");
