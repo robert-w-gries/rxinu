@@ -8,21 +8,21 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 bit_field = "0.7.0"
 bitflags = "1.0.1"
-linked_list_allocator = "0.5"
+linked_list_allocator = "0.6.0"
 once = "0.3.2"
 os_bootinfo = "0.2.0"
 rlibc = "1.0.0"
 spin = "0.4.6"
 volatile = "0.1.0"
-x86_64 = { path = "/home/rob/projects/x86_64/" }
+x86_64 = "0.2.0-alpha-019"
 
 [dependencies.lazy_static]
 version = "0.2.4"
 features = ["spin_no_std"]
 
 [dependencies.x86]
-git = "https://github.com/gz/rust-x86"
-branch = "master"
+git = "https://github.com/robert-w-gries/rust-x86"
+branch = "stable"
 default-features = false
 
 [features]
