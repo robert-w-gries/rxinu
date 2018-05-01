@@ -1,10 +1,10 @@
 use arch::x86::interrupts;
 use arch::x86::interrupts::exception::ExceptionStack;
-use device::pic_8259 as pic;
-use device::uart_16550 as serial;
-use device::keyboard::ps2::PS2_KEYBOARD;
-use device::pit::PIT_TICKS;
 use core::sync::atomic::Ordering;
+use device::keyboard::ps2::PS2_KEYBOARD;
+use device::pic_8259 as pic;
+use device::pit::PIT_TICKS;
+use device::uart_16550 as serial;
 use scheduling::{DoesScheduling, SCHEDULER};
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStack) {
@@ -29,8 +29,8 @@ pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStack) {
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStack) {
     interrupts::disable_then_restore(|| {
-        use device::BufferedDevice;
         use device::ps2_controller_8042;
+        use device::BufferedDevice;
 
         pic::MASTER.lock().ack();
 

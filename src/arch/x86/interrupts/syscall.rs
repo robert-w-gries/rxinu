@@ -1,5 +1,5 @@
-use core::fmt;
 use super::exception::ExceptionStack;
+use core::fmt;
 
 #[cfg(target_arch = "x86")]
 type Bits = u32;

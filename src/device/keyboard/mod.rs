@@ -1,13 +1,13 @@
 use spin::Mutex;
 
 macro_rules! key_press {
-    ($x: expr) => {
+    ($x:expr) => {
         Some(KeyEvent::Pressed($x))
     };
 }
 
 macro_rules! key_release {
-    ($x: expr) => {
+    ($x:expr) => {
         Some(KeyEvent::Released($x))
     };
 }

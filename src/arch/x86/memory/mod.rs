@@ -1,6 +1,6 @@
 use os_bootinfo::BootInfo;
+use x86_64::structures::paging::{Mapper, Page, PageTableFlags, PhysFrame, RecursivePageTable};
 use x86_64::VirtAddr;
-use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Mapper, RecursivePageTable};
 
 pub use self::area_frame_allocator::AreaFrameAllocator;
 pub use self::stack_allocator::Stack;
@@ -9,12 +9,13 @@ mod area_frame_allocator;
 pub mod heap;
 mod stack_allocator;
 
-pub fn init<'a>(boot_info: &BootInfo, mut rec_page_table: RecursivePageTable<'a>) -> MemoryController<'a> {
+pub fn init<'a>(
+    boot_info: &BootInfo,
+    mut rec_page_table: RecursivePageTable<'a>,
+) -> MemoryController<'a> {
     assert_has_not_been_called!("memory::init must be called only once");
 
-    let mut frame_allocator = AreaFrameAllocator::new(
-        &boot_info.memory_map,
-    );
+    let mut frame_allocator = AreaFrameAllocator::new(&boot_info.memory_map);
 
     use self::heap::{HEAP_SIZE, HEAP_START};
 
@@ -22,11 +23,14 @@ pub fn init<'a>(boot_info: &BootInfo, mut rec_page_table: RecursivePageTable<'a>
     let heap_end_page = Page::containing_address(VirtAddr::new(HEAP_START + HEAP_SIZE - 1));
 
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
-        let frame = frame_allocator.allocate_frame().expect("OOM - Cannot allocate frame");
+        let frame = frame_allocator
+            .allocate_frame()
+            .expect("OOM - Cannot allocate frame");
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-        rec_page_table.map_to(page, frame, flags, &mut || {
-            frame_allocator.allocate_frame()
-        }).expect("Failed to map heap").flush();
+        rec_page_table
+            .map_to(page, frame, flags, &mut || frame_allocator.allocate_frame())
+            .expect("Failed to map heap")
+            .flush();
     }
 
     let stack_allocator = {

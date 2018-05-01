@@ -9,7 +9,6 @@
 #![feature(naked_functions)]
 #![feature(ptr_internals)]
 #![feature(unique)]
-
 #![no_main]
 #![no_std]
 

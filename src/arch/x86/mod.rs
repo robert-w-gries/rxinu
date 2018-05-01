@@ -11,9 +11,7 @@ pub mod interrupts;
 pub mod memory;
 
 pub fn init(boot_info_address: usize) {
-    let boot_info: &BootInfo = unsafe { 
-        &*(boot_info_address as *mut BootInfo)
-    };
+    let boot_info: &BootInfo = unsafe { &*(boot_info_address as *mut BootInfo) };
 
     if boot_info.check_version().is_err() {
         panic!("os_bootinfo version passed by bootloader does not match crate version!");
@@ -23,9 +21,8 @@ pub fn init(boot_info_address: usize) {
         kprintln!("{:?}", region);
     }
 
-    let mut page_table: &mut PageTable = unsafe {
-        &mut *(boot_info.p4_table_addr as *mut PageTable)
-    };
+    let mut page_table: &mut PageTable =
+        unsafe { &mut *(boot_info.p4_table_addr as *mut PageTable) };
 
     let rec_page_table =
         RecursivePageTable::new(&mut page_table).expect("recursive page table creation failed");
@@ -42,8 +39,8 @@ pub fn init(boot_info_address: usize) {
     device::init();
 }
 
-use x86::shared::PrivilegeLevel;
 use x86::shared::segmentation::SegmentSelector;
+use x86::shared::PrivilegeLevel;
 
 const USER_DATA: SegmentSelector =
     SegmentSelector::new(gdt::GDT_USER_DATA as u16, PrivilegeLevel::Ring3);

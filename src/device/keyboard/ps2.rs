@@ -1,8 +1,8 @@
 use alloc::{Vec, VecDeque};
-use device::{BufferedDevice, InputDevice};
-use device::keyboard::{Key, KeyEvent, STATE};
 use device::keyboard::Key::*;
 use device::keyboard::Modifier::*;
+use device::keyboard::{Key, KeyEvent, STATE};
+use device::{BufferedDevice, InputDevice};
 use spin::Mutex;
 
 pub static PS2_KEYBOARD: Mutex<Ps2> = Mutex::new(Ps2::new());

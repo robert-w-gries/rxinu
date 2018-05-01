@@ -1,5 +1,6 @@
 use arch::x86::memory::FrameAllocator;
-use x86_64::structures::paging::{Mapper, Page, PageSize, PageRangeInclusive, PageTableFlags, RecursivePageTable, Size4KB};
+use x86_64::structures::paging::{Mapper, Page, PageRangeInclusive, PageSize, PageTableFlags,
+                                 RecursivePageTable, Size4KB};
 
 pub struct StackAllocator {
     range: PageRangeInclusive,
@@ -43,17 +44,24 @@ impl StackAllocator {
 
                 // map stack pages to physical frames
                 for page in Page::range_inclusive(start, end) {
-			        let frame = frame_allocator.allocate_frame().expect("OOM - Cannot allocate frame"); 
-                    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+                    let frame = frame_allocator
+                        .allocate_frame()
+                        .expect("OOM - Cannot allocate frame");
+                    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE
+                        | PageTableFlags::NO_EXECUTE;
 
-			        page_table.map_to(page, frame, flags, &mut || {
-			            frame_allocator.allocate_frame()
-                    }).expect("Could not map stack page").flush();
+                    page_table
+                        .map_to(page, frame, flags, &mut || frame_allocator.allocate_frame())
+                        .expect("Could not map stack page")
+                        .flush();
                 }
 
                 // create a new stack
                 let top_of_stack = end.start_address() + Size4KB::SIZE;
-                Some(Stack::new(top_of_stack.as_u64() as usize, start.start_address().as_u64() as usize))
+                Some(Stack::new(
+                    top_of_stack.as_u64() as usize,
+                    start.start_address().as_u64() as usize,
+                ))
             }
             _ => None, /* not enough pages */
         }

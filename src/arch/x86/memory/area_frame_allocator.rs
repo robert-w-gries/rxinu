@@ -12,9 +12,7 @@ impl AreaFrameAllocator {
             mm.add_region(reg.clone());
         }
 
-        AreaFrameAllocator {
-            memory_map: mm,
-        }
+        AreaFrameAllocator { memory_map: mm }
     }
 }
 
@@ -24,11 +22,13 @@ impl FrameAllocator for AreaFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
         let regions: &mut [MemoryRegion] = &mut *self.memory_map;
 
-        let region = &mut regions.iter_mut()
+        let region = &mut regions
+            .iter_mut()
             .filter(|region| region.region_type == MemoryRegionType::Usable)
             .next();
 
-        let frame_range: &mut FrameRange = &mut region.as_mut()
+        let frame_range: &mut FrameRange = &mut region
+            .as_mut()
             .expect("Could not find usable memory region")
             .range;
 

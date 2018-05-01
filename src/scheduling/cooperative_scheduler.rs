@@ -2,8 +2,8 @@ use alloc::{String, Vec, VecDeque};
 use core::mem;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use scheduling::{DoesScheduling, Process, ProcessId, ProcessList, State, INIT_STK_SIZE};
 use scheduling::process;
+use scheduling::{DoesScheduling, Process, ProcessId, ProcessList, State, INIT_STK_SIZE};
 use spin::RwLock;
 use syscall::error::Error;
 

@@ -1,4 +1,4 @@
-use core::alloc::{Alloc, Layout, Opaque, AllocErr};
+use core::alloc::{Alloc, AllocErr, Layout, Opaque};
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
