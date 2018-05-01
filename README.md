@@ -32,6 +32,7 @@ See [Phillipp Oppermann's blog post regarding gdb](https://os.phil-opp.com/set-u
 ```bash
 qemu-system-x86_64 -drive format=raw,file=bootimage.bin -d int -s -S &
 rust-gdb target/x86_64-rxinu/debug/rxinu -ex "target remote :1234"
+```
 
 ## Features
 
