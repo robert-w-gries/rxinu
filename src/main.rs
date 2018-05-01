@@ -55,6 +55,10 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
+    for _ in 0..1000 {
+        syscall::create(test_process, String::from("rxinu_main"));
+    }
+
     syscall::create(rxinu_main, String::from("rxinu_main"));
 
     loop {

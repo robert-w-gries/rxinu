@@ -51,9 +51,9 @@ impl DoesScheduling for CoopScheduler {
             process.kstack = Some(stack);
             process.name = name;
 
-            //process
-            //    .context
-            //    .set_page_table(unsafe { paging::ActivePageTable::new().address() });
+            process
+                .context
+                .set_page_table(unsafe { ::x86::shared::control_regs::cr3() as usize });
 
             process.context.set_stack(proc_stack_pointer);
 
