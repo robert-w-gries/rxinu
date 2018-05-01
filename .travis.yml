@@ -12,7 +12,7 @@ before_script:
   - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
   - (test -x $HOME/.cargo/bin/xargo || cargo install xargo)
   - (test -x $HOME/.cargo/bin/bootimage || cargo install bootimage)
-  - rustup component add rustfmt-preivew --toolchain nightly
+  - rustup component add rustfmt-preview --toolchain nightly
   - cargo install-update -a
 
 script:
