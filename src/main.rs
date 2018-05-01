@@ -122,6 +122,12 @@ pub extern "C" fn _Unwind_Resume() -> ! {
     loop {}
 }
 
+#[lang = "oom"]
+#[no_mangle]
+pub fn rust_oom() -> ! {
+    panic!("Out of memory");
+}
+
 use arch::memory::heap::HeapAllocator;
 
 #[global_allocator]

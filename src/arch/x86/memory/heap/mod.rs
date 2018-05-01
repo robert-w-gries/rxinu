@@ -2,8 +2,9 @@
 
 pub mod bump_allocator;
 
-use alloc::allocator::{Alloc, AllocErr, Layout};
 use arch::interrupts;
+use core::alloc::{Alloc, GlobalAlloc, Layout, Opaque};
+use core::ptr::NonNull;
 use linked_list_allocator::LockedHeap;
 
 pub const HEAP_START: u64 = 0o_000_001_000_000_0000;
@@ -33,21 +34,17 @@ impl HeapAllocator {
 }
 
 /// Wrappers for inner Alloc implementation
-unsafe impl<'a> Alloc for &'a HeapAllocator {
-    unsafe fn alloc(&mut self, layout: Layout) -> Result<*mut u8, AllocErr> {
-        interrupts::disable_then_restore(|| -> Result<*mut u8, AllocErr> {
-            self.inner.lock().alloc(layout)
+unsafe impl GlobalAlloc for HeapAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut Opaque {
+        interrupts::disable_then_restore(|| -> *mut Opaque {
+            self.inner.lock().alloc(layout).ok().map_or(0 as *mut Opaque, |allocation| allocation.as_ptr())
         })
     }
 
     #[inline]
-    unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
+    unsafe fn dealloc(&self, ptr: *mut Opaque, layout: Layout) {
         interrupts::disable_then_restore(|| {
-            self.inner.lock().dealloc(ptr, layout);
+            self.inner.lock().dealloc(NonNull::new_unchecked(ptr), layout);
         });
-    }
-
-    fn oom(&mut self, _: AllocErr) -> ! {
-        panic!("Out of memory");
     }
 }

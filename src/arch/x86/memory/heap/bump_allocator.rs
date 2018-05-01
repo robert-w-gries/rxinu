@@ -1,5 +1,5 @@
-use alloc::heap::{Alloc, AllocErr, Layout};
-
+use core::alloc::{Alloc, Layout, Opaque, AllocErr};
+use core::ptr::NonNull;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 /// A simple allocator that allocates memory linearly and ignores freed memory.
@@ -21,7 +21,7 @@ impl BumpAllocator {
 }
 
 unsafe impl<'a> Alloc for &'a BumpAllocator {
-    unsafe fn alloc(&mut self, layout: Layout) -> Result<*mut u8, AllocErr> {
+    unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<Opaque>, AllocErr> {
         loop {
             // load current state of the `next` field
             let current_next = self.next.load(Ordering::Relaxed);
@@ -35,20 +35,16 @@ unsafe impl<'a> Alloc for &'a BumpAllocator {
                         .compare_and_swap(current_next, alloc_end, Ordering::Relaxed);
                 if next_now == current_next {
                     // next address was successfully updated, allocation succeeded
-                    return Ok(alloc_start as *mut u8);
+                    return Ok(NonNull::new(alloc_start as *mut Opaque).unwrap());
                 }
             } else {
-                return Err(AllocErr::Exhausted { request: layout });
+                return Err(AllocErr);
             }
         }
     }
 
-    unsafe fn dealloc(&mut self, _ptr: *mut u8, _layout: Layout) {
+    unsafe fn dealloc(&mut self, _ptr: NonNull<Opaque>, _layout: Layout) {
         // do nothing, leak memory
-    }
-
-    fn oom(&mut self, _: AllocErr) -> ! {
-        panic!("Out of memory");
     }
 }
 
