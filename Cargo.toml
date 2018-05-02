@@ -21,8 +21,7 @@ version = "0.2.4"
 features = ["spin_no_std"]
 
 [dependencies.x86]
-git = "https://github.com/robert-w-gries/rust-x86"
-branch = "stable"
+version = "0.9.0"
 default-features = false
 
 [features]
