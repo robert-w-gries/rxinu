@@ -1,5 +1,5 @@
-use arch::x86::memory::FrameAllocator;
-use x86_64::structures::paging::{Mapper, Page, PageRangeInclusive, PageSize, PageTableFlags,
+use arch::x86::memory::{map_page, FrameAllocator};
+use x86_64::structures::paging::{Page, PageRangeInclusive, PageSize, PageTableFlags,
                                  RecursivePageTable, Size4KB};
 
 pub struct StackAllocator {
@@ -44,16 +44,11 @@ impl StackAllocator {
 
                 // map stack pages to physical frames
                 for page in Page::range_inclusive(start, end) {
-                    let frame = frame_allocator
-                        .allocate_frame()
-                        .expect("OOM - Cannot allocate frame");
                     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE
                         | PageTableFlags::NO_EXECUTE;
 
-                    page_table
-                        .map_to(page, frame, flags, &mut || frame_allocator.allocate_frame())
-                        .expect("Could not map stack page")
-                        .flush();
+                    map_page(page, flags, page_table, frame_allocator)
+                        .expect("Stack page mapping failed");
                 }
 
                 // create a new stack
