@@ -1,15 +1,14 @@
-use arch::x86::memory::FrameAllocator;
-use arch::x86::memory::paging::{ActivePageTable, PAGE_SIZE};
-use arch::x86::memory::paging::mapper::Mapper;
-use arch::x86::memory::paging::page::{Page, PageIter};
-use arch::x86::memory::paging::entry::EntryFlags;
+use arch::x86::memory::{map_page, FrameAllocator};
+use x86_64::structures::paging::{
+    Page, PageRangeInclusive, PageSize, PageTableFlags, RecursivePageTable, Size4KB,
+};
 
 pub struct StackAllocator {
-    range: PageIter,
+    range: PageRangeInclusive,
 }
 
 impl StackAllocator {
-    pub fn new(page_range: PageIter) -> StackAllocator {
+    pub fn new(page_range: PageRangeInclusive) -> StackAllocator {
         StackAllocator { range: page_range }
     }
 }
@@ -17,7 +16,7 @@ impl StackAllocator {
 impl StackAllocator {
     pub fn alloc_stack<FA: FrameAllocator>(
         &mut self,
-        active_table: &mut ActivePageTable,
+        page_table: &mut RecursivePageTable,
         frame_allocator: &mut FA,
         size_in_pages: usize,
     ) -> Option<Stack> {
@@ -46,12 +45,19 @@ impl StackAllocator {
 
                 // map stack pages to physical frames
                 for page in Page::range_inclusive(start, end) {
-                    active_table.map(page, EntryFlags::WRITABLE, frame_allocator);
+                    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE
+                        | PageTableFlags::NO_EXECUTE;
+
+                    map_page(page, flags, page_table, frame_allocator)
+                        .expect("Stack page mapping failed");
                 }
 
                 // create a new stack
-                let top_of_stack = end.start_address() + PAGE_SIZE;
-                Some(Stack::new(top_of_stack, start.start_address()))
+                let top_of_stack = end.start_address() + Size4KB::SIZE;
+                Some(Stack::new(
+                    top_of_stack.as_u64() as usize,
+                    start.start_address().as_u64() as usize,
+                ))
             }
             _ => None, /* not enough pages */
         }

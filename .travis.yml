@@ -7,22 +7,14 @@ cache:
     - $HOME/.xargo
     - $TRAVIS_BUILD_DIR/target
 
-env:
-  - ['target=i686']
-  - ['target=x86_64']
-
 before_script:
   - rustup component add rust-src
   - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
   - (test -x $HOME/.cargo/bin/xargo || cargo install xargo)
-  - rustup run nightly cargo install rustfmt-nightly --force
+  - (test -x $HOME/.cargo/bin/bootimage || cargo install bootimage)
+  - rustup component add rustfmt-preview --toolchain nightly
   - cargo install-update -a
 
-addons:
-  apt:
-    packages:
-      - nasm
-
 script:
-  - cargo fmt -- --write-mode=diff
-  - make FEATURES="vga serial"
+  - cargo +nightly fmt -- --write-mode=check
+  - bootimage build --target x86_64-rxinu

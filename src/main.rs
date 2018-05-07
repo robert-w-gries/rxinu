@@ -9,6 +9,7 @@
 #![feature(naked_functions)]
 #![feature(ptr_internals)]
 #![feature(unique)]
+#![no_main]
 #![no_std]
 
 #[macro_use]
@@ -25,11 +26,12 @@ extern crate once;
 
 extern crate bit_field;
 extern crate linked_list_allocator;
-extern crate multiboot2;
+extern crate os_bootinfo;
 extern crate rlibc;
 extern crate spin;
 extern crate volatile;
 extern crate x86;
+extern crate x86_64;
 
 #[macro_use]
 pub mod arch;
@@ -42,12 +44,10 @@ use arch::memory::heap::{HEAP_SIZE, HEAP_START};
 
 #[no_mangle]
 /// Entry point for rust code
-pub extern "C" fn rust_main(multiboot_information_address: usize) {
+pub extern "C" fn _start(boot_info_address: usize) -> ! {
     arch::interrupts::disable();
     {
-        arch::init(multiboot_information_address);
-
-        kprintln!("\nIt did not crash!");
+        arch::init(boot_info_address);
     }
     arch::interrupts::enable();
 
@@ -115,6 +115,12 @@ pub extern "C" fn panic_fmt(fmt: core::fmt::Arguments, file: &str, line: u32) ->
 #[no_mangle]
 pub extern "C" fn _Unwind_Resume() -> ! {
     loop {}
+}
+
+#[lang = "oom"]
+#[no_mangle]
+pub fn rust_oom() -> ! {
+    panic!("Out of memory");
 }
 
 use arch::memory::heap::HeapAllocator;

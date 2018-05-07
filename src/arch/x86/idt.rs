@@ -1,9 +1,9 @@
 use arch::x86::interrupts::{irq, syscall, DOUBLE_FAULT_IST_INDEX};
 use core::mem;
-use x86::shared::PrivilegeLevel;
 use x86::shared::dtables::{self, DescriptorTablePointer};
 use x86::shared::paging::VAddr;
 use x86::shared::segmentation::SegmentSelector;
+use x86::shared::PrivilegeLevel;
 
 #[cfg(target_arch = "x86")]
 use x86::bits32::irq::IdtEntry;

@@ -1,7 +1,7 @@
-use syscall::io::Port;
-use syscall::io::Io;
-use spin::Mutex;
 use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT};
+use spin::Mutex;
+use syscall::io::Io;
+use syscall::io::Port;
 
 /// Operate in channel 0. Use mode 3, and operate with lobyte/hibyte.
 const PIT_SET: u8 = 0x36;

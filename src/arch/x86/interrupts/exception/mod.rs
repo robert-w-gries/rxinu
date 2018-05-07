@@ -12,14 +12,14 @@ pub use self::bits32::*;
 pub use self::bits64::*;
 
 macro_rules! exception {
-    ($e: ident, $desc: expr, $func: block) => {
+    ($e:ident, $desc:expr, $func:block) => {
         pub extern "x86-interrupt" fn $e(stack_frame: &mut ExceptionStack) {
             kprintln!("\n{:#?}\n{:#?}", stack_frame, $desc);
             use arch::interrupts;
             interrupts::disable_then_restore(|| $func);
         }
     };
-    ($e: ident, $desc: expr, $err_type: ty, $func: block) => {
+    ($e:ident, $desc:expr, $err_type:ty, $func:block) => {
         #[cfg(target_arch = "x86")]
         pub extern "x86-interrupt" fn $e(stack_frame: &mut ErrorStack) {
             kprintln!("\n{:#?}\n{:#?}", stack_frame, $desc);

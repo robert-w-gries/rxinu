@@ -2,8 +2,8 @@ mod cooperative_scheduler;
 pub mod process;
 pub mod process_list;
 
-use alloc::String;
 use self::cooperative_scheduler as scheduler;
+use alloc::String;
 use syscall::error::Error;
 
 pub use self::process::{Process, ProcessId, State};

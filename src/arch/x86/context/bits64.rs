@@ -1,14 +1,14 @@
 #[derive(Clone, Debug)]
 pub struct Context {
     pub cr3: usize,
-    reg_bp: usize,
-    reg_flags: usize,
+    pub reg_bp: usize,
+    pub reg_flags: usize,
     pub reg_sp: usize,
-    rbx: usize,
-    r12: usize,
-    r13: usize,
-    r14: usize,
-    r15: usize,
+    pub rbx: usize,
+    pub r12: usize,
+    pub r13: usize,
+    pub r14: usize,
+    pub r15: usize,
 }
 
 impl Context {
@@ -32,6 +32,7 @@ impl Context {
         asm!("pushfq ; pop $0" : "=r"(self.reg_flags) : : "memory" : "intel", "volatile");
         asm!("push $0 ; popfq" : : "r"(next.reg_flags) : "memory" : "intel", "volatile");
 
+        // save CPU state
         asm!("mov $0, cr3" : "=r"(self.cr3) : : "memory" : "intel", "volatile");
         asm!("mov $0, rbx" : "=r"(self.rbx) : : "memory" : "intel", "volatile");
         asm!("mov $0, r12" : "=r"(self.r12) : : "memory" : "intel", "volatile");
@@ -41,6 +42,7 @@ impl Context {
         asm!("mov $0, rsp" : "=r"(self.reg_sp) : : "memory" : "intel", "volatile");
         asm!("mov $0, rbp" : "=r"(self.reg_bp) : : "memory" : "intel", "volatile");
 
+        // load new CPU state
         if next.cr3 != self.cr3 {
             asm!("mov cr3, $0" : : "r"(next.cr3) : "memory" : "intel", "volatile");
         }

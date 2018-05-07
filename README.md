@@ -3,103 +3,55 @@
 # rxinu
 Rust implementation of [Xinu](https://github.com/xinu-os/xinu), based on the [excellent blog written by Philipp Oppermann](https://os.phil-opp.com/)
 
-## Quick Run (Docker)
-
-Clone this repo then run the following:
-
 ```bash
-sudo apt-get install make
-wget -qO- https://get.docker.com/ | sh
-# Fedora: sudo systemctl start docker
-sudo make docker_build
-sudo make docker_run
-make run # Inside of docker linux container
-```
-
-## Dependencies
-
-### Installation
-
-```bash
-sudo apt-get install binutils clang curl grub nasm qemu xorriso -y
+sudo apt-get install gcc qemu -y
 curl https://sh.rustup.rs -sSf | sh -s -- -y
 export PATH="${PATH}:$HOME/.cargo/bin"
-rustup install nightly
 rustup default nightly
-cargo install xargo
 rustup component add rust-src
+cargo install xargo
+cargo install bootimage
 ```
 
-#### Distro Notes
+## Running
 
-* Fedora
-  * `grub2` package was already installed
-  * `make run` fails due to wrong GRUB_MKRESCUE
-    * Use `make run GRUB_MKRESCUE=grub2-mkrescue` or `export GRUB_MKRESCUE=grub2-mkrescue`
-* OpenSUSE
-  * installing the `gcc-devel` apt repository was required to run `cargo install xargo`
-
-## Compilation
+### Quick Run (Qemu)
 
 ```bash
-make # build target=x86_64 by default
-make target=i686
+bootimage run --target x86_64-rxinu
 ```
 
-## Testing
+### Other methods
 
-```bash
-make run # run target=x86_64 by default
-make run target=i686
-```
-
-* You can also use real hardware
+[See here](https://os.phil-opp.com/minimal-rust-kernel/#virtualbox) for instructions on running the kernel on VirtualBox or on real hardware.
 
 ## Debugging
 
-See [Phillipp Oppermann's blog post regarding gdb](https://os.phil-opp.com/set-up-gdb/) for details on how to debug the kernel.
+See [Phillipp Oppermann's blog post regarding gdb](https://os.phil-opp.com/set-up-gdb/) to build a gdb binary that can debug x86_64 kernels.
 
-The `rxinu` Makefile has support for debugging built-in already. All that is needed is installing the `gdb` fork and pointing the Makefile's environment variable to the forked `gdb`
+```bash
+qemu-system-x86_64 -drive format=raw,file=bootimage.bin -d int -s -S &
+rust-gdb target/x86_64-rxinu/debug/rxinu -ex "target remote :1234"
+```
 
-## Goals
+## Features
 
-- [x] Kernel runs rust code
-- [x] Simple VGA driver
-- [x] Memory Management
-  - [x] Setup paging
-  - [x] Physical Memory Manager
-  - [x] Virtual Memory Allocator
-  - [x] Heap Allocator
-  - [ ] Switch to [ralloc](https://github.com/redox-os/ralloc)
-- [ ] Interrupt handling
-  - [x] CPU Exception
-  - [ ] IRQ
-  - [ ] Syscall
-- [ ] Project 1: Synchronous serial driver
-  - [x] Serial driver
-  - [ ] Keyboard interrupt
-  - [ ] `kputc`/`kgetc`/`kungetc`/`kprintf`
-- [ ] Higher half kernel
-- [ ] Unit tests and integration tests
-- [ ] MIPS target
-- [ ] Timer
-- [ ] Processes
-- [ ] Scheduler
-  - [ ] Project 2: Multiprocessing and Context Switch
-  - [ ] Project 3: Priority and Preemption
-- [ ] Project 4: Synchronization and Interprocess Communications
-- [ ] Project 5: Sleep and Delta Queues
-- [ ] Project 6: File system
-- [ ] Project 7: Xinu File Sharing Protocol
-- [ ] Project 8: Chat application
-- [ ] Permissions for kernel sections
-- [ ] Hardware abstraction
-- [ ] CI
-  - [x] Build all targets
-  - [ ] Rustfmt for all crates
-  - [ ] Unit tests
-  - [ ] Regression tests
-  - [ ] Code coverage
+* Architectures
+  * x86_64
+* MMU
+  * Paging
+  * Heap Allocation
+* Interrupt Handling
+  * Exceptions
+  * IRQ
+* Scheduling
+  * Cooperative Scheduler
+* Device Drivers
+  * PIC
+  * PIT
+  * PS/2 Keyboard
+  * Serial
+  * VGA
 
 ## License
 

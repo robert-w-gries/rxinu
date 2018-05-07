@@ -1,9 +1,9 @@
-use arch::x86::memory::MemoryController;
-use x86::bits32::task::TaskStateSegment;
-use x86::bits32::segmentation::SegmentDescriptor;
-use x86::shared::PrivilegeLevel;
-use x86::shared::segmentation::{Type, CODE_READ, DATA_WRITE};
 use super::{GdtArray, GDT, GDT_TSS};
+use arch::x86::memory::MemoryController;
+use x86::bits32::segmentation::SegmentDescriptor;
+use x86::bits32::task::TaskStateSegment;
+use x86::shared::segmentation::{Type, CODE_READ, DATA_WRITE};
+use x86::shared::PrivilegeLevel;
 
 pub const GDT_SIZE: usize = GDT_TSS + 1;
 

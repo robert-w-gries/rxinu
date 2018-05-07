@@ -1,9 +1,9 @@
 use arch::x86::memory::MemoryController;
 use core::mem;
 use spin::Once;
-use x86::shared::PrivilegeLevel;
 use x86::shared::dtables::{self, DescriptorTablePointer};
 use x86::shared::segmentation::SegmentDescriptor;
+use x86::shared::PrivilegeLevel;
 
 pub use self::current::{create_gdt, tss, GDT_SIZE};
 

@@ -1,10 +1,10 @@
-use arch::x86::memory::MemoryController;
-use arch::x86::interrupts::DOUBLE_FAULT_IST_INDEX;
-use x86::current::task::TaskStateSegment;
-use x86::current::segmentation::{SegmentBitness, SegmentDescriptor};
-use x86::shared::PrivilegeLevel;
-use x86::shared::segmentation::{Type, CODE_READ, DATA_WRITE};
 use super::{GdtArray, GDT, GDT_TSS};
+use arch::x86::interrupts::DOUBLE_FAULT_IST_INDEX;
+use arch::x86::memory::MemoryController;
+use x86::current::segmentation::{SegmentBitness, SegmentDescriptor};
+use x86::current::task::TaskStateSegment;
+use x86::shared::segmentation::{Type, CODE_READ, DATA_WRITE};
+use x86::shared::PrivilegeLevel;
 
 pub const GDT_SIZE: usize = GDT_TSS + 2;
 

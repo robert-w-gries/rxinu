@@ -1,97 +1,47 @@
-use arch::x86::memory::{Frame, FrameAllocator};
-use multiboot2::{MemoryArea, MemoryAreaIter};
+use arch::x86::memory::FrameAllocator;
+use os_bootinfo::{FrameRange, MemoryMap, MemoryRegionType};
+use x86_64::structures::paging::{PhysFrame, PhysFrameRange, Size4KB};
 
 pub struct AreaFrameAllocator {
-    next_free_frame: Frame,
-    current_area: Option<&'static MemoryArea>,
-    areas: MemoryAreaIter,
-    kernel_start: Frame,
-    kernel_end: Frame,
-    multiboot_start: Frame,
-    multiboot_end: Frame,
+    memory_map: MemoryMap,
 }
 
 impl AreaFrameAllocator {
-    pub fn new(
-        kernel_start: usize,
-        kernel_end: usize,
-        multiboot_start: usize,
-        multiboot_end: usize,
-        memory_areas: MemoryAreaIter,
-    ) -> AreaFrameAllocator {
-        let mut allocator = AreaFrameAllocator {
-            next_free_frame: Frame::containing_address(0),
-            current_area: None,
-            areas: memory_areas,
-            kernel_start: Frame::containing_address(kernel_start),
-            kernel_end: Frame::containing_address(kernel_end),
-            multiboot_start: Frame::containing_address(multiboot_start),
-            multiboot_end: Frame::containing_address(multiboot_end),
-        };
-        allocator.choose_next_area();
-        allocator
-    }
-
-    fn choose_next_area(&mut self) {
-        self.current_area = self.areas
-            .clone()
-            .filter(|area| {
-                let address = area.end_address() - 1;
-                Frame::containing_address(address as usize) >= self.next_free_frame
-            })
-            .min_by_key(|area| area.start_address());
-
-        if let Some(area) = self.current_area {
-            let start_frame = Frame::containing_address(area.start_address() as usize);
-            if self.next_free_frame < start_frame {
-                self.next_free_frame = start_frame;
-            }
+    pub fn new(memory_map: &MemoryMap) -> Self {
+        let mut mm = MemoryMap::new();
+        for reg in memory_map.iter() {
+            mm.add_region(reg.clone());
         }
+
+        AreaFrameAllocator { memory_map: mm }
     }
 }
 
 impl FrameAllocator for AreaFrameAllocator {
-    fn allocate_frame(&mut self) -> Option<Frame> {
-        if let Some(area) = self.current_area {
-            // "Clone" the frame to return it if it's free. Frame doesn't
-            // implement Clone, but we can construct an identical frame.
-            let frame = Frame {
-                number: self.next_free_frame.number,
-            };
+    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+        let region = &mut self.memory_map
+            .iter_mut()
+            .filter(|region| region.region_type == MemoryRegionType::Usable)
+            .next();
 
-            // the last frame of the current area
-            let current_area_last_frame = {
-                let address = area.end_address() - 1;
-                Frame::containing_address(address as usize)
-            };
+        let frame_range: &mut FrameRange = &mut region
+            .as_mut()
+            .expect("Could not find usable memory region")
+            .range;
 
-            if frame > current_area_last_frame {
-                // all frames of current area are used, switch to next area
-                self.choose_next_area();
-            } else if frame >= self.kernel_start && frame <= self.kernel_end {
-                // `frame` is used by the kernel
-                self.next_free_frame = Frame {
-                    number: self.kernel_end.number + 1,
-                };
-            } else if frame >= self.multiboot_start && frame <= self.multiboot_end {
-                // `frame` is used by the multiboot information structure
-                self.next_free_frame = Frame {
-                    number: self.multiboot_end.number + 1,
-                };
-            } else {
-                // frame is unused, increment `next_free_frame` and return it
-                self.next_free_frame.number += 1;
-                return Some(frame);
-            }
-            // `frame` was not valid, try it again with the updated `next_free_frame`
-            self.allocate_frame()
+        let mut phys_range = PhysFrameRange::<Size4KB>::from(*frame_range);
+
+        if let Some(frame) = phys_range.next() {
+            frame_range.start_frame_number =
+                phys_range.start.start_address().as_u64() / frame.size();
+            Some(frame)
         } else {
-            None // no free frames left
+            None
         }
     }
 
     #[allow(unused)]
-    fn deallocate_frame(&mut self, frame: Frame) {
+    fn deallocate_frame(&mut self, frame: PhysFrame) {
         unimplemented!()
     }
 }

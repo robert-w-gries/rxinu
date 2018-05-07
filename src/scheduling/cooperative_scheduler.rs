@@ -2,8 +2,8 @@ use alloc::{String, Vec, VecDeque};
 use core::mem;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use scheduling::{DoesScheduling, Process, ProcessId, ProcessList, State, INIT_STK_SIZE};
 use scheduling::process;
+use scheduling::{DoesScheduling, Process, ProcessId, ProcessList, State, INIT_STK_SIZE};
 use spin::RwLock;
 use syscall::error::Error;
 
@@ -18,8 +18,6 @@ pub struct CoopScheduler {
 
 impl DoesScheduling for CoopScheduler {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
-        use arch::memory::paging;
-
         let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
 
         // Reserve 3 blocks in the stack for scheduler data
@@ -50,14 +48,18 @@ impl DoesScheduling for CoopScheduler {
         {
             let mut process = process_lock.write();
 
-            process.kstack = Some(stack);
             process.name = name;
 
             process
                 .context
-                .set_page_table(unsafe { paging::ActivePageTable::new().address() });
+                .set_page_table(unsafe { ::x86::shared::control_regs::cr3() as usize });
 
+            process
+                .context
+                .set_base_pointer(stack.as_ptr() as usize + stack.len());
             process.context.set_stack(proc_stack_pointer);
+
+            process.kstack = Some(stack);
 
             Ok(process.pid)
         }
