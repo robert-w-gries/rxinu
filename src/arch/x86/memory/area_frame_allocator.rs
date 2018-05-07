@@ -32,7 +32,8 @@ impl FrameAllocator for AreaFrameAllocator {
         let mut phys_range = PhysFrameRange::<Size4KB>::from(*frame_range);
 
         if let Some(frame) = phys_range.next() {
-            frame_range.start_frame_number = phys_range.start.start_address().as_u64() / frame.size();
+            frame_range.start_frame_number =
+                phys_range.start.start_address().as_u64() / frame.size();
             Some(frame)
         } else {
             None

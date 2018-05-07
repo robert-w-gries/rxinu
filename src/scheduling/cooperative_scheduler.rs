@@ -54,7 +54,9 @@ impl DoesScheduling for CoopScheduler {
                 .context
                 .set_page_table(unsafe { ::x86::shared::control_regs::cr3() as usize });
 
-            process.context.set_base_pointer(stack.as_ptr() as usize + stack.len());
+            process
+                .context
+                .set_base_pointer(stack.as_ptr() as usize + stack.len());
             process.context.set_stack(proc_stack_pointer);
 
             process.kstack = Some(stack);
