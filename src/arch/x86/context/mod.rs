@@ -6,6 +6,10 @@ impl Context {
     pub fn set_stack(&mut self, address: usize) {
         self.reg_sp = address;
     }
+
+    pub fn set_base_pointer(&mut self, address: usize) {
+        self.reg_bp = address;
+    }
 }
 
 #[cfg(target_arch = "x86")]

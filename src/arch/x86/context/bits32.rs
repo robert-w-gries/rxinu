@@ -1,12 +1,12 @@
 #[derive(Clone, Debug)]
 pub struct Context {
     pub cr3: usize,
-    reg_bp: usize,
-    reg_flags: usize,
+    pub reg_bp: usize,
+    pub reg_flags: usize,
     pub reg_sp: usize,
-    ebx: usize,
-    edi: usize,
-    esi: usize,
+    pub ebx: usize,
+    pub edi: usize,
+    pub esi: usize,
 }
 
 impl Context {
