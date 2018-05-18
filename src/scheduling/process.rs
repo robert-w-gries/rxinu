@@ -97,13 +97,15 @@ impl Process {
 #[naked]
 pub unsafe extern "C" fn process_ret() {
     use alloc::boxed::Box;
-    use scheduling::DoesScheduling;
+    use scheduling::{DoesScheduling, SCHEDULER};
 
     let scheduler_ptr: *mut &DoesScheduling;
     asm!("pop $0" : "=r"(scheduler_ptr) : : "memory" : "intel", "volatile");
 
     let scheduler = Box::from_raw(scheduler_ptr);
 
-    let curr_id: ProcessId = scheduler.getid();
-    scheduler.kill(curr_id);
+    //let curr_id: ProcessId = scheduler.getid();
+    //scheduler.kill(curr_id);
+    let curr_id: ProcessId = SCHEDULER.getid();
+    SCHEDULER.kill(curr_id);
 }

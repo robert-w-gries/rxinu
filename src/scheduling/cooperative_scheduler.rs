@@ -56,7 +56,7 @@ impl DoesScheduling for CoopScheduler {
 
             process
                 .context
-                .set_base_pointer(stack.as_ptr() as usize + stack.len());
+                .set_base_pointer(stack.as_ptr() as usize + (stack.len() * mem::size_of::<usize>()));
             process.context.set_stack(proc_stack_pointer);
 
             process.kstack = Some(stack);

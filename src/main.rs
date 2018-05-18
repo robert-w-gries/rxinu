@@ -5,6 +5,7 @@
 #![feature(const_max_value)]
 #![feature(const_unique_new, const_atomic_usize_new)]
 #![feature(const_fn)]
+#![feature(global_asm)]
 #![feature(lang_items)]
 #![feature(naked_functions)]
 #![feature(ptr_internals)]
