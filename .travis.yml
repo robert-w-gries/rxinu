@@ -16,5 +16,5 @@ before_script:
   - cargo install-update -a
 
 script:
-  - cargo +nightly fmt -- --write-mode=check
+  - cargo +nightly fmt -- --check
   - bootimage build --target x86_64-rxinu
