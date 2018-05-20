@@ -1,5 +1,5 @@
 use alloc::String;
-use scheduling::{DoesScheduling, ProcessId, SCHEDULER};
+use task::{DoesScheduling, ProcessId, SCHEDULER};
 
 /// Wrapper around scheduler.create() and ready() that can be called in processes
 pub fn create(new_proc: extern "C" fn(), name: String) -> ProcessId {

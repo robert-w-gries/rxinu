@@ -97,7 +97,7 @@ impl Process {
 #[naked]
 pub unsafe extern "C" fn process_ret() {
     use alloc::boxed::Box;
-    use scheduling::{DoesScheduling, SCHEDULER};
+    use task::{DoesScheduling, SCHEDULER};
 
     let scheduler_ptr: *mut &DoesScheduling;
     asm!("pop $0" : "=r"(scheduler_ptr) : : "memory" : "intel", "volatile");

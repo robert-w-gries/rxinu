@@ -37,7 +37,7 @@ extern crate x86_64;
 #[macro_use]
 pub mod arch;
 pub mod device;
-pub mod scheduling;
+pub mod task;
 pub mod syscall;
 
 use alloc::String;
