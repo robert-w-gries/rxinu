@@ -91,21 +91,9 @@ impl Process {
 ///
 /// When a process returns, it pops an instruction pointer off the stack then jumps to it
 /// The instruction pointer on the stack points to this function
-/// Note:
-/// To support multiple scheduler objects, use dynamic dispatch
-/// The parent scheduler object will always be on the stack
-#[naked]
 pub unsafe extern "C" fn process_ret() {
-    use alloc::boxed::Box;
     use task::{DoesScheduling, SCHEDULER};
 
-    let scheduler_ptr: *mut &DoesScheduling;
-    asm!("pop $0" : "=r"(scheduler_ptr) : : "memory" : "intel", "volatile");
-
-    let scheduler = Box::from_raw(scheduler_ptr);
-
-    //let curr_id: ProcessId = scheduler.getid();
-    //scheduler.kill(curr_id);
     let curr_id: ProcessId = SCHEDULER.getid();
     SCHEDULER.kill(curr_id);
 }

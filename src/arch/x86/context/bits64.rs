@@ -80,6 +80,7 @@ x86_64_context_switch:
     # Save the previous context
     pushfq
     pop qword ptr [rdi] # save rflags into prev.flags
+    # Rust inline assembly error: invalid operand
     #mov [rdi+0x8], cr3  # save rbx
     mov [rdi+0x10], rbx  # save rbx
     mov [rdi+0x18], r12 # save r12
@@ -99,6 +100,7 @@ x86_64_context_switch:
     mov r13, [rsi+0x20] # set r13
     mov r12, [rsi+0x18] # set r12
     mov rbx, [rsi+0x10]  # set rbx
+    # Rust inline assembly error: invalid operand
     #mov cr3, [rsi+0x8]  # set rbx
     push [rsi] # set rflags
     popfq

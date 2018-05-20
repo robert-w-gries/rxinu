@@ -19,23 +19,17 @@ impl DoesScheduling for Cooperative {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
         let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
 
-        // Reserve 3 blocks in the stack for scheduler data
-        // Stack order (top -> bottom)
-        // len-1: pointer to scheduler object (self) is used in process return
-        // len-2: process return instruction pointer
-        // len-3: process instruction pointer (process stack pointer starts here and grows down)
-        let proc_top: usize = stack.len() - 3;
-        let proc_stack_pointer: usize =
-            stack.as_ptr() as usize + (proc_top * mem::size_of::<usize>());
-
-        use alloc::boxed::Box;
-        let self_ptr: Box<&DoesScheduling> = Box::new(self);
-
         let stack_values: Vec<usize> = vec![
             new_proc as usize,
             process::process_ret as usize,
-            Box::into_raw(self_ptr) as usize,
         ];
+
+        // Reserve blocks in the stack for scheduler data
+        // len-1: process return instruction pointer
+        // len-2: process instruction pointer (process stack pointer starts here and grows down)
+        let proc_top: usize = stack.len() - stack_values.len();
+        let proc_stack_pointer: usize =
+            stack.as_ptr() as usize + (proc_top * mem::size_of::<usize>());
 
         for (i, val) in stack_values.iter().enumerate() {
             stack[proc_top + i] = *val;
