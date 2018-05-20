@@ -1,4 +1,5 @@
 #[derive(Clone, Debug)]
+#[repr(C)]
 pub struct Context {
     pub reg_flags: usize,
     pub cr3: usize,

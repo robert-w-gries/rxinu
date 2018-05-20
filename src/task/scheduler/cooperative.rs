@@ -6,16 +6,16 @@ use task::{DoesScheduling, Process, ProcessId, ProcessList, State, INIT_STK_SIZE
 use spin::RwLock;
 use syscall::error::Error;
 
-pub type Scheduler = CoopScheduler;
+pub type Scheduler = Cooperative;
 
 #[derive(Debug)]
-pub struct CoopScheduler {
+pub struct Cooperative {
     current_pid: AtomicUsize,
     proc_table: RwLock<ProcessList>,
     ready_list: RwLock<VecDeque<ProcessId>>,
 }
 
-impl DoesScheduling for CoopScheduler {
+impl DoesScheduling for Cooperative {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
         let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
 
@@ -158,9 +158,9 @@ impl DoesScheduling for CoopScheduler {
     }
 }
 
-impl CoopScheduler {
-    pub fn new() -> CoopScheduler {
-        CoopScheduler {
+impl Cooperative {
+    pub fn new() -> Cooperative {
+        Cooperative {
             current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
             proc_table: RwLock::new(ProcessList::new()),
             ready_list: RwLock::new(VecDeque::<ProcessId>::new()),

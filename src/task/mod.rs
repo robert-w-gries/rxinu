@@ -1,14 +1,13 @@
-mod cooperative_scheduler;
 pub mod process;
 pub mod process_list;
+pub mod scheduler;
 
-use self::cooperative_scheduler as scheduler;
 use alloc::String;
 use syscall::error::Error;
 
 pub use self::process::{Process, ProcessId, State};
 pub use self::process_list::ProcessList;
-pub use self::scheduler::Scheduler;
+pub use self::scheduler::cooperative::Scheduler;
 
 pub trait DoesScheduling {
     fn create(&self, func: extern "C" fn(), name: String) -> Result<ProcessId, Error>;
