@@ -92,7 +92,7 @@ impl Process {
 /// When a process returns, it pops an instruction pointer off the stack then jumps to it
 /// The instruction pointer on the stack points to this function
 pub unsafe extern "C" fn process_ret() {
-    use task::{DoesScheduling, SCHEDULER};
+    use task::{Scheduling, SCHEDULER};
 
     let curr_id: ProcessId = SCHEDULER.getid();
     SCHEDULER.kill(curr_id);

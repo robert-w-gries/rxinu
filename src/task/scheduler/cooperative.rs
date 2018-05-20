@@ -2,7 +2,7 @@ use alloc::{String, Vec, VecDeque};
 use core::mem;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use task::{DoesScheduling, Process, ProcessId, ProcessList, State, INIT_STK_SIZE, process};
+use task::{Scheduling, Process, ProcessId, ProcessList, State, INIT_STK_SIZE, process};
 use spin::RwLock;
 use syscall::error::Error;
 
@@ -15,7 +15,7 @@ pub struct Cooperative {
     ready_list: RwLock<VecDeque<ProcessId>>,
 }
 
-impl DoesScheduling for Cooperative {
+impl Scheduling for Cooperative {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
         let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
 

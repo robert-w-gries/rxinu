@@ -9,7 +9,7 @@ pub use self::process::{Process, ProcessId, State};
 pub use self::process_list::ProcessList;
 pub use self::scheduler::cooperative::Scheduler;
 
-pub trait DoesScheduling {
+pub trait Scheduling {
     fn create(&self, func: extern "C" fn(), name: String) -> Result<ProcessId, Error>;
     fn getid(&self) -> ProcessId;
     fn kill(&self, id: ProcessId);

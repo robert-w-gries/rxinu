@@ -5,7 +5,7 @@ use device::keyboard::ps2::PS2_KEYBOARD;
 use device::pic_8259 as pic;
 use device::pit::PIT_TICKS;
 use device::uart_16550 as serial;
-use task::{DoesScheduling, SCHEDULER};
+use task::{Scheduling, SCHEDULER};
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStack) {
     //This counter variable is updated every time an timer interrupt occurs. The timer is set to
