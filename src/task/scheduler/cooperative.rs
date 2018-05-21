@@ -8,11 +8,14 @@ use syscall::error::Error;
 
 pub type Scheduler = Cooperative;
 
-#[derive(Debug)]
 pub struct Cooperative {
     current_pid: AtomicUsize,
-    proc_table: RwLock<ProcessList>,
-    ready_list: RwLock<VecDeque<ProcessId>>,
+    inner: RwLock<CooperativeInner>,
+}
+
+struct CooperativeInner {
+    proc_table: ProcessList,
+    ready_list: VecDeque<ProcessId>,
 }
 
 impl Scheduling for Cooperative {
@@ -35,26 +38,24 @@ impl Scheduling for Cooperative {
             stack[proc_top + i] = *val;
         }
 
-        let mut proc_table_lock = self.proc_table.write();
+        let mut inner = self.inner.write();
 
-        let process_lock = proc_table_lock.add()?;
+        let mut proc = inner.proc_table.add()?;
         {
-            let mut process = process_lock.write();
+            proc.name = name;
 
-            process.name = name;
-
-            process
+            proc
                 .context
                 .set_page_table(unsafe { ::x86::shared::control_regs::cr3() as usize });
 
-            process
+            proc
                 .context
                 .set_base_pointer(stack.as_ptr() as usize + (stack.len() * mem::size_of::<usize>()));
-            process.context.set_stack(proc_stack_pointer);
+            proc.context.set_stack(proc_stack_pointer);
 
-            process.kstack = Some(stack);
+            proc.kstack = Some(stack);
 
-            Ok(process.pid)
+            Ok(proc.pid)
         }
     }
 
@@ -68,15 +69,13 @@ impl Scheduling for Cooperative {
     fn kill(&self, id: ProcessId) {
         // We need to scope the manipulation of the process so we don't deadlock in resched()
         {
-            let proc_table_lock = self.proc_table.read();
-            let mut proc_lock = proc_table_lock
-                .get(id)
-                .expect("Could not find process to kill")
-                .write();
+            let mut inner = self.inner.write();
 
-            proc_lock.set_state(State::Free);
-            proc_lock.kstack = None;
-            drop(&mut proc_lock.name);
+            let proc = inner.proc_table.get_mut(id).expect("Could not find process to kill");
+
+            proc.set_state(State::Free);
+            proc.kstack = None;
+            drop(&mut proc.name);
         }
 
         unsafe {
@@ -85,70 +84,65 @@ impl Scheduling for Cooperative {
     }
 
     fn ready(&self, id: ProcessId) {
-        self.ready_list.write().push_back(id);
+        self.inner
+            .write()
+            .ready_list
+            .push_back(id);
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
     unsafe fn resched(&self) {
-        // Ensure lock to ready list is not held.
+        // Important: Ensure lock is dropped before context switch
+        let mut inner = self.inner.write();
+
+        let curr_id: ProcessId = self.getid();
+        let next_id = if let Some(next_id) = inner.ready_list.pop_front() {
+            assert!(curr_id != next_id);
+            next_id
+        } else {
+            return;
+        };
+
+        // Add current process back to ready list
+        let mut current_proc = {
+            let mut current_proc = inner
+                                        .proc_table
+                                        .get_mut(curr_id)
+                                        .expect("Could not find current process in process table");
+
+            // Add current process back to ready list
+            if current_proc.state == State::Current {
+                current_proc.set_state(State::Ready);
+            }
+
+            current_proc.clone()
+        };
+        
         {
-            //skip expensive locks if possible.
-            if self.ready_list.read().is_empty() {
-                return;
+            if (current_proc.state == State::Ready) {
+                inner.ready_list.push_back(curr_id);
             }
         }
 
-        // TODO: Investigate less hacky way of context switching without deadlocking
-        let mut prev_ptr = 0 as *mut Process;
-        let mut next_ptr = 0 as *mut Process;
+        let mut next_proc = {
+            let mut next_proc = inner
+                                    .proc_table
+                                    .get_mut(next_id)
+                                    .expect("Process ID in ready list is not in process table");
 
-        // Separate the locks from the context switch through scoping
-        // This will avoid deadlocks on next resched() call
-        {
-            let proc_table_lock = self.proc_table.read();
-            let mut ready_list_lock = self.ready_list.write();
+            assert!(next_proc.kstack.is_some());
+ 
+            next_proc.set_state(State::Current);
 
-            let curr_id: ProcessId = self.getid();
+            next_proc.clone()
+        };
 
-            let mut prev = proc_table_lock
-                .get(curr_id)
-                .expect("Could not find previous process")
-                .write();
+        self.current_pid.store(next_id.0, Ordering::SeqCst);
 
-            // we want to be able to return to this process later
-            if prev.state == State::Current {
-                prev.set_state(State::Ready);
-                ready_list_lock.push_back(curr_id);
-            }
+        // Drop locks to prevent deadlock after context switch
+        drop(inner);
 
-            if let Some(next_id) = ready_list_lock.pop_front() {
-                let mut next = proc_table_lock
-                    .get(next_id)
-                    .expect("Could not find new process")
-                    .write();
-
-                assert!(next.kstack.is_some());
-
-                next.set_state(State::Current);
-
-                self.current_pid
-                    .store(next.pid.get_usize(), Ordering::SeqCst);
-
-                // Save process pointers since context switch is out of scope
-                prev_ptr = prev.deref_mut() as *mut Process;
-                next_ptr = next.deref_mut() as *mut Process;
-            }
-        }
-
-        if next_ptr as usize != 0 {
-            assert!(
-                prev_ptr as usize != 0,
-                "Pointer to previous process has not been set!"
-            );
-            let prev: &mut Process = &mut *prev_ptr;
-            let next: &mut Process = &mut *next_ptr;
-            prev.context.switch_to(&mut next.context);
-        }
+        current_proc.context.switch_to(&mut next_proc.context);
     }
 }
 
@@ -156,8 +150,10 @@ impl Cooperative {
     pub fn new() -> Cooperative {
         Cooperative {
             current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
-            proc_table: RwLock::new(ProcessList::new()),
-            ready_list: RwLock::new(VecDeque::<ProcessId>::new()),
+            inner: RwLock::new(CooperativeInner {
+                proc_table: ProcessList::new(),
+                ready_list: VecDeque::<ProcessId>::new(),
+            }),
         }
     }
 }
