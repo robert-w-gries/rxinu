@@ -1,9 +1,8 @@
-use alloc::{String, Vec, VecDeque};
-use core::mem;
+use alloc::{String, VecDeque};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::RwLock;
 use syscall::error::Error;
-use task::{process, Process, ProcessId, ProcessList, Scheduling, State, INIT_STK_SIZE};
+use task::{Process, ProcessId, ProcessList, Scheduling, State};
 
 pub type Scheduler = Cooperative;
 
@@ -18,40 +17,12 @@ struct CooperativeInner {
 }
 
 impl Scheduling for Cooperative {
+    /// Add process to process table
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
-        let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
-
-        let stack_values: Vec<usize> = vec![new_proc as usize, process::process_ret as usize];
-
-        // Reserve blocks in the stack for scheduler data
-        // len-1: process return instruction pointer
-        // len-2: process instruction pointer (process stack pointer starts here and grows down)
-        let proc_top: usize = stack.len() - stack_values.len();
-        let proc_stack_pointer: usize =
-            stack.as_ptr() as usize + (proc_top * mem::size_of::<usize>());
-
-        for (i, val) in stack_values.iter().enumerate() {
-            stack[proc_top + i] = *val;
-        }
-
         let mut inner = self.inner.write();
 
-        let proc = inner.proc_table.add()?;
-        {
-            proc.name = name;
-
-            proc.context
-                .set_page_table(unsafe { ::x86::shared::control_regs::cr3() as usize });
-
-            proc.context.set_base_pointer(
-                stack.as_ptr() as usize + (stack.len() * mem::size_of::<usize>()),
-            );
-            proc.context.set_stack(proc_stack_pointer);
-
-            proc.kstack = Some(stack);
-
-            Ok(proc.pid)
-        }
+        let id = inner.proc_table.add(name, new_proc)?;
+        Ok(id)
     }
 
     /// Get current process id
@@ -81,6 +52,7 @@ impl Scheduling for Cooperative {
         }
     }
 
+    /// Add process to ready list
     fn ready(&self, id: ProcessId) {
         self.inner.write().ready_list.push_back(id);
     }

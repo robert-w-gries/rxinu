@@ -5,7 +5,7 @@ pub mod scheduler;
 use alloc::String;
 use syscall::error::Error;
 
-pub use self::process::{Process, ProcessId, State};
+pub use self::process::{Priority, Process, ProcessId, State};
 pub use self::process_list::ProcessList;
 pub use self::scheduler::cooperative::Scheduler;
 

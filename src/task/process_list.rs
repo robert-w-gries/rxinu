@@ -1,9 +1,10 @@
 use alloc::btree_map::{self, BTreeMap};
-use alloc::Vec;
+use alloc::{String, Vec};
+use arch::context::Context;
 use core::fmt;
 use core::result::Result;
 use syscall::error::Error;
-use task::{Process, ProcessId, State};
+use task::{Priority, Process, ProcessId, State};
 
 pub struct ProcessList {
     map: BTreeMap<ProcessId, Process>,
@@ -20,9 +21,14 @@ impl ProcessList {
     pub fn new() -> Self {
         let mut new_list: BTreeMap<ProcessId, Process> = BTreeMap::new();
 
-        let mut null_process: Process = Process::new(ProcessId::NULL_PROCESS);
-        null_process.state = State::Current;
-        null_process.kstack = Some(Vec::new());
+        let null_process = Process {
+            pid: ProcessId::NULL_PROCESS,
+            name: String::from("NULL"),
+            state: State::Current,
+            prio: Priority(0),
+            context: Context::empty(),
+            kstack: Some(Vec::new()),
+        };
 
         new_list.insert(ProcessId::NULL_PROCESS, null_process);
 
@@ -44,7 +50,7 @@ impl ProcessList {
         self.map.iter()
     }
 
-    pub fn add(&mut self) -> Result<&mut Process, Error> {
+    pub fn add(&mut self, name: String, proc_entry: extern fn()) -> Result<ProcessId, Error> {
         // We need to reset our search for an empty table if starting at the end
         if self.next_id >= super::MAX_PROCS {
             self.next_id = 1;
@@ -61,11 +67,11 @@ impl ProcessList {
             self.next_id += 1;
 
             assert!(
-                self.map.insert(id, Process::new(id)).is_none(),
+                self.map.insert(id, Process::new(id, name, proc_entry)).is_none(),
                 "Process id already exists!"
             );
 
-            Ok(self.map.get_mut(&id).expect("Failed to add new process"))
+            Ok(id)
         }
     }
 
