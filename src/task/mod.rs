@@ -18,7 +18,8 @@ pub trait Scheduling {
 }
 
 const MAX_PROCS: usize = usize::max_value() - 1;
-const INIT_STK_SIZE: usize = 1024;
+// TODO: Investigage requirements for size of stack
+const INIT_STK_SIZE: usize = 1024 * 2;
 
 lazy_static! {
     pub static ref SCHEDULER: Scheduler = Scheduler::new();
