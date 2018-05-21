@@ -1,6 +1,5 @@
 use alloc::{String, Vec, VecDeque};
 use core::mem;
-use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use task::{Scheduling, Process, ProcessId, ProcessList, State, INIT_STK_SIZE, process};
 use spin::RwLock;
@@ -40,7 +39,7 @@ impl Scheduling for Cooperative {
 
         let mut inner = self.inner.write();
 
-        let mut proc = inner.proc_table.add()?;
+        let proc = inner.proc_table.add()?;
         {
             proc.name = name;
 
@@ -104,7 +103,7 @@ impl Scheduling for Cooperative {
         };
 
         // Add current process back to ready list
-        let mut current_proc = {
+        let current_proc_ptr = {
             let mut current_proc = inner
                                         .proc_table
                                         .get_mut(curr_id)
@@ -115,16 +114,10 @@ impl Scheduling for Cooperative {
                 current_proc.set_state(State::Ready);
             }
 
-            current_proc.clone()
+            current_proc as *mut Process
         };
-        
-        {
-            if (current_proc.state == State::Ready) {
-                inner.ready_list.push_back(curr_id);
-            }
-        }
 
-        let mut next_proc = {
+        let next_proc_ptr = {
             let mut next_proc = inner
                                     .proc_table
                                     .get_mut(next_id)
@@ -134,15 +127,19 @@ impl Scheduling for Cooperative {
  
             next_proc.set_state(State::Current);
 
-            next_proc.clone()
+            next_proc as *mut Process
         };
+        
+        if (*current_proc_ptr).state == State::Ready {
+            inner.ready_list.push_back(curr_id);
+        }
 
         self.current_pid.store(next_id.0, Ordering::SeqCst);
 
         // Drop locks to prevent deadlock after context switch
         drop(inner);
 
-        current_proc.context.switch_to(&mut next_proc.context);
+        (*current_proc_ptr).context.switch_to(&mut (*next_proc_ptr).context);
     }
 }
 

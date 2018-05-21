@@ -3,7 +3,6 @@ use alloc::Vec;
 use core::fmt;
 use core::result::Result;
 use task::{Process, ProcessId, State};
-use spin::RwLock;
 use syscall::error::Error;
 
 pub struct ProcessList {
