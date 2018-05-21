@@ -70,7 +70,9 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         }
 
         // halt instruction prevents CPU from looping too much
-        unsafe { asm!("hlt"); }
+        unsafe {
+            asm!("hlt");
+        }
     }
 }
 

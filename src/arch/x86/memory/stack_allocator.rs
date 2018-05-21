@@ -1,6 +1,7 @@
 use arch::x86::memory::{map_page, FrameAllocator};
-use x86_64::structures::paging::{Page, PageRangeInclusive, PageSize, PageTableFlags,
-                                 RecursivePageTable, Size4KB};
+use x86_64::structures::paging::{
+    Page, PageRangeInclusive, PageSize, PageTableFlags, RecursivePageTable, Size4KB,
+};
 
 pub struct StackAllocator {
     range: PageRangeInclusive,
@@ -44,7 +45,8 @@ impl StackAllocator {
 
                 // map stack pages to physical frames
                 for page in Page::range_inclusive(start, end) {
-                    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE
+                    let flags = PageTableFlags::PRESENT
+                        | PageTableFlags::WRITABLE
                         | PageTableFlags::NO_EXECUTE;
 
                     map_page(page, flags, page_table, frame_allocator)
