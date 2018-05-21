@@ -64,12 +64,10 @@ impl fmt::Debug for Process {
 }
 
 impl Process {
-    pub fn new(id: ProcessId, name: String, proc_entry: extern fn()) -> Process {
+    pub fn new(id: ProcessId, name: String, proc_entry: extern "C" fn()) -> Process {
         // Allocate stack
         let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
-        let stack_top = unsafe {
-            stack.as_mut_ptr().add(INIT_STK_SIZE)
-        };
+        let stack_top = unsafe { stack.as_mut_ptr().add(INIT_STK_SIZE) };
 
         Process {
             pid: id,

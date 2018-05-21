@@ -54,7 +54,6 @@ impl Context {
         ctx
     }
 
-
     /// Push an item onto the stack.
     pub unsafe fn push_stack(&mut self, item: usize) {
         self.rsp -= mem::size_of::<usize>();

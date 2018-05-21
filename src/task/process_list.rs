@@ -50,7 +50,7 @@ impl ProcessList {
         self.map.iter()
     }
 
-    pub fn add(&mut self, name: String, proc_entry: extern fn()) -> Result<ProcessId, Error> {
+    pub fn add(&mut self, name: String, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
         // We need to reset our search for an empty table if starting at the end
         if self.next_id >= super::MAX_PROCS {
             self.next_id = 1;
@@ -67,7 +67,9 @@ impl ProcessList {
             self.next_id += 1;
 
             assert!(
-                self.map.insert(id, Process::new(id, name, proc_entry)).is_none(),
+                self.map
+                    .insert(id, Process::new(id, name, proc_entry))
+                    .is_none(),
                 "Process id already exists!"
             );
 
