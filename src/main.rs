@@ -68,6 +68,9 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
             use device::keyboard::ps2 as kbd;
             kbd::read(1024);
         }
+
+        // halt instruction prevents CPU from looping too much
+        unsafe { asm!("hlt"); }
     }
 }
 
