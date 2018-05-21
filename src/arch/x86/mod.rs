@@ -90,3 +90,8 @@ unsafe fn execute_ring3_code() -> ! {
     asm!("iretq");
     unreachable!();
 }
+
+#[inline]
+pub unsafe fn halt() {
+    asm!("hlt");
+}
