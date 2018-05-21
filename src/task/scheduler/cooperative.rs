@@ -1,9 +1,9 @@
 use alloc::{String, Vec, VecDeque};
 use core::mem;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use task::{Scheduling, Process, ProcessId, ProcessList, State, INIT_STK_SIZE, process};
 use spin::RwLock;
 use syscall::error::Error;
+use task::{process, Process, ProcessId, ProcessList, Scheduling, State, INIT_STK_SIZE};
 
 pub type Scheduler = Cooperative;
 
@@ -21,10 +21,7 @@ impl Scheduling for Cooperative {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
         let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
 
-        let stack_values: Vec<usize> = vec![
-            new_proc as usize,
-            process::process_ret as usize,
-        ];
+        let stack_values: Vec<usize> = vec![new_proc as usize, process::process_ret as usize];
 
         // Reserve blocks in the stack for scheduler data
         // len-1: process return instruction pointer
@@ -43,13 +40,12 @@ impl Scheduling for Cooperative {
         {
             proc.name = name;
 
-            proc
-                .context
+            proc.context
                 .set_page_table(unsafe { ::x86::shared::control_regs::cr3() as usize });
 
-            proc
-                .context
-                .set_base_pointer(stack.as_ptr() as usize + (stack.len() * mem::size_of::<usize>()));
+            proc.context.set_base_pointer(
+                stack.as_ptr() as usize + (stack.len() * mem::size_of::<usize>()),
+            );
             proc.context.set_stack(proc_stack_pointer);
 
             proc.kstack = Some(stack);
@@ -70,7 +66,10 @@ impl Scheduling for Cooperative {
         {
             let mut inner = self.inner.write();
 
-            let proc = inner.proc_table.get_mut(id).expect("Could not find process to kill");
+            let proc = inner
+                .proc_table
+                .get_mut(id)
+                .expect("Could not find process to kill");
 
             proc.set_state(State::Free);
             proc.kstack = None;
@@ -83,10 +82,7 @@ impl Scheduling for Cooperative {
     }
 
     fn ready(&self, id: ProcessId) {
-        self.inner
-            .write()
-            .ready_list
-            .push_back(id);
+        self.inner.write().ready_list.push_back(id);
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
@@ -105,9 +101,9 @@ impl Scheduling for Cooperative {
         // Add current process back to ready list
         let current_proc_ptr = {
             let mut current_proc = inner
-                                        .proc_table
-                                        .get_mut(curr_id)
-                                        .expect("Could not find current process in process table");
+                .proc_table
+                .get_mut(curr_id)
+                .expect("Could not find current process in process table");
 
             // Add current process back to ready list
             if current_proc.state == State::Current {
@@ -119,17 +115,17 @@ impl Scheduling for Cooperative {
 
         let next_proc_ptr = {
             let mut next_proc = inner
-                                    .proc_table
-                                    .get_mut(next_id)
-                                    .expect("Process ID in ready list is not in process table");
+                .proc_table
+                .get_mut(next_id)
+                .expect("Process ID in ready list is not in process table");
 
             assert!(next_proc.kstack.is_some());
- 
+
             next_proc.set_state(State::Current);
 
             next_proc as *mut Process
         };
-        
+
         if (*current_proc_ptr).state == State::Ready {
             inner.ready_list.push_back(curr_id);
         }
@@ -139,7 +135,9 @@ impl Scheduling for Cooperative {
         // Drop locks to prevent deadlock after context switch
         drop(inner);
 
-        (*current_proc_ptr).context.switch_to(&mut (*next_proc_ptr).context);
+        (*current_proc_ptr)
+            .context
+            .switch_to(&mut (*next_proc_ptr).context);
     }
 }
 

@@ -48,5 +48,3 @@ impl Context {
         x86_64_context_switch(self as *mut _, next as *const _);
     }
 }
-
-

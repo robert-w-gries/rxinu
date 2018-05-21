@@ -2,8 +2,8 @@ use alloc::btree_map::{self, BTreeMap};
 use alloc::Vec;
 use core::fmt;
 use core::result::Result;
-use task::{Process, ProcessId, State};
 use syscall::error::Error;
+use task::{Process, ProcessId, State};
 
 pub struct ProcessList {
     map: BTreeMap<ProcessId, Process>,
@@ -61,9 +61,7 @@ impl ProcessList {
             self.next_id += 1;
 
             assert!(
-                self.map
-                    .insert(id, Process::new(id))
-                    .is_none(),
+                self.map.insert(id, Process::new(id)).is_none(),
                 "Process id already exists!"
             );
 

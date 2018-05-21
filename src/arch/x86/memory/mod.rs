@@ -1,7 +1,6 @@
 use os_bootinfo::BootInfo;
-use x86_64::structures::paging::{
-    MapToError, Mapper, Page, PageTableFlags, PhysFrame, RecursivePageTable, Size4KB,
-};
+use x86_64::structures::paging::{MapToError, Mapper, Page, PageTableFlags, PhysFrame,
+                                 RecursivePageTable, Size4KB};
 use x86_64::VirtAddr;
 
 pub use self::area_frame_allocator::AreaFrameAllocator;

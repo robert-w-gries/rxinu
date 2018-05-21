@@ -37,8 +37,8 @@ extern crate x86_64;
 #[macro_use]
 pub mod arch;
 pub mod device;
-pub mod task;
 pub mod syscall;
+pub mod task;
 
 use alloc::String;
 use arch::memory::heap::{HEAP_SIZE, HEAP_START};

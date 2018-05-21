@@ -1,7 +1,6 @@
 use arch::x86::memory::{map_page, FrameAllocator};
-use x86_64::structures::paging::{
-    Page, PageRangeInclusive, PageSize, PageTableFlags, RecursivePageTable, Size4KB,
-};
+use x86_64::structures::paging::{Page, PageRangeInclusive, PageSize, PageTableFlags,
+                                 RecursivePageTable, Size4KB};
 
 pub struct StackAllocator {
     range: PageRangeInclusive,
