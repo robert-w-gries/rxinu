@@ -1,4 +1,5 @@
 use alloc::{String, VecDeque};
+use alloc::boxed::Box;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::RwLock;
 use syscall::error::Error;
@@ -21,7 +22,8 @@ impl Scheduling for Cooperative {
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
         let mut inner = self.inner.write();
 
-        let id = inner.proc_table.add(name, new_proc)?;
+        let self_ptr: Box<&Scheduling> = Box::new(self);
+        let id = inner.proc_table.add(name, new_proc, Box::into_raw(self_ptr) as usize)?;
         Ok(id)
     }
 

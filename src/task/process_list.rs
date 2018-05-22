@@ -4,7 +4,7 @@ use arch::context::Context;
 use core::fmt;
 use core::result::Result;
 use syscall::error::Error;
-use task::{Priority, Process, ProcessId, State};
+use task::{Priority, Process, ProcessId, Scheduling, State};
 
 pub struct ProcessList {
     map: BTreeMap<ProcessId, Process>,
@@ -50,7 +50,7 @@ impl ProcessList {
         self.map.iter()
     }
 
-    pub fn add(&mut self, name: String, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
+    pub fn add(&mut self, name: String, proc_entry: extern "C" fn(), sched_tobj: usize) -> Result<ProcessId, Error> {
         // We need to reset our search for an empty table if starting at the end
         if self.next_id >= super::MAX_PROCS {
             self.next_id = 1;
@@ -68,7 +68,7 @@ impl ProcessList {
 
             assert!(
                 self.map
-                    .insert(id, Process::new(id, name, proc_entry))
+                    .insert(id, Process::new(id, name, proc_entry, sched_tobj))
                     .is_none(),
                 "Process id already exists!"
             );

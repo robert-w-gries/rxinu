@@ -33,7 +33,7 @@ impl Context {
         }
     }
 
-    pub fn new(stack_top: *mut u8, proc_entry: usize) -> Context {
+    pub fn new(stack_top: *mut u8, proc_entry: usize, sched_tobj: usize) -> Context {
         let mut ctx = Context {
             rflags: 0,
             cr3: 0,
@@ -47,6 +47,7 @@ impl Context {
         };
 
         unsafe {
+            ctx.push_stack(sched_tobj);
             ctx.push_stack(::task::process::process_ret as usize);
             ctx.push_stack(proc_entry);
         }

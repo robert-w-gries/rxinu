@@ -64,7 +64,7 @@ impl fmt::Debug for Process {
 }
 
 impl Process {
-    pub fn new(id: ProcessId, name: String, proc_entry: extern "C" fn()) -> Process {
+    pub fn new(id: ProcessId, name: String, proc_entry: extern "C" fn(), sched_tobj: usize) -> Process {
         // Allocate stack
         let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
         let stack_top = unsafe { stack.as_mut_ptr().add(INIT_STK_SIZE) };
@@ -73,7 +73,7 @@ impl Process {
             pid: id,
             state: State::Suspended,
             prio: Priority(0),
-            context: Context::new(stack_top as *mut u8, proc_entry as usize),
+            context: Context::new(stack_top as *mut u8, proc_entry as usize, sched_tobj),
             kstack: Some(stack),
             name: name,
         }
@@ -96,9 +96,23 @@ impl Process {
 ///
 /// When a process returns, it pops an instruction pointer off the stack then jumps to it
 /// The instruction pointer on the stack points to this function
-pub unsafe extern "C" fn process_ret() {
+#[naked]
+#[inline(never)]
+pub unsafe extern "C" fn process_ret() -> ! {
+    let scheduler_ptr: usize;
+    asm!("pop $0" : "=r"(scheduler_ptr) : : "memory" : "intel", "volatile");
+
+    scheduler_trait_object(scheduler_ptr);
+}
+
+pub unsafe fn scheduler_trait_object(scheduler_ptr: usize) -> ! {
+    use alloc::boxed::Box;
     use task::{Scheduling, SCHEDULER};
 
-    let curr_id: ProcessId = SCHEDULER.getid();
-    SCHEDULER.kill(curr_id);
+    let scheduler = Box::from_raw(scheduler_ptr as *mut &Scheduling);
+
+    let curr_id: ProcessId = scheduler.getid();
+    scheduler.kill(curr_id);
+
+    unreachable!();
 }
