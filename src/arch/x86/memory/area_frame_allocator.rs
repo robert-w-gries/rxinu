@@ -19,7 +19,8 @@ impl AreaFrameAllocator {
 
 impl FrameAllocator for AreaFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
-        let region = &mut self.memory_map
+        let region = &mut self
+            .memory_map
             .iter_mut()
             .filter(|region| region.region_type == MemoryRegionType::Usable)
             .next();

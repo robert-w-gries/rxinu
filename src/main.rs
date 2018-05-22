@@ -5,6 +5,7 @@
 #![feature(const_max_value)]
 #![feature(const_unique_new, const_atomic_usize_new)]
 #![feature(const_fn)]
+#![feature(global_asm)]
 #![feature(lang_items)]
 #![feature(naked_functions)]
 #![feature(ptr_internals)]
@@ -36,8 +37,8 @@ extern crate x86_64;
 #[macro_use]
 pub mod arch;
 pub mod device;
-pub mod scheduling;
 pub mod syscall;
+pub mod task;
 
 use alloc::String;
 use arch::memory::heap::{HEAP_SIZE, HEAP_START};
@@ -66,6 +67,11 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         {
             use device::keyboard::ps2 as kbd;
             kbd::read(1024);
+        }
+
+        // halt instruction prevents CPU from looping too much
+        unsafe {
+            arch::halt();
         }
     }
 }

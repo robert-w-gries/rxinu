@@ -2,6 +2,7 @@ use alloc::String;
 use alloc::Vec;
 use arch::context::Context;
 use core::fmt;
+use task::INIT_STK_SIZE;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum State {
@@ -12,7 +13,7 @@ pub enum State {
 }
 
 #[derive(Clone)]
-pub struct Priority(u64);
+pub struct Priority(pub u64);
 
 impl fmt::Debug for Priority {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -63,14 +64,18 @@ impl fmt::Debug for Process {
 }
 
 impl Process {
-    pub fn new(id: ProcessId) -> Process {
+    pub fn new(id: ProcessId, name: String, proc_entry: extern "C" fn()) -> Process {
+        // Allocate stack
+        let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
+        let stack_top = unsafe { stack.as_mut_ptr().add(INIT_STK_SIZE) };
+
         Process {
             pid: id,
             state: State::Suspended,
             prio: Priority(0),
-            context: Context::new(),
-            kstack: None,
-            name: String::from("NULL"),
+            context: Context::new(stack_top as *mut u8, proc_entry as usize),
+            kstack: Some(stack),
+            name: name,
         }
     }
 
@@ -91,19 +96,9 @@ impl Process {
 ///
 /// When a process returns, it pops an instruction pointer off the stack then jumps to it
 /// The instruction pointer on the stack points to this function
-/// Note:
-/// To support multiple scheduler objects, use dynamic dispatch
-/// The parent scheduler object will always be on the stack
-#[naked]
 pub unsafe extern "C" fn process_ret() {
-    use alloc::boxed::Box;
-    use scheduling::DoesScheduling;
+    use task::{Scheduling, SCHEDULER};
 
-    let scheduler_ptr: *mut &DoesScheduling;
-    asm!("pop $0" : "=r"(scheduler_ptr) : : "memory" : "intel", "volatile");
-
-    let scheduler = Box::from_raw(scheduler_ptr);
-
-    let curr_id: ProcessId = scheduler.getid();
-    scheduler.kill(curr_id);
+    let curr_id: ProcessId = SCHEDULER.getid();
+    SCHEDULER.kill(curr_id);
 }

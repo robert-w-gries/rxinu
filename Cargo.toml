@@ -28,6 +28,3 @@ default-features = false
 default = ["serial", "vga"]
 serial = []
 vga = []
-
-[package.metadata.bootimage.bootloader]
-git = "https://github.com/rust-osdev/bootloader"

@@ -1,16 +1,15 @@
-mod cooperative_scheduler;
 pub mod process;
 pub mod process_list;
+pub mod scheduler;
 
-use self::cooperative_scheduler as scheduler;
 use alloc::String;
 use syscall::error::Error;
 
-pub use self::process::{Process, ProcessId, State};
+pub use self::process::{Priority, Process, ProcessId, State};
 pub use self::process_list::ProcessList;
-pub use self::scheduler::Scheduler;
+pub use self::scheduler::cooperative::Scheduler;
 
-pub trait DoesScheduling {
+pub trait Scheduling {
     fn create(&self, func: extern "C" fn(), name: String) -> Result<ProcessId, Error>;
     fn getid(&self) -> ProcessId;
     fn kill(&self, id: ProcessId);
@@ -19,7 +18,8 @@ pub trait DoesScheduling {
 }
 
 const MAX_PROCS: usize = usize::max_value() - 1;
-const INIT_STK_SIZE: usize = 1024;
+// TODO: Investigage requirements for size of stack
+const INIT_STK_SIZE: usize = 1024 * 2;
 
 lazy_static! {
     pub static ref SCHEDULER: Scheduler = Scheduler::new();

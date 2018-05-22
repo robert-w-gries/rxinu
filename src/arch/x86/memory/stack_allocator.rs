@@ -45,7 +45,8 @@ impl StackAllocator {
 
                 // map stack pages to physical frames
                 for page in Page::range_inclusive(start, end) {
-                    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE
+                    let flags = PageTableFlags::PRESENT
+                        | PageTableFlags::WRITABLE
                         | PageTableFlags::NO_EXECUTE;
 
                     map_page(page, flags, page_table, frame_allocator)
