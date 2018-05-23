@@ -1,5 +1,0 @@
-[target.i686-rxinu.dependencies]
-alloc = {}
-
-[target.x86_64-rxinu.dependencies]
-alloc = {}
