@@ -1,40 +1,41 @@
+use arch::x86_64::interrupts;
 use core::fmt;
 use x86::shared::irq::{InterruptDescription, EXCEPTIONS};
 
-#[cfg(target_arch = "x86")]
-mod bits32;
-#[cfg(target_arch = "x86_64")]
-mod bits64;
+#[repr(C)]
+/// Represents the exception stack frame pushed by the CPU on exception entry.
+pub struct ExceptionStack {
+    pub instruction_pointer: u64,
+    pub code_segment: u64,
+    pub cpu_flags: u64,
+    pub stack_pointer: u64,
+    pub stack_segment: u64,
+}
 
-#[cfg(target_arch = "x86")]
-pub use self::bits32::*;
-#[cfg(target_arch = "x86_64")]
-pub use self::bits64::*;
+pub struct StackHex(pub u64);
 
+pub struct ErrorCode(u64);
+
+impl fmt::Debug for ErrorCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:#x}", self.0)
+    }
+}
 macro_rules! exception {
     ($e:ident, $desc:expr, $func:block) => {
         pub extern "x86-interrupt" fn $e(stack_frame: &mut ExceptionStack) {
             kprintln!("\n{:#?}\n{:#?}", stack_frame, $desc);
-            use arch::interrupts;
             interrupts::disable_then_restore(|| $func);
         }
     };
     ($e:ident, $desc:expr, $err_type:ty, $func:block) => {
-        #[cfg(target_arch = "x86")]
-        pub extern "x86-interrupt" fn $e(stack_frame: &mut ErrorStack) {
-            kprintln!("\n{:#?}\n{:#?}", stack_frame, $desc);
-            use arch::interrupts;
-            interrupts::disable_then_restore(|| $func);
-        }
-        #[cfg(target_arch = "x86_64")]
-        pub extern "x86-interrupt" fn $e(stack_frame: &mut ErrorStack, error_code: $err_type) {
+        pub extern "x86-interrupt" fn $e(stack_frame: &mut ExceptionStack, error_code: $err_type) {
             kprintln!(
                 "\nError code: {:#?}\n{:#?}\n{:#?}",
                 error_code,
                 stack_frame,
                 $desc
             );
-            use arch::interrupts;
             interrupts::disable_then_restore(|| $func);
         }
     };

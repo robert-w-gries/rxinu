@@ -1,13 +1,10 @@
-use arch::x86::interrupts::{irq, syscall, DOUBLE_FAULT_IST_INDEX};
+use arch::x86_64::interrupts::{irq, syscall, DOUBLE_FAULT_IST_INDEX};
 use core::mem;
 use x86::shared::dtables::{self, DescriptorTablePointer};
 use x86::shared::paging::VAddr;
 use x86::shared::segmentation::SegmentSelector;
 use x86::shared::PrivilegeLevel;
 
-#[cfg(target_arch = "x86")]
-use x86::bits32::irq::IdtEntry;
-#[cfg(target_arch = "x86_64")]
 use x86::bits64::irq::{IdtEntry, Type};
 
 const IRQ_OFFSET: usize = 32;
@@ -17,7 +14,7 @@ const KERNEL_CODE_SELECTOR: SegmentSelector = SegmentSelector::new(1, PrivilegeL
 
 lazy_static! {
     static ref IDT: [IdtEntry; 256] = {
-        use arch::x86::interrupts::exception::*;
+        use arch::x86_64::interrupts::exception::*;
 
         let mut idt: [IdtEntry; 256] = [IdtEntry::MISSING; 256];
 
@@ -69,12 +66,6 @@ pub fn init() {
     }
 }
 
-#[cfg(target_arch = "x86")]
-fn double_fault_handler_entry(ptr: usize, _index: u8) -> IdtEntry {
-    intr_handler_entry(ptr)
-}
-
-#[cfg(target_arch = "x86_64")]
 fn double_fault_handler_entry(ptr: usize, index: u8) -> IdtEntry {
     let mut i = intr_handler_entry(ptr);
     i.ist_index = index as u8;
@@ -89,17 +80,6 @@ fn syscall_handler_entry(ptr: usize) -> IdtEntry {
     create_idt_entry(ptr, PrivilegeLevel::Ring3)
 }
 
-#[cfg(target_arch = "x86")]
-fn create_idt_entry(ptr: usize, privilege: PrivilegeLevel) -> IdtEntry {
-    IdtEntry::new(
-        VAddr::from_usize(ptr),
-        KERNEL_CODE_SELECTOR.bits() as u16,
-        privilege,
-        true,
-    )
-}
-
-#[cfg(target_arch = "x86_64")]
 fn create_idt_entry(ptr: usize, privilege: PrivilegeLevel) -> IdtEntry {
     IdtEntry::new(
         VAddr::from_usize(ptr),

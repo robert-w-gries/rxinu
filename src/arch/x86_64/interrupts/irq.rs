@@ -1,5 +1,5 @@
-use arch::x86::interrupts;
-use arch::x86::interrupts::exception::ExceptionStack;
+use arch::x86_64::interrupts;
+use arch::x86_64::interrupts::exception::ExceptionStack;
 use core::sync::atomic::Ordering;
 use device::keyboard::ps2::PS2_KEYBOARD;
 use device::pic_8259 as pic;

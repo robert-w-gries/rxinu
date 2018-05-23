@@ -63,6 +63,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
             use device::uart_16550 as uart;
             uart::read(1024);
         }
+
         #[cfg(feature = "vga")]
         {
             use device::keyboard::ps2 as kbd;

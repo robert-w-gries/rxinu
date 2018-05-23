@@ -82,14 +82,6 @@ impl Process {
     pub fn set_state(&mut self, new_state: State) {
         self.state = new_state;
     }
-
-    pub fn set_page_table(&mut self, address: usize) {
-        self.context.set_page_table(address);
-    }
-
-    pub fn set_stack(&mut self, address: usize) {
-        self.context.set_stack(address);
-    }
 }
 
 /// Once the process it completed, kill it

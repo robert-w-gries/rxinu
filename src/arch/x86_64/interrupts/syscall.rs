@@ -1,31 +1,26 @@
 use super::exception::ExceptionStack;
 use core::fmt;
 
-#[cfg(target_arch = "x86")]
-type Bits = u32;
-#[cfg(target_arch = "x86_64")]
-type Bits = u64;
-
 #[repr(C, packed)]
 /// Represents the syscall stack
 pub struct SyscallStack {
-    pub fs: Bits,
-    pub r11: Bits,
-    pub r10: Bits,
-    pub r9: Bits,
-    pub r8: Bits,
-    pub rsi: Bits,
-    pub rdi: Bits,
-    pub rdx: Bits,
-    pub rcx: Bits,
-    pub rip: Bits,
-    pub cs: Bits,
-    pub rflags: Bits,
+    pub fs: u64,
+    pub r11: u64,
+    pub r10: u64,
+    pub r9: u64,
+    pub r8: u64,
+    pub rsi: u64,
+    pub rdi: u64,
+    pub rdx: u64,
+    pub rcx: u64,
+    pub rip: u64,
+    pub cs: u64,
+    pub rflags: u64,
 }
 
 impl fmt::Debug for SyscallStack {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        struct StackHex(Bits);
+        struct StackHex(u64);
         impl fmt::Debug for StackHex {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "{:#x}", self.0)

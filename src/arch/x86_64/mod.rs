@@ -74,17 +74,8 @@ pub unsafe fn enter_usermode(ip: usize, sp: usize) -> ! {
 
     // execute interrupt return then execute in usermode
     execute_ring3_code();
-    unreachable!();
 }
 
-#[cfg(target_arch = "x86")]
-/// Execute interrupt return to enter userspace
-unsafe fn execute_ring3_code() -> ! {
-    asm!("iret");
-    unreachable!();
-}
-
-#[cfg(target_arch = "x86_64")]
 /// Execute interrupt return to enter userspace
 unsafe fn execute_ring3_code() -> ! {
     asm!("iretq");
