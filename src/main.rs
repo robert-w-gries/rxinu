@@ -31,7 +31,6 @@ extern crate os_bootinfo;
 extern crate rlibc;
 extern crate spin;
 extern crate volatile;
-extern crate x86;
 extern crate x86_64;
 
 #[macro_use]
