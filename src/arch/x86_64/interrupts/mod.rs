@@ -7,6 +7,18 @@ pub mod syscall;
 
 pub const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
+/// Disable interrupts
+#[inline(always)]
+unsafe fn asm_disable() {
+    asm!("cli" : : : : "intel", "volatile");
+}
+
+/// Disable interrupts
+#[inline(always)]
+unsafe fn asm_enable() {
+    asm!("sti; nop" : : : : "intel", "volatile");
+}
+
 /// Disable interrupts, execute code uninterrupted, restore original interrupts
 pub fn disable_then_restore<F, T>(uninterrupted_fn: F) -> T
 where
@@ -21,7 +33,7 @@ where
 /// Disable interrupts then return tuple of previous state for PIC1 and PIC2
 pub fn disable() -> (u8, u8) {
     unsafe {
-        ::x86::shared::irq::disable();
+        asm_disable();
     }
 
     let saved_mask1 = MASTER.lock().data.read();
@@ -36,7 +48,7 @@ pub fn disable() -> (u8, u8) {
 /// Enable all interrupts
 pub fn enable() {
     unsafe {
-        ::x86::shared::irq::disable();
+        asm_disable();
     }
 
     // Clear all masks from interrupt line so that all interrupts fire
@@ -44,14 +56,14 @@ pub fn enable() {
     SLAVE.lock().data.write(0);
 
     unsafe {
-        ::x86::shared::irq::enable();
+        asm_enable();
     }
 }
 
 /// Enable interrupts, restoring the previously set masks
 pub fn restore(saved_masks: (u8, u8)) {
     unsafe {
-        ::x86::shared::irq::disable();
+        asm_disable();
     }
 
     let (saved_mask1, saved_mask2) = saved_masks;
@@ -60,7 +72,7 @@ pub fn restore(saved_masks: (u8, u8)) {
     SLAVE.lock().data.write(saved_mask2);
 
     unsafe {
-        ::x86::shared::irq::enable();
+        asm_enable();
     }
 }
 

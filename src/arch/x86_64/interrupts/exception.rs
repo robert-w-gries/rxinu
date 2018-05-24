@@ -1,112 +1,126 @@
-use arch::x86_64::interrupts;
-use core::fmt;
-use x86::shared::irq::{InterruptDescription
-use x86_64::structures::idt::{Idt, ExceptionStackFrame};
+use arch::x86_64::{self, interrupts};
+use x86_64::structures::idt::{ExceptionStackFrame, PageFaultErrorCode};
+
+macro_rules! exception {
+    ($x:ident, $stack:ident, $func:block) => {
+        pub extern "x86-interrupt" fn $x($stack: &mut ExceptionStackFrame) {
+            interrupts::disable_then_restore(|| $func);
+        }
+    };
+    ($x:ident, $stack:ident, $err:ident, $func:block) => {
+        pub extern "x86-interrupt" fn $x($stack: &mut ExceptionStackFrame, $err: u64) {
+            interrupts::disable_then_restore(|| $func);
+        }
+    };
+    ($x:ident, $stack:ident, $err:ident, $err_type:ty, $func:block) => {
+        pub extern "x86-interrupt" fn $x($stack: &mut ExceptionStackFrame, $err: $err_type) {
+            interrupts::disable_then_restore(|| $func);
+        }
+    };
+}
 
 // TODO: Implement actual error handling for each exception
-extern "x86-interrupt" fn divide_by_zero(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Divide By Zero\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(divide_by_zero, _stack, {
+    kprintln!("Divide By Zero Fault");
+});
 
-extern "x86-interrupt" fn debug(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Debug\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(debug, _stack, {
+    kprintln!("Debug Trap");
+});
 
-extern "x86-interrupt" fn non_maskable(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Non-maskable External Interrupt\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(non_maskable_interrupt, _stack, {
+    kprintln!("Non-maskable Interrupt");
+});
 
-extern "x86-interrupt" fn break_point(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Breakpoint\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(breakpoint, _stack, {
+    kprintln!("Breakpoint trap");
+});
 
-extern "x86-interrupt" fn overflow(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Overflow\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(overflow, _stack, {
+    kprintln!("Overflow trap");
+});
 
-extern "x86-interrupt" fn bound_range(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: BOUND Range Exceeded\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(bound_range_exceeded, _stack, {
+    kprintln!("Bound Range Exceeded Fault");
+});
 
-extern "x86-interrupt" fn invalid_opcode(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Invalid Opcode\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(invalid_opcode, _stack, {
+    kprintln!("Invalid Opcode Fault");
+    loop {
+        unsafe {
+            x86_64::halt();
+        }
+    }
+});
 
-extern "x86-interrupt" fn device_not_available(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Device Not Available\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(device_not_available, _stack, {
+    kprintln!("Device Not Available Fault");
+});
 
-extern "x86-interrupt" fn double_fault(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Double Fault\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(double_fault, stack, error, {
+    kprintln!("Double Fault: {}|{:#?}", error, stack);
+});
 
-extern "x86-interrupt" fn invalid_tss(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Invalid TSS\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(invalid_tss, _stack, _error, {
+    kprintln!("Invalid TSS Fault");
+});
 
-extern "x86-interrupt" fn segment_not_present(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Segment Not Present\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(segment_not_present, stack, error, {
+    kprintln!("Segment Not Present Fault: 0x{:x}\n{:#?}", error, stack);
+});
 
-extern "x86-interrupt" fn stack_segment(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Stack Segment Fault\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(stack_segment_fault, _stack, _error, {
+    kprintln!("Stack Segment Fault");
+});
 
-extern "x86-interrupt" fn protection(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: General Protection\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(general_protection_fault, _stack, _error, {
+    kprintln!("General Protection Fault");
+    loop {
+        unsafe {
+            x86_64::halt();
+        }
+    }
+});
 
-extern "x86-interrupt" fn page_fault(stack_frame: &mut ExceptionStackFrame, error_code: PageFaultErrorCode) {
-    use x86_64::registers::control_regs;
-    kprintln!(
-        "\nException: PAGE FAULT while accessing {:#x}\nerror code: \
-         {:?}\n{:#?}",
-        control_regs::cr2(),
-        error_code,
-        stack_frame
-    );
-    loop {}
-}
+exception!(page_fault, stack, err, PageFaultErrorCode, {
+    let cr2: u64 = unsafe {
+        let reg: u64;
+        asm!("mov %cr2, $0" : "=r"(reg));
+        reg
+    };
 
-extern "x86-interrupt" fn fpu(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: FPU Floating-Point\n{:#?}", stack_frame);
-    loop{}
-}
+    kprintln!("\nPage fault while accessing {:#x}\nError Code: {:?}\n{:#?}",
+              cr2,
+              err,
+              stack);
 
-extern "x86-interrupt" fn alignment_check(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Alignment Check\n{:#?}", stack_frame);
-    loop{}
-}
+    loop {
+        unsafe {
+            x86_64::halt();
+        }
+    }
+});
 
-extern "x86-interrupt" fn machine_check(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Machine Check\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(x87_floating_point, _stack, {
+    kprintln!("x87 Floating Point Exception");
+});
 
-extern "x86-interrupt" fn simd(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: SIMD Floating-Point\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(alignment_check, _stack, _error, {
+    kprintln!("Alignment Check Fault");
+});
 
-extern "x86-interrupt" fn virtualization(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Virtualization\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(machine_check, _stack, {
+    kprintln!("Machine Check Abort");
+});
 
-extern "x86-interrupt" fn security(stack_frame: &mut ExceptionStackFrame) {
-    kprintln!("\nException: Security\n{:#?}", stack_frame);
-    loop{}
-}
+exception!(simd_floating_point, _stack, {
+    kprintln!("SIMD Floating Point Exception");
+});
+
+exception!(virtualization, _stack, {
+    kprintln!("Virtualization Exception");
+});
+
+exception!(security_exception, _stack, _error, {
+    kprintln!("Security Exception");
+});

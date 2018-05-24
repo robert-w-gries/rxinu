@@ -34,19 +34,12 @@ pub fn init(boot_info_address: usize) {
         ::HEAP_ALLOCATOR.init(HEAP_START as usize, HEAP_SIZE as usize);
     }
 
-    gdt::init(&mut memory_controller);
     idt::init();
     device::init();
 }
 
-use x86::shared::segmentation::SegmentSelector;
-use x86::shared::PrivilegeLevel;
 
-const USER_DATA: SegmentSelector =
-    SegmentSelector::new(gdt::GDT_USER_DATA as u16, PrivilegeLevel::Ring3);
-const USER_CODE: SegmentSelector =
-    SegmentSelector::new(gdt::GDT_USER_CODE as u16, PrivilegeLevel::Ring3);
-
+/* TODO: Implement usermode
 /// Enter usermode.
 /// To enter Ring3, we must pretend to raise an inter-privilege level interrupt.
 /// [unsafe]
@@ -81,6 +74,7 @@ unsafe fn execute_ring3_code() -> ! {
     asm!("iretq");
     unreachable!();
 }
+*/
 
 #[inline]
 pub unsafe fn halt() {

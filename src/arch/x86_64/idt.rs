@@ -1,91 +1,79 @@
-use arch::x86_64::interrupts::{irq, syscall, DOUBLE_FAULT_IST_INDEX};
-use core::mem;
-use x86::shared::dtables::{self, DescriptorTablePointer};
-use x86::shared::paging::VAddr;
-use x86::shared::segmentation::SegmentSelector;
-use x86::shared::PrivilegeLevel;
+use arch::x86_64::gdt::{Descriptor, Gdt};
+use arch::x86_64::interrupts::{exception, irq, syscall, DOUBLE_FAULT_IST_INDEX};
+use spin::Once;
+use x86_64::structures::idt::Idt;
+use x86_64::structures::tss::TaskStateSegment;
 
-use x86::bits64::irq::{IdtEntry, Type};
+static GDT: Once<Gdt> = Once::new();
+static TSS: Once<TaskStateSegment> = Once::new();
 
-const IRQ_OFFSET: usize = 32;
+const IRQ_OFFSET: usize = 0;
 const SYSCALL_OFFSET: usize = 0x80;
 
-const KERNEL_CODE_SELECTOR: SegmentSelector = SegmentSelector::new(1, PrivilegeLevel::Ring0);
-
 lazy_static! {
-    static ref IDT: [IdtEntry; 256] = {
-        use arch::x86_64::interrupts::exception::*;
+    static ref IDT: Idt = {
+        let mut idt = Idt::new();
 
-        let mut idt: [IdtEntry; 256] = [IdtEntry::MISSING; 256];
+        idt.divide_by_zero.set_handler_fn(exception::divide_by_zero);
+        idt.debug.set_handler_fn(exception::debug);
+        idt.non_maskable_interrupt.set_handler_fn(exception::non_maskable_interrupt);
+        idt.breakpoint.set_handler_fn(exception::breakpoint);
+        idt.overflow.set_handler_fn(exception::overflow);
+        idt.bound_range_exceeded.set_handler_fn(exception::bound_range_exceeded);
+        idt.invalid_opcode.set_handler_fn(exception::invalid_opcode);
+        idt.device_not_available.set_handler_fn(exception::device_not_available);
+        idt.double_fault.set_handler_fn(exception::double_fault);
+        idt.invalid_tss.set_handler_fn(exception::invalid_tss);
+        idt.segment_not_present.set_handler_fn(exception::segment_not_present);
+        idt.stack_segment_fault.set_handler_fn(exception::stack_segment_fault);
+        idt.general_protection_fault.set_handler_fn(exception::general_protection_fault);
+        idt.page_fault.set_handler_fn(exception::page_fault);
+        idt.x87_floating_point.set_handler_fn(exception::x87_floating_point);
+        idt.alignment_check.set_handler_fn(exception::alignment_check);
+        idt.machine_check.set_handler_fn(exception::machine_check);
+        idt.simd_floating_point.set_handler_fn(exception::simd_floating_point);
+        idt.virtualization.set_handler_fn(exception::virtualization);
+        idt.security_exception.set_handler_fn(exception::security_exception);
 
-        idt[0] = intr_handler_entry(divide_by_zero as usize);
-        idt[1] = intr_handler_entry(debug as usize);
-        idt[2] = intr_handler_entry(non_maskable as usize);
-        idt[3] = intr_handler_entry(break_point as usize);
-        idt[4] = intr_handler_entry(overflow as usize);
-        idt[5] = intr_handler_entry(bound_range as usize);
-        idt[6] = intr_handler_entry(invalid_opcode as usize);
-        idt[7] = intr_handler_entry(device_not_available as usize);
-        idt[8] = double_fault_handler_entry(double_fault as usize, DOUBLE_FAULT_IST_INDEX as u8);
-        // 9 no longer available
-        idt[10] = intr_handler_entry(invalid_tss as usize);
-        idt[11] = intr_handler_entry(segment_not_present as usize);
-        idt[12] = intr_handler_entry(stack_segment as usize);
-        idt[13] = intr_handler_entry(protection as usize);
-        idt[14] = intr_handler_entry(page_fault as usize);
-        // 15 reserved
-        idt[16] = intr_handler_entry(fpu as usize);
-        idt[17] = intr_handler_entry(alignment_check as usize);
-        idt[18] = intr_handler_entry(machine_check as usize);
-        idt[19] = intr_handler_entry(simd as usize);
-        idt[20] = intr_handler_entry(virtualization as usize);
-        // 21 through 29 reserved
-        idt[30] = intr_handler_entry(security as usize);
-        // 31 reserved
+        idt[IRQ_OFFSET + 0].set_handler_fn(irq::timer);
+        idt[IRQ_OFFSET + 1].set_handler_fn(irq::keyboard);
+        idt[IRQ_OFFSET + 2].set_handler_fn(irq::cascade);
+        idt[IRQ_OFFSET + 3].set_handler_fn(irq::com2);
+        idt[IRQ_OFFSET + 4].set_handler_fn(irq::com1);
 
-        idt[IRQ_OFFSET + 0] = intr_handler_entry(irq::timer as usize);
-        idt[IRQ_OFFSET + 1] = intr_handler_entry(irq::keyboard as usize);
-        idt[IRQ_OFFSET + 2] = intr_handler_entry(irq::cascade as usize);
-        idt[IRQ_OFFSET + 3] = intr_handler_entry(irq::com2 as usize);
-        idt[IRQ_OFFSET + 4] = intr_handler_entry(irq::com1 as usize);
-
-        idt[SYSCALL_OFFSET] = syscall_handler_entry(syscall::syscall as usize);
+        //idt[SYSCALL_OFFSET] = syscall_handler_entry(syscall::syscall);
 
         idt
     };
 }
 
 pub fn init() {
-    let idtr: DescriptorTablePointer<IdtEntry> = DescriptorTablePointer {
-        limit: (IDT.len() * mem::size_of::<IdtEntry>() - 1) as u16,
-        base: IDT.as_ptr(),
-    };
+    use x86_64::structures::gdt::SegmentSelector;
+    use x86_64::instructions::segmentation::set_cs;
+    use x86_64::instructions::tables::load_tss;
+
+    let tss = TSS.call_once(|| {
+        let tss = TaskStateSegment::new();
+        // TODO: Why is this missing now?
+        // tss.interrupt.stack_table[DOUBLE_FAULT_IST_INDEX] = VirtAddr::new()
+        tss
+    });
+
+    let mut code_selector = SegmentSelector(0);
+    let mut tss_selector = SegmentSelector(0);
+    let gdt = GDT.call_once(|| {
+        let mut gdt = Gdt::new();
+        code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
+        tss_selector = gdt.add_entry(Descriptor::tss_segment(&tss));
+        gdt
+    });
+
+    gdt.load();
 
     unsafe {
-        dtables::lidt(&idtr);
+        set_cs(code_selector);
+        load_tss(tss_selector);
     }
-}
 
-fn double_fault_handler_entry(ptr: usize, index: u8) -> IdtEntry {
-    let mut i = intr_handler_entry(ptr);
-    i.ist_index = index as u8;
-    i
-}
-
-fn intr_handler_entry(ptr: usize) -> IdtEntry {
-    create_idt_entry(ptr, PrivilegeLevel::Ring0)
-}
-
-fn syscall_handler_entry(ptr: usize) -> IdtEntry {
-    create_idt_entry(ptr, PrivilegeLevel::Ring3)
-}
-
-fn create_idt_entry(ptr: usize, privilege: PrivilegeLevel) -> IdtEntry {
-    IdtEntry::new(
-        VAddr::from_usize(ptr),
-        KERNEL_CODE_SELECTOR,
-        privilege,
-        Type::InterruptGate,
-        0,
-    )
+    IDT.load();
 }

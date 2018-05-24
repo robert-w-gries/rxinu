@@ -1,5 +1,5 @@
-use super::exception::ExceptionStack;
 use core::fmt;
+use x86_64::structures::idt::ExceptionStackFrame;
 
 #[repr(C, packed)]
 /// Represents the syscall stack
@@ -43,7 +43,7 @@ impl fmt::Debug for SyscallStack {
     }
 }
 
-pub extern "x86-interrupt" fn syscall(_stack_frame: &mut ExceptionStack) {
+pub extern "x86-interrupt" fn syscall(_stack_frame: &mut ExceptionStackFrame) {
     kprintln!("This is a syscall!");
     // TODO: syscall::match_syscall(eax_register, stack_frame.rsp);
 }
