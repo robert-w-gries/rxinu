@@ -1,132 +1,95 @@
-use arch::x86_64::interrupts::DOUBLE_FAULT_IST_INDEX;
-use arch::x86_64::memory::MemoryController;
-use core::mem;
-use spin::Once;
-use x86::current::segmentation::{SegmentBitness, SegmentDescriptor};
-use x86::current::task::TaskStateSegment;
-use x86::shared::PrivilegeLevel;
-use x86::shared::dtables::{self, DescriptorTablePointer};
-use x86::shared::segmentation::{Type, CODE_READ, DATA_WRITE};
+use x86_64::structures::tss::TaskStateSegment;
+use x86_64::structures::gdt::SegmentSelector;
+use x86_64::PrivilegeLevel;
 
-pub const GDT_SIZE: usize = GDT_TSS + 2;
+pub struct Gdt {
+    table: [u64; 8],
+    next_free: usize,
+}
 
-// Segment Selector Index
-pub const GDT_KERNEL_CODE: usize = 1;
-pub const GDT_KERNEL_DATA: usize = 2;
-pub const GDT_USER_CODE: usize = 3;
-pub const GDT_USER_DATA: usize = 4;
-pub const GDT_TSS: usize = 5;
+impl Gdt {
+    pub fn new() -> Gdt {
+        Gdt {
+            table: [0; 8],
+            next_free: 1,
+        }
+    }
 
-pub type GdtArray = [SegmentDescriptor; GDT_SIZE];
-pub static GDT: Once<GdtArray> = Once::new();
+    pub fn add_entry(&mut self, entry: Descriptor) -> SegmentSelector {
+        let index = match entry {
+            Descriptor::UserSegment(value) => self.push(value),
+            Descriptor::SystemSegment(value_low, value_high) => {
+                let index = self.push(value_low);
+                self.push(value_high);
+                index
+            }
+        };
+        SegmentSelector::new(index as u16, PrivilegeLevel::Ring0)
+    }
 
-pub fn init(memory_controller: &mut MemoryController) {
-    let tss = tss(memory_controller);
-    let gdt: &GdtArray = create_gdt(&tss);
+    fn push(&mut self, value: u64) -> usize {
+        if self.next_free < self.table.len() {
+            let index = self.next_free;
+            self.table[index] = value;
+            self.next_free += 1;
+            index
+        } else {
+            panic!("GDT full");
+        }
+    }
 
-    let gdtr: DescriptorTablePointer<SegmentDescriptor> = DescriptorTablePointer {
-        base: gdt.as_ptr(),
-        limit: (gdt.len() * mem::size_of::<SegmentDescriptor>() - 1) as u16,
-    };
+    pub fn load(&'static self) {
+        use x86_64::instructions::tables::{DescriptorTablePointer, lgdt};
+        use core::mem::size_of;
 
-    unsafe {
-        use x86::current::segmentation::set_cs;
-        use x86::shared::segmentation::{load_ss, SegmentSelector};
-        use x86::shared::task::load_tr;
+        let ptr = DescriptorTablePointer {
+            base: self.table.as_ptr() as u64,
+            limit: (self.table.len() * size_of::<u64>() - 1) as u16,
+        };
 
-        dtables::lgdt(&gdtr);
-
-        set_cs(SegmentSelector::new(
-            GDT_KERNEL_CODE as u16,
-            PrivilegeLevel::Ring0,
-        ));
-
-        load_selectors(GDT_KERNEL_DATA, PrivilegeLevel::Ring0);
-        load_ss(SegmentSelector::new(
-            GDT_KERNEL_DATA as u16,
-            PrivilegeLevel::Ring0,
-        ));
-
-        load_tr(SegmentSelector::new(GDT_TSS as u16, PrivilegeLevel::Ring3));
+        unsafe { lgdt(&ptr) };
     }
 }
 
-/// Load all selectors except for Stack Segment
-/// Stack Segment cannot be loaded as PrivilegeLevel3 and it is not usually loaded anyway
-/// [unsafe]
-/// This function is purely assembly and is inherently unsafe
-pub unsafe fn load_selectors(selector_index: usize, privilege: PrivilegeLevel) {
-    use x86::shared::segmentation::{load_ds, load_es, load_fs, load_gs, SegmentSelector};
-
-    load_ds(SegmentSelector::new(selector_index as u16, privilege));
-    load_es(SegmentSelector::new(selector_index as u16, privilege));
-    load_fs(SegmentSelector::new(selector_index as u16, privilege));
-    load_gs(SegmentSelector::new(selector_index as u16, privilege));
+pub enum Descriptor {
+    UserSegment(u64),
+    SystemSegment(u64, u64),
 }
-pub fn tss(memory_controller: &mut MemoryController) -> TaskStateSegment {
-    let mut tss = TaskStateSegment::new();
 
-    let double_fault_stack = memory_controller
-        .alloc_stack(1)
-        .expect("could not allocate double fault stack");
-    tss.ist[DOUBLE_FAULT_IST_INDEX] = double_fault_stack.top() as u64;
-
-    // Privilege Level stacks
-    for i in 0..3 {
-        tss.rsp[i] = memory_controller
-            .alloc_stack(1)
-            .expect("Could not allocate privilege level stack")
-            .top() as u64;
+impl Descriptor {
+    pub fn kernel_code_segment() -> Descriptor {
+        let flags = USER_SEGMENT | PRESENT | EXECUTABLE | LONG_MODE;
+        Descriptor::UserSegment(flags.bits())
     }
 
-    tss
+    pub fn tss_segment(tss: &'static TaskStateSegment) -> Descriptor {
+        use core::mem::size_of;
+        use bit_field::BitField;
+
+        let ptr = tss as *const _ as u64;
+
+        let mut low = PRESENT.bits();
+        // base
+        low.set_bits(16..40, ptr.get_bits(0..24));
+        low.set_bits(56..64, ptr.get_bits(24..32));
+        // limit (the `-1` in needed since the bound is inclusive)
+        low.set_bits(0..16, (size_of::<TaskStateSegment>() - 1) as u64);
+        // type (0b1001 = available 64-bit tss)
+        low.set_bits(40..44, 0b1001);
+
+        let mut high = 0;
+        high.set_bits(0..32, ptr.get_bits(32..64));
+
+        Descriptor::SystemSegment(low, high)
+    }
 }
 
-pub fn create_gdt(tss: &TaskStateSegment) -> &'static GdtArray {
-    let tss_segs = SegmentDescriptor::new_tss(&tss, PrivilegeLevel::Ring3);
-
-    GDT.call_once(|| {
-        [
-            SegmentDescriptor::NULL,
-            // Kernel Code
-            SegmentDescriptor::new_memory(
-                0,
-                0,
-                Type::Code(CODE_READ),
-                false,
-                PrivilegeLevel::Ring0,
-                SegmentBitness::Bits64,
-            ),
-            // Kernel data
-            SegmentDescriptor::new_memory(
-                0,
-                0,
-                Type::Data(DATA_WRITE),
-                false,
-                PrivilegeLevel::Ring0,
-                SegmentBitness::Bits64,
-            ),
-            // User Code
-            SegmentDescriptor::new_memory(
-                0,
-                0,
-                Type::Data(DATA_WRITE),
-                false,
-                PrivilegeLevel::Ring3,
-                SegmentBitness::Bits64,
-            ),
-            // User Data
-            SegmentDescriptor::new_memory(
-                0,
-                0,
-                Type::Data(DATA_WRITE),
-                false,
-                PrivilegeLevel::Ring3,
-                SegmentBitness::Bits64,
-            ),
-            // TSS
-            tss_segs[0],
-            tss_segs[1],
-        ]
-    })
+bitflags! {
+    struct DescriptorFlags: u64 {
+        const CONFORMING        = 1 << 42;
+        const EXECUTABLE        = 1 << 43;
+        const USER_SEGMENT      = 1 << 44;
+        const PRESENT           = 1 << 47;
+        const LONG_MODE         = 1 << 53;
+    }
 }
