@@ -1,14 +1,13 @@
 use alloc::{String, VecDeque};
 use core::sync::atomic::{AtomicUsize, Ordering};
-use spin::RwLock;
+use spin::Mutex;
 use syscall::error::Error;
-use task::{Process, ProcessId, ProcessList, Scheduling, State};
-
-pub type Scheduler = Cooperative;
+use task::{Process, ProcessId, ProcessList, State};
+use task::scheduler::Scheduling;
 
 pub struct Cooperative {
     current_pid: AtomicUsize,
-    inner: RwLock<CooperativeInner>,
+    inner: Mutex<CooperativeInner>,
 }
 
 struct CooperativeInner {
@@ -19,7 +18,7 @@ struct CooperativeInner {
 impl Scheduling for Cooperative {
     /// Add process to process table
     fn create(&self, new_proc: extern "C" fn(), name: String) -> Result<ProcessId, Error> {
-        let mut inner = self.inner.write();
+        let mut inner = self.inner.lock();
 
         let id = inner.proc_table.add(name, new_proc)?;
         Ok(id)
@@ -35,7 +34,7 @@ impl Scheduling for Cooperative {
     fn kill(&self, id: ProcessId) {
         // We need to scope the manipulation of the process so we don't deadlock in resched()
         {
-            let mut inner = self.inner.write();
+            let mut inner = self.inner.lock();
 
             let proc = inner
                 .proc_table
@@ -54,13 +53,13 @@ impl Scheduling for Cooperative {
 
     /// Add process to ready list
     fn ready(&self, id: ProcessId) {
-        self.inner.write().ready_list.push_back(id);
+        self.inner.lock().ready_list.push_back(id);
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
     unsafe fn resched(&self) {
         // Important: Ensure lock is dropped before context switch
-        let mut inner = self.inner.write();
+        let mut inner = self.inner.lock();
 
         let curr_id: ProcessId = self.getid();
         let next_id = if let Some(next_id) = inner.ready_list.pop_front() {
@@ -117,7 +116,7 @@ impl Cooperative {
     pub fn new() -> Cooperative {
         Cooperative {
             current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
-            inner: RwLock::new(CooperativeInner {
+            inner: Mutex::new(CooperativeInner {
                 proc_table: ProcessList::new(),
                 ready_list: VecDeque::<ProcessId>::new(),
             }),

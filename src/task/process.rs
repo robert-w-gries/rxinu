@@ -2,7 +2,8 @@ use alloc::String;
 use alloc::Vec;
 use arch::context::Context;
 use core::fmt;
-use task::INIT_STK_SIZE;
+
+const PROCESS_STACK_SIZE: usize = 1024 * 4;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum State {
@@ -66,8 +67,8 @@ impl fmt::Debug for Process {
 impl Process {
     pub fn new(id: ProcessId, name: String, proc_entry: extern "C" fn()) -> Process {
         // Allocate stack
-        let mut stack: Vec<usize> = vec![0; INIT_STK_SIZE];
-        let stack_top = unsafe { stack.as_mut_ptr().add(INIT_STK_SIZE) };
+        let mut stack: Vec<usize> = vec![0; PROCESS_STACK_SIZE];
+        let stack_top = unsafe { stack.as_mut_ptr().add(PROCESS_STACK_SIZE) };
 
         Process {
             pid: id,
@@ -89,7 +90,7 @@ impl Process {
 /// When a process returns, it pops an instruction pointer off the stack then jumps to it
 /// The instruction pointer on the stack points to this function
 pub unsafe extern "C" fn process_ret() {
-    use task::{Scheduling, SCHEDULER};
+    use task::scheduler::{Scheduling, SCHEDULER};
 
     let curr_id: ProcessId = SCHEDULER.getid();
     SCHEDULER.kill(curr_id);
