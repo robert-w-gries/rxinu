@@ -16,4 +16,5 @@ pub trait Scheduling {
     fn kill(&self, id: ProcessId);
     fn ready(&self, id: ProcessId);
     unsafe fn resched(&self);
+    fn tick(&self);
 }

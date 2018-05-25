@@ -1,9 +1,11 @@
 use alloc::{String, VecDeque};
+use arch::interrupts;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Mutex;
 use syscall::error::Error;
 use task::{Process, ProcessId, ProcessList, State};
 use task::scheduler::Scheduling;
+use device::pit::PIT_TICKS;
 
 pub struct Cooperative {
     current_pid: AtomicUsize,
@@ -106,6 +108,21 @@ impl Scheduling for Cooperative {
         drop(inner);
 
         (*current_proc_ptr).switch_to(&*next_proc_ptr);
+    }
+
+    fn tick(&self) {
+        //This counter variable is updated every time an timer interrupt occurs. The timer is set to
+        //interrupt every 2ms, so this means a reschedule will occur if 20ms have passed.
+        if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= 10 {
+            PIT_TICKS.store(0, Ordering::SeqCst);
+
+            interrupts::disable_then_restore(|| {
+                //Find another process to run.
+                unsafe {
+                    self.resched();
+                };
+            });
+        }
     }
 }
 
