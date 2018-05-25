@@ -69,7 +69,6 @@ impl Scheduling for Cooperative {
             return;
         };
 
-        // Add current process back to ready list
         let current_proc_ptr = {
             let mut current_proc = inner
                 .proc_table
@@ -94,7 +93,7 @@ impl Scheduling for Cooperative {
 
             next_proc.set_state(State::Current);
 
-            next_proc as *mut Process
+            next_proc as *const Process
         };
 
         if (*current_proc_ptr).state == State::Ready {
@@ -106,9 +105,7 @@ impl Scheduling for Cooperative {
         // Drop locks to prevent deadlock after context switch
         drop(inner);
 
-        (*current_proc_ptr)
-            .context
-            .switch_to(&mut (*next_proc_ptr).context);
+        (*current_proc_ptr).switch_to(&*next_proc_ptr);
     }
 }
 

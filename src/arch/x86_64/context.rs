@@ -60,7 +60,7 @@ impl Context {
     }
 
     #[inline]
-    pub unsafe extern "C" fn switch_to(&mut self, next: &mut Context) {
+    pub unsafe fn switch_to(&mut self, next: &Context) {
         x86_64_context_switch(self as *mut _, next as *const _);
     }
 }

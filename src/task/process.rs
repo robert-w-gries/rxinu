@@ -83,6 +83,10 @@ impl Process {
     pub fn set_state(&mut self, new_state: State) {
         self.state = new_state;
     }
+
+    pub unsafe fn switch_to(&mut self, next: &Process) {
+        self.context.switch_to(&next.context);
+    }
 }
 
 /// Once the process it completed, kill it
