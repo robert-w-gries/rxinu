@@ -32,15 +32,21 @@ macro_rules! kprintln {
 }
 
 pub fn clear_screen() {
+    use arch::interrupts;
+
     #[cfg(feature = "serial")]
     {
         use device::uart_16550::COM1;
-        COM1.lock().clear_screen();
+        interrupts::disable_then_restore(|| {
+            COM1.lock().clear_screen();
+        });
     }
 
     #[cfg(feature = "vga")]
     {
         use device::vga::VGA;
-        VGA.lock().clear_screen();
+        interrupts::disable_then_restore(|| {
+            VGA.lock().clear_screen();
+        });
     }
 }

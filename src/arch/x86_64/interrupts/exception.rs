@@ -1,20 +1,20 @@
-use arch::x86_64::{self, interrupts};
+use arch::x86_64;
 use x86_64::structures::idt::{ExceptionStackFrame, PageFaultErrorCode};
 
 macro_rules! exception {
     ($x:ident, $stack:ident, $func:block) => {
         pub extern "x86-interrupt" fn $x($stack: &mut ExceptionStackFrame) {
-            interrupts::disable_then_restore(|| $func);
+            $func;
         }
     };
     ($x:ident, $stack:ident, $err:ident, $func:block) => {
         pub extern "x86-interrupt" fn $x($stack: &mut ExceptionStackFrame, $err: u64) {
-            interrupts::disable_then_restore(|| $func);
+            $func;
         }
     };
     ($x:ident, $stack:ident, $err:ident, $err_type:ty, $func:block) => {
         pub extern "x86-interrupt" fn $x($stack: &mut ExceptionStackFrame, $err: $err_type) {
-            interrupts::disable_then_restore(|| $func);
+            $func;
         }
     };
 }
