@@ -89,10 +89,12 @@ exception!(page_fault, stack, err, PageFaultErrorCode, {
         reg
     };
 
-    kprintln!("\nPage fault while accessing {:#x}\nError Code: {:?}\n{:#?}",
-              cr2,
-              err,
-              stack);
+    kprintln!(
+        "\nPage fault while accessing {:#x}\nError Code: {:?}\n{:#?}",
+        cr2,
+        err,
+        stack
+    );
 
     loop {
         unsafe {

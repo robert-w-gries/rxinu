@@ -38,7 +38,6 @@ pub fn init(boot_info_address: usize) {
     device::init();
 }
 
-
 /* TODO: Implement usermode
 /// Enter usermode.
 /// To enter Ring3, we must pretend to raise an inter-privilege level interrupt.

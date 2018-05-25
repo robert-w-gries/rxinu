@@ -50,9 +50,9 @@ lazy_static! {
 }
 
 pub fn init() {
-    use x86_64::structures::gdt::SegmentSelector;
     use x86_64::instructions::segmentation::set_cs;
     use x86_64::instructions::tables::load_tss;
+    use x86_64::structures::gdt::SegmentSelector;
 
     let tss = TSS.call_once(|| {
         let tss = TaskStateSegment::new();
