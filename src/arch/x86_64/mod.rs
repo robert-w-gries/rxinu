@@ -27,7 +27,7 @@ pub fn init(boot_info_address: usize) {
     let rec_page_table =
         RecursivePageTable::new(&mut page_table).expect("recursive page table creation failed");
 
-    let mut memory_controller = memory::init(boot_info, rec_page_table);
+    let _memory_controller = memory::init(boot_info, rec_page_table);
 
     unsafe {
         use self::memory::heap::{HEAP_SIZE, HEAP_START};

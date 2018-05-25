@@ -1,5 +1,5 @@
 use arch::x86_64::gdt::{Descriptor, Gdt};
-use arch::x86_64::interrupts::{exception, irq, syscall, DOUBLE_FAULT_IST_INDEX};
+use arch::x86_64::interrupts::{exception, irq};
 use spin::Once;
 use x86_64::structures::idt::Idt;
 use x86_64::structures::tss::TaskStateSegment;
@@ -7,7 +7,8 @@ use x86_64::structures::tss::TaskStateSegment;
 static GDT: Once<Gdt> = Once::new();
 static TSS: Once<TaskStateSegment> = Once::new();
 
-const IRQ_OFFSET: usize = 0;
+const IRQ_OFFSET: usize = 32;
+#[allow(dead_code)]
 const SYSCALL_OFFSET: usize = 0x80;
 
 lazy_static! {
@@ -41,6 +42,7 @@ lazy_static! {
         idt[IRQ_OFFSET + 3].set_handler_fn(irq::com2);
         idt[IRQ_OFFSET + 4].set_handler_fn(irq::com1);
 
+        // TODO: Syscall
         //idt[SYSCALL_OFFSET] = syscall_handler_entry(syscall::syscall);
 
         idt

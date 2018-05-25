@@ -21,31 +21,31 @@ macro_rules! exception {
 
 // TODO: Implement actual error handling for each exception
 exception!(divide_by_zero, _stack, {
-    kprintln!("Divide By Zero Fault");
+    kprintln!("\nDivide By Zero Fault");
 });
 
 exception!(debug, _stack, {
-    kprintln!("Debug Trap");
+    kprintln!("\nDebug Trap");
 });
 
 exception!(non_maskable_interrupt, _stack, {
-    kprintln!("Non-maskable Interrupt");
+    kprintln!("\nNon-maskable Interrupt");
 });
 
 exception!(breakpoint, _stack, {
-    kprintln!("Breakpoint trap");
+    kprintln!("\nBreakpoint trap");
 });
 
 exception!(overflow, _stack, {
-    kprintln!("Overflow trap");
+    kprintln!("\nOverflow trap");
 });
 
 exception!(bound_range_exceeded, _stack, {
-    kprintln!("Bound Range Exceeded Fault");
+    kprintln!("\nBound Range Exceeded Fault");
 });
 
 exception!(invalid_opcode, _stack, {
-    kprintln!("Invalid Opcode Fault");
+    kprintln!("\nInvalid Opcode Fault");
     loop {
         unsafe {
             x86_64::halt();
@@ -54,27 +54,27 @@ exception!(invalid_opcode, _stack, {
 });
 
 exception!(device_not_available, _stack, {
-    kprintln!("Device Not Available Fault");
+    kprintln!("\nDevice Not Available Fault");
 });
 
 exception!(double_fault, stack, error, {
-    kprintln!("Double Fault: {}|{:#?}", error, stack);
+    kprintln!("\nDouble Fault: {}|{:#?}", error, stack);
 });
 
 exception!(invalid_tss, _stack, _error, {
-    kprintln!("Invalid TSS Fault");
+    kprintln!("\nInvalid TSS Fault");
 });
 
 exception!(segment_not_present, stack, error, {
-    kprintln!("Segment Not Present Fault: 0x{:x}\n{:#?}", error, stack);
+    kprintln!("\nSegment Not Present Fault: 0x{:x}\n{:#?}", error, stack);
 });
 
 exception!(stack_segment_fault, _stack, _error, {
-    kprintln!("Stack Segment Fault");
+    kprintln!("\nStack Segment Fault");
 });
 
 exception!(general_protection_fault, _stack, _error, {
-    kprintln!("General Protection Fault");
+    kprintln!("\nGeneral Protection Fault");
     loop {
         unsafe {
             x86_64::halt();
@@ -102,25 +102,25 @@ exception!(page_fault, stack, err, PageFaultErrorCode, {
 });
 
 exception!(x87_floating_point, _stack, {
-    kprintln!("x87 Floating Point Exception");
+    kprintln!("\nx87 Floating Point Exception");
 });
 
 exception!(alignment_check, _stack, _error, {
-    kprintln!("Alignment Check Fault");
+    kprintln!("\nAlignment Check Fault");
 });
 
 exception!(machine_check, _stack, {
-    kprintln!("Machine Check Abort");
+    kprintln!("\nMachine Check Abort");
 });
 
 exception!(simd_floating_point, _stack, {
-    kprintln!("SIMD Floating Point Exception");
+    kprintln!("\nSIMD Floating Point Exception");
 });
 
 exception!(virtualization, _stack, {
-    kprintln!("Virtualization Exception");
+    kprintln!("\nVirtualization Exception");
 });
 
 exception!(security_exception, _stack, _error, {
-    kprintln!("Security Exception");
+    kprintln!("\nSecurity Exception");
 });
