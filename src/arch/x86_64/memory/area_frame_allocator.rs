@@ -1,4 +1,4 @@
-use arch::x86::memory::FrameAllocator;
+use arch::x86_64::memory::FrameAllocator;
 use os_bootinfo::{FrameRange, MemoryMap, MemoryRegionType};
 use x86_64::structures::paging::{PhysFrame, PhysFrameRange, Size4KB};
 

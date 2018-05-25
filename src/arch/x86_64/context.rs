@@ -1,5 +1,7 @@
 use core::mem;
 
+global_asm!(include_str!("context_switch.asm"));
+
 extern "C" {
     fn x86_64_context_switch(prev: *mut Context, next: *const Context);
 }
@@ -8,7 +10,6 @@ extern "C" {
 #[repr(C)]
 pub struct Context {
     rflags: usize,
-    cr3: usize,
     rbx: usize,
     r12: usize,
     r13: usize,
@@ -22,7 +23,6 @@ impl Context {
     pub const fn empty() -> Context {
         Context {
             rflags: 0,
-            cr3: 0,
             rbx: 0,
             r12: 0,
             r13: 0,
@@ -36,7 +36,6 @@ impl Context {
     pub fn new(stack_top: *mut u8, proc_entry: usize) -> Context {
         let mut ctx = Context {
             rflags: 0,
-            cr3: 0,
             rbx: 0,
             r12: 0,
             r13: 0,
@@ -58,18 +57,6 @@ impl Context {
     pub unsafe fn push_stack(&mut self, item: usize) {
         self.rsp -= mem::size_of::<usize>();
         *(self.rsp as *mut usize) = item;
-    }
-
-    pub fn set_page_table(&mut self, address: usize) {
-        self.cr3 = address;
-    }
-
-    pub fn set_stack(&mut self, address: usize) {
-        self.rsp = address;
-    }
-
-    pub fn set_base_pointer(&mut self, address: usize) {
-        self.rbp = address;
     }
 
     #[inline]

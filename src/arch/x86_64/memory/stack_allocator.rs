@@ -1,4 +1,4 @@
-use arch::x86::memory::{map_page, FrameAllocator};
+use arch::x86_64::memory::{map_page, FrameAllocator};
 use x86_64::structures::paging::{
     Page, PageRangeInclusive, PageSize, PageTableFlags, RecursivePageTable, Size4KB,
 };

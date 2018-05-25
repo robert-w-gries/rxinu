@@ -27,26 +27,18 @@ pub fn init(boot_info_address: usize) {
     let rec_page_table =
         RecursivePageTable::new(&mut page_table).expect("recursive page table creation failed");
 
-    let mut memory_controller = memory::init(boot_info, rec_page_table);
+    let _memory_controller = memory::init(boot_info, rec_page_table);
 
     unsafe {
         use self::memory::heap::{HEAP_SIZE, HEAP_START};
         ::HEAP_ALLOCATOR.init(HEAP_START as usize, HEAP_SIZE as usize);
     }
 
-    gdt::init(&mut memory_controller);
     idt::init();
     device::init();
 }
 
-use x86::shared::segmentation::SegmentSelector;
-use x86::shared::PrivilegeLevel;
-
-const USER_DATA: SegmentSelector =
-    SegmentSelector::new(gdt::GDT_USER_DATA as u16, PrivilegeLevel::Ring3);
-const USER_CODE: SegmentSelector =
-    SegmentSelector::new(gdt::GDT_USER_CODE as u16, PrivilegeLevel::Ring3);
-
+/* TODO: Implement usermode
 /// Enter usermode.
 /// To enter Ring3, we must pretend to raise an inter-privilege level interrupt.
 /// [unsafe]
@@ -74,22 +66,14 @@ pub unsafe fn enter_usermode(ip: usize, sp: usize) -> ! {
 
     // execute interrupt return then execute in usermode
     execute_ring3_code();
-    unreachable!();
 }
 
-#[cfg(target_arch = "x86")]
-/// Execute interrupt return to enter userspace
-unsafe fn execute_ring3_code() -> ! {
-    asm!("iret");
-    unreachable!();
-}
-
-#[cfg(target_arch = "x86_64")]
 /// Execute interrupt return to enter userspace
 unsafe fn execute_ring3_code() -> ! {
     asm!("iretq");
     unreachable!();
 }
+*/
 
 #[inline]
 pub unsafe fn halt() {
