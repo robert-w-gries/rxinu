@@ -1,4 +1,3 @@
-use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT};
 use spin::Mutex;
 use syscall::io::Io;
 use syscall::io::Port;
@@ -22,5 +21,3 @@ pub fn init() {
 
     kprintln!("[ OK ] Programmable Interval Timer");
 }
-
-pub static PIT_TICKS: AtomicUsize = ATOMIC_USIZE_INIT;
