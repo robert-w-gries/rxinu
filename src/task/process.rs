@@ -3,7 +3,16 @@ use alloc::Vec;
 use arch::context::Context;
 use core::fmt;
 
-const PROCESS_STACK_SIZE: usize = 1024 * 4;
+/// Once the process it completed, kill it
+///
+/// When a process returns, it pops an instruction pointer off the stack then jumps to it
+/// The instruction pointer on the stack points to this function
+pub unsafe extern "C" fn process_ret() {
+    use task::scheduler::{Scheduling, SCHEDULER};
+
+    let curr_id: ProcessId = SCHEDULER.getid();
+    SCHEDULER.kill(curr_id);
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum State {
@@ -30,6 +39,8 @@ impl ProcessId {
     }
 }
 
+const PROCESS_STACK_SIZE: usize = 1024 * 4;
+
 #[derive(Clone)]
 pub struct Process {
     pub pid: ProcessId,
@@ -37,6 +48,7 @@ pub struct Process {
     pub state: State,
     pub context: Context,
     pub kstack: Option<Vec<usize>>,
+    pub priority: usize,
 }
 
 impl fmt::Debug for Process {
@@ -49,12 +61,13 @@ impl fmt::Debug for Process {
             Some(ref stk) => s.field("kstack", &(stk.as_ptr() as usize)),
             None => s.field("kstack", &self.kstack),
         };
+        s.field("priority", &self.priority);
         s.finish()
     }
 }
 
 impl Process {
-    pub fn new(id: ProcessId, name: String, proc_entry: extern "C" fn()) -> Process {
+    pub fn new(id: ProcessId, name: String, priority: usize, proc_entry: extern "C" fn()) -> Process {
         // Allocate stack
         let mut stack: Vec<usize> = vec![0; PROCESS_STACK_SIZE];
         let stack_top = unsafe { stack.as_mut_ptr().add(PROCESS_STACK_SIZE) };
@@ -65,6 +78,7 @@ impl Process {
             context: Context::new(stack_top as *mut u8, proc_entry as usize),
             kstack: Some(stack),
             name: name,
+            priority: priority,
         }
     }
 
@@ -75,15 +89,4 @@ impl Process {
     pub unsafe fn switch_to(&mut self, next: &Process) {
         self.context.switch_to(&next.context);
     }
-}
-
-/// Once the process it completed, kill it
-///
-/// When a process returns, it pops an instruction pointer off the stack then jumps to it
-/// The instruction pointer on the stack points to this function
-pub unsafe extern "C" fn process_ret() {
-    use task::scheduler::{Scheduling, SCHEDULER};
-
-    let curr_id: ProcessId = SCHEDULER.getid();
-    SCHEDULER.kill(curr_id);
 }

@@ -54,7 +54,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
-    syscall::create(rxinu_main, String::from("rxinu_main"));
+    syscall::create(String::from("rxinu_main"), 0, rxinu_main);
 
     loop {
         #[cfg(feature = "serial")]
@@ -81,7 +81,7 @@ pub extern "C" fn rxinu_main() {
     arch::console::clear_screen();
 
     kprintln!("In main process!\n");
-    syscall::create(created_process, String::from("rxinu_test"));
+    syscall::create(String::from("rxinu_test"), 0, created_process);
 }
 
 pub extern "C" fn test_process() {
@@ -95,12 +95,12 @@ pub extern "C" fn created_process() {
 
 pub extern "C" fn cycle_process_a() {
     kprint!(".");
-    syscall::create(cycle_process_b, String::from("cycle_process_b"));
+    syscall::create(String::from("cycle_process_b"), 0, cycle_process_b);
 }
 
 pub extern "C" fn cycle_process_b() {
     kprint!(".");
-    syscall::create(cycle_process_a, String::from("cycle_process_a"));
+    syscall::create(String::from("cycle_process_a"), 0, cycle_process_a);
 }
 
 #[cfg(not(test))]

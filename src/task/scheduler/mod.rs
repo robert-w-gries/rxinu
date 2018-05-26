@@ -3,15 +3,16 @@ use syscall::error::Error;
 use task::process::ProcessId;
 
 mod cooperative;
+mod preemptive;
 
-pub type GlobalScheduler = cooperative::Cooperative;
+pub type GlobalScheduler = preemptive::Preemptive;
 
 lazy_static! {
     pub static ref SCHEDULER: GlobalScheduler = GlobalScheduler::new();
 }
 
 pub trait Scheduling {
-    fn create(&self, func: extern "C" fn(), name: String) -> Result<ProcessId, Error>;
+    fn create(&self, name: String, prio: usize, func: extern "C" fn()) -> Result<ProcessId, Error>;
     fn getid(&self) -> ProcessId;
     fn kill(&self, id: ProcessId);
     fn ready(&self, id: ProcessId);

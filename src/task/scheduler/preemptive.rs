@@ -7,19 +7,19 @@ use syscall::error::Error;
 use task::{Process, ProcessId, State, MAX_PID};
 use task::scheduler::Scheduling;
 
-pub struct Cooperative {
+pub struct Preemptive {
     current_pid: AtomicUsize,
-    inner: Mutex<CooperativeInner>,
+    inner: Mutex<PreemptiveInner>,
     ticks: AtomicUsize,
 }
 
-struct CooperativeInner {
+struct PreemptiveInner {
     next_pid: usize,
     proc_table: BTreeMap<ProcessId, Process>,
     ready_list: VecDeque<ProcessId>,
 }
 
-impl Scheduling for Cooperative {
+impl Scheduling for Preemptive {
     /// Add process to process table
     fn create(&self, name: String, _prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
         let pid = self.get_next_pid()?;
@@ -133,8 +133,8 @@ impl Scheduling for Cooperative {
     }
 }
 
-impl Cooperative {
-    pub fn new() -> Cooperative {
+impl Preemptive {
+    pub fn new() -> Preemptive {
         let mut new_proc_table: BTreeMap<ProcessId, Process> = BTreeMap::new();
 
         let null_process = Process {
@@ -148,9 +148,9 @@ impl Cooperative {
 
         new_proc_table.insert(ProcessId::NULL_PROCESS, null_process);
 
-        Cooperative {
+        Preemptive {
             current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
-            inner: Mutex::new(CooperativeInner {
+            inner: Mutex::new(PreemptiveInner {
                 next_pid: 1,
                 proc_table: new_proc_table,
                 ready_list: VecDeque::<ProcessId>::new(),
