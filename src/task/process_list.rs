@@ -4,7 +4,7 @@ use arch::context::Context;
 use core::fmt;
 use core::result::Result;
 use syscall::error::Error;
-use task::{Priority, Process, ProcessId, State};
+use task::{Process, ProcessId, State};
 
 pub struct ProcessList {
     map: BTreeMap<ProcessId, Process>,
@@ -25,7 +25,6 @@ impl ProcessList {
             pid: ProcessId::NULL_PROCESS,
             name: String::from("NULL"),
             state: State::Current,
-            prio: Priority(0),
             context: Context::empty(),
             kstack: Some(Vec::new()),
         };

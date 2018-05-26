@@ -13,15 +13,6 @@ pub enum State {
     Ready,
 }
 
-#[derive(Clone)]
-pub struct Priority(pub u64);
-
-impl fmt::Debug for Priority {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Priority({})", self.0)
-    }
-}
-
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ProcessId(pub usize);
 
@@ -44,7 +35,6 @@ pub struct Process {
     pub pid: ProcessId,
     pub name: String,
     pub state: State,
-    pub prio: Priority,
     pub context: Context,
     pub kstack: Option<Vec<usize>>,
 }
@@ -54,7 +44,6 @@ impl fmt::Debug for Process {
         let mut s = f.debug_struct("Process");
         s.field("pid", &self.pid);
         s.field("name", &self.name);
-        s.field("prio", &self.prio);
         s.field("context", &self.context);
         match self.kstack {
             Some(ref stk) => s.field("kstack", &(stk.as_ptr() as usize)),
@@ -73,7 +62,6 @@ impl Process {
         Process {
             pid: id,
             state: State::Suspended,
-            prio: Priority(0),
             context: Context::new(stack_top as *mut u8, proc_entry as usize),
             kstack: Some(stack),
             name: name,

@@ -110,15 +110,19 @@ impl Scheduling for Cooperative {
     }
 
     fn tick(&self) {
+        use arch::interrupts;
+
         //This counter variable is updated every time an timer interrupt occurs. The timer is set to
         //interrupt every 2ms, so this means a reschedule will occur if 20ms have passed.
         if self.ticks.fetch_add(1, Ordering::SeqCst) >= 10 {
             self.ticks.store(0, Ordering::SeqCst);
 
-            //Find another process to run.
-            unsafe {
-                self.resched();
-            }
+            // Find another process to run while interrupts are disabled
+            interrupts::disable_then_restore(|| {
+                unsafe {
+                    self.resched();
+                }
+            });
         }
     }
 }

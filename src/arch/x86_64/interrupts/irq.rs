@@ -5,8 +5,13 @@ use task::scheduler::{Scheduling, SCHEDULER};
 use x86_64::structures::idt::ExceptionStackFrame;
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
+    use arch::interrupts;
+
     pic::MASTER.lock().ack();
+
+    interrupts::disable();
     SCHEDULER.tick();
+    interrupts::enable();
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStackFrame) {
