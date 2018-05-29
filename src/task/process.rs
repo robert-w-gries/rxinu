@@ -4,7 +4,6 @@ use alloc::arc::Arc;
 use alloc::btree_map::BTreeMap;
 use arch::context::Context;
 use core::fmt;
-use core::cmp::Ordering;
 use spin::RwLock;
 use syscall::error::Error;
 
@@ -93,26 +92,6 @@ impl Process {
 
     pub unsafe fn switch_to(&mut self, next: &Process) {
         self.context.switch_to(&next.context);
-    }
-}
-
-impl Ord for Process {
-    fn cmp(&self, other: &Process) -> Ordering {
-        self.priority.cmp(&other.priority)
-    }
-}
-
-impl PartialOrd for Process {
-    fn partial_cmp(&self, other: &Process) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Eq for Process {}
-
-impl PartialEq for Process {
-    fn eq(&self, other: &Process) -> bool {
-        self.priority == other.priority
     }
 }
 
