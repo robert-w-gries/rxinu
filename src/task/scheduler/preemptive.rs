@@ -1,10 +1,12 @@
-use alloc::{String, Vec, VecDeque};
-use alloc::btree_map::BTreeMap;
+use alloc::{BinaryHeap, String, Vec};
+use alloc::arc::Arc;
 use arch::context::Context;
-use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use spin::Mutex;
+use core::cmp;
+use core::ops::DerefMut;
+use core::sync::atomic::{self, AtomicUsize, ATOMIC_USIZE_INIT};
+use spin::{Mutex, RwLock};
 use syscall::error::Error;
-use task::{Process, ProcessId, State, MAX_PID};
+use task::{Process, ProcessId, ProcessTable, State};
 use task::scheduler::Scheduling;
 
 pub struct Preemptive {
@@ -14,26 +16,24 @@ pub struct Preemptive {
 }
 
 struct PreemptiveInner {
-    next_pid: usize,
-    proc_table: BTreeMap<ProcessId, Process>,
-    ready_list: VecDeque<ProcessId>,
+    proc_table: ProcessTable,
+    ready_list: BinaryHeap<ProcessRef>,
 }
 
 impl Scheduling for Preemptive {
     /// Add process to process table
-    fn create(&self, name: String, _prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
-        let pid = self.get_next_pid()?;
-        let proc: Process = Process::new(pid, name, 0, proc_entry);
+    fn create(&self, name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
+        let mut inner = self.inner.lock();
 
-        match self.inner.lock().proc_table.insert(pid, proc) {
-            Some(_) => Err(Error::BadPid),
-            None => Ok(pid),
-        }
+        let pid = inner.proc_table.get_next_pid()?;
+        let proc: Process = Process::new(pid, name, prio, proc_entry);
+        inner.proc_table.add(proc)?;
+        Ok(pid)
     }
 
     /// Get current process id
     fn getid(&self) -> ProcessId {
-        ProcessId(self.current_pid.load(Ordering::SeqCst))
+        ProcessId(self.current_pid.load(atomic::Ordering::SeqCst))
     }
 
     /// Scheduler's method to kill processes
@@ -41,12 +41,14 @@ impl Scheduling for Preemptive {
     fn kill(&self, id: ProcessId) {
         // We need to scope the manipulation of the process so we don't deadlock in resched()
         {
-            let mut inner = self.inner.lock();
+            let inner = self.inner.lock();
 
-            let proc = inner
+            let proc_lock = inner
                 .proc_table
-                .get_mut(&id)
+                .get(id)
                 .expect("Could not find process to kill");
+
+            let mut proc = proc_lock.write();
 
             proc.set_state(State::Free);
             proc.kstack = None;
@@ -59,8 +61,19 @@ impl Scheduling for Preemptive {
     }
 
     /// Add process to ready list
-    fn ready(&self, id: ProcessId) {
-        self.inner.lock().ready_list.push_back(id);
+    fn ready(&self, id: ProcessId) -> Result<(), Error> {
+        let proc_ref = {
+            if let Some(proc_ref) = self.inner.lock().proc_table.get(id) {
+                let mut proc = proc_ref.write();
+                proc.set_state(State::Ready);
+                Arc::clone(proc_ref)
+            } else {
+                return Err(Error::ProcessNotFound);
+            }
+        };
+
+        self.inner.lock().ready_list.push(ProcessRef(proc_ref));
+        Ok(())
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
@@ -69,50 +82,57 @@ impl Scheduling for Preemptive {
         let mut inner = self.inner.lock();
 
         let curr_id: ProcessId = self.getid();
-        let next_id = if let Some(next_id) = inner.ready_list.pop_front() {
-            assert!(curr_id != next_id);
-            next_id
+
+        let next_proc: *const Process = if let Some(next_ref) = inner.ready_list.pop() {
+            let mut next_lock = next_ref.0.write();
+
+            assert!(next_lock.kstack.is_some());
+            assert!(curr_id != next_lock.pid);
+
+            next_lock.set_state(State::Current);
+
+            next_lock.deref_mut() as *const Process
         } else {
             return;
         };
 
-        let current_proc_ptr = {
-            let mut current_proc = inner
-                .proc_table
-                .get_mut(&curr_id)
-                .expect("Could not find current process in process table");
-
-            // Add current process back to ready list
-            if current_proc.state == State::Current {
-                current_proc.set_state(State::Ready);
+        {
+            let curr_ref = {
+                let proc_ref = inner.proc_table.get(curr_id).expect("resched() - Could not find current process in process table");
+                Arc::clone(proc_ref)
+            };
+            let curr = curr_ref.read();
+            if curr.state == State::Current {
+                inner.ready_list.push(ProcessRef(Arc::clone(&curr_ref)));
             }
-
-            current_proc as *mut Process
-        };
-
-        let next_proc_ptr = {
-            let mut next_proc = inner
-                .proc_table
-                .get_mut(&next_id)
-                .expect("Process ID in ready list is not in process table");
-
-            assert!(next_proc.kstack.is_some());
-
-            next_proc.set_state(State::Current);
-
-            next_proc as *const Process
-        };
-
-        if (*current_proc_ptr).state == State::Ready {
-            inner.ready_list.push_back(curr_id);
         }
 
-        self.current_pid.store(next_id.0, Ordering::SeqCst);
+        let current_proc: *mut Process = {
+            let curr_ref = {
+                let proc_ref = inner.proc_table.get(curr_id).expect("resched() - Could not find current process in process table");
+                Arc::clone(proc_ref)
+            };
+            let mut curr = curr_ref.write();
+
+            match curr.state {
+                State::Current => {
+                    curr.set_state(State::Ready);
+                },
+                State::Free => {
+                    inner.proc_table.remove(curr_id);
+                },
+                _ => (),
+            };
+
+            curr.deref_mut() as *mut Process
+        };
+
+        self.current_pid.store((*next_proc).pid.0, atomic::Ordering::SeqCst);
 
         // Drop locks to prevent deadlock after context switch
         drop(inner);
 
-        (*current_proc_ptr).switch_to(&*next_proc_ptr);
+        (*current_proc).switch_to(&*next_proc);
     }
 
     fn tick(&self) {
@@ -120,8 +140,8 @@ impl Scheduling for Preemptive {
 
         //This counter variable is updated every time an timer interrupt occurs. The timer is set to
         //interrupt every 2ms, so this means a reschedule will occur if 20ms have passed.
-        if self.ticks.fetch_add(1, Ordering::SeqCst) >= 10 {
-            self.ticks.store(0, Ordering::SeqCst);
+        if self.ticks.fetch_add(1, atomic::Ordering::SeqCst) >= 10 {
+            self.ticks.store(0, atomic::Ordering::SeqCst);
 
             // Find another process to run while interrupts are disabled
             interrupts::disable_then_restore(|| {
@@ -135,7 +155,7 @@ impl Scheduling for Preemptive {
 
 impl Preemptive {
     pub fn new() -> Preemptive {
-        let mut new_proc_table: BTreeMap<ProcessId, Process> = BTreeMap::new();
+        let mut proc_table = ProcessTable::new();
 
         let null_process = Process {
             pid: ProcessId::NULL_PROCESS,
@@ -146,35 +166,37 @@ impl Preemptive {
             priority: 0,
         };
 
-        new_proc_table.insert(ProcessId::NULL_PROCESS, null_process);
+        proc_table.insert(ProcessId::NULL_PROCESS, Arc::new(RwLock::new(null_process)));
 
         Preemptive {
             current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
             inner: Mutex::new(PreemptiveInner {
-                next_pid: 1,
-                proc_table: new_proc_table,
-                ready_list: VecDeque::<ProcessId>::new(),
+                proc_table: proc_table,
+                ready_list: BinaryHeap::<ProcessRef>::new(),
             }),
             ticks: ATOMIC_USIZE_INIT,
         }
     }
+}
 
-    fn get_next_pid(&self) -> Result<ProcessId, Error> {
-        let mut inner = self.inner.lock();
+struct ProcessRef(Arc<RwLock<Process>>);
 
-        while inner.proc_table.contains_key(&ProcessId(inner.next_pid)) && inner.next_pid < MAX_PID {
-            inner.next_pid += 1;
-        }
+impl Ord for ProcessRef {
+    fn cmp(&self, other: &ProcessRef) -> cmp::Ordering {
+        self.0.read().priority.cmp(&other.0.read().priority)
+    }
+}
 
-        match inner.next_pid {
-            MAX_PID => {
-                inner.next_pid = 1;
-                Err(Error::TryAgain)
-            },
-            pid => {
-                inner.next_pid += 1;
-                Ok(ProcessId(pid))
-            },
-        }
+impl PartialOrd for ProcessRef {
+    fn partial_cmp(&self, other: &ProcessRef) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for ProcessRef {}
+
+impl PartialEq for ProcessRef {
+    fn eq(&self, other: &ProcessRef) -> bool {
+        self.0.read().priority == other.0.read().priority
     }
 }

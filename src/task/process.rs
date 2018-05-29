@@ -1,7 +1,12 @@
 use alloc::String;
 use alloc::Vec;
+use alloc::arc::Arc;
+use alloc::btree_map::BTreeMap;
 use arch::context::Context;
 use core::fmt;
+use core::cmp::Ordering;
+use spin::RwLock;
+use syscall::error::Error;
 
 /// Once the process it completed, kill it
 ///
@@ -88,5 +93,79 @@ impl Process {
 
     pub unsafe fn switch_to(&mut self, next: &Process) {
         self.context.switch_to(&next.context);
+    }
+}
+
+impl Ord for Process {
+    fn cmp(&self, other: &Process) -> Ordering {
+        self.priority.cmp(&other.priority)
+    }
+}
+
+impl PartialOrd for Process {
+    fn partial_cmp(&self, other: &Process) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Process {}
+
+impl PartialEq for Process {
+    fn eq(&self, other: &Process) -> bool {
+        self.priority == other.priority
+    }
+}
+
+pub struct ProcessTable {
+    map: BTreeMap<ProcessId, Arc<RwLock<Process>>>,
+    next_pid: usize,
+}
+
+impl ProcessTable {
+    pub fn new() -> ProcessTable {
+        ProcessTable {
+            map: BTreeMap::new(),
+            next_pid: 1,
+        }
+    }
+
+    pub fn add(&mut self, proc: Process) -> Result<ProcessId, Error> {
+        let pid = proc.pid;
+        match self.map.insert(pid, Arc::new(RwLock::new(proc))) {
+            // PID already used
+            Some(_) => Err(Error::BadPid),
+            None => Ok(pid),
+        }
+    }
+
+    pub fn get(&self, pid: ProcessId) -> Option<&Arc<RwLock<Process>>> {
+        self.map.get(&pid)
+    }
+
+    pub fn get_next_pid(&mut self) -> Result<ProcessId, Error> {
+        use task::MAX_PID;
+
+        while self.map.contains_key(&ProcessId(self.next_pid)) && self.next_pid < MAX_PID {
+            self.next_pid += 1;
+        }
+
+        match self.next_pid {
+            MAX_PID => {
+                self.next_pid = 1;
+                Err(Error::TryAgain)
+            },
+            pid => {
+                self.next_pid += 1;
+                Ok(ProcessId(pid))
+            },
+        }
+    }
+
+    pub fn insert(&mut self, pid: ProcessId, proc: Arc<RwLock<Process>>) -> Option<Arc<RwLock<Process>>> {
+        self.map.insert(pid, proc)
+    }
+
+    pub fn remove(&mut self, pid: ProcessId) -> Option<Arc<RwLock<Process>>> {
+        self.map.remove(&pid)
     }
 }

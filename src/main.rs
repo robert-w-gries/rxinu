@@ -82,6 +82,10 @@ pub extern "C" fn rxinu_main() {
 
     kprintln!("In main process!\n");
     syscall::create(String::from("rxinu_test"), 0, created_process);
+    syscall::create(String::from("rxinu_test"), 10, process_b);
+    syscall::create(String::from("rxinu_test"), 10, process_b);
+    syscall::create(String::from("rxinu_test"), 200, process_a);
+    syscall::create(String::from("rxinu_test"), 200, process_a);
 }
 
 pub extern "C" fn test_process() {
@@ -91,6 +95,14 @@ pub extern "C" fn test_process() {
 pub extern "C" fn created_process() {
     kprintln!("\nIn rxinu_main::created_process!");
     kprintln!("\nYou can now type...");
+}
+
+pub extern "C" fn process_a() {
+    kprintln!("\nIn process_a!");
+}
+
+pub extern "C" fn process_b() {
+    kprintln!("\nIn process_b!");
 }
 
 pub extern "C" fn cycle_process_a() {

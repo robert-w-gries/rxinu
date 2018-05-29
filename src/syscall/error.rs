@@ -2,4 +2,5 @@
 pub enum Error {
     BadPid,
     TryAgain,
+    ProcessNotFound,
 }

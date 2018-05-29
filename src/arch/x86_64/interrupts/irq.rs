@@ -9,9 +9,9 @@ pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
 
     pic::MASTER.lock().ack();
 
-    interrupts::disable();
-    SCHEDULER.tick();
-    interrupts::enable();
+    interrupts::disable_then_restore(|| {
+        SCHEDULER.tick();
+    });
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStackFrame) {

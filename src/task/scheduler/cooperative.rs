@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use alloc::{String, Vec, VecDeque};
 use alloc::btree_map::BTreeMap;
 use arch::context::Context;
@@ -59,8 +60,9 @@ impl Scheduling for Cooperative {
     }
 
     /// Add process to ready list
-    fn ready(&self, id: ProcessId) {
+    fn ready(&self, id: ProcessId) -> Result<(), Error> {
         self.inner.lock().ready_list.push_back(id);
+        Ok(())
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
