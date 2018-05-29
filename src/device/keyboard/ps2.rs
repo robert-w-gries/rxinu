@@ -38,12 +38,13 @@ pub fn parse_key(scancode: u8) -> Option<u8> {
 
 pub fn read(len: usize) {
     use arch::interrupts;
-    interrupts::disable_then_restore(|| {
-        let bytes = PS2_KEYBOARD.lock().read(len);
-        for &byte in bytes.iter() {
-            kprint!("{}", byte);
-        }
+    let bytes = interrupts::disable_then_restore(|| {
+        PS2_KEYBOARD.lock().read(len)
     });
+
+    for &byte in bytes.iter() {
+        kprint!("{}", byte);
+    }
 }
 
 /// Keep reading bytes until sequence is finished and combine bytes into an integer

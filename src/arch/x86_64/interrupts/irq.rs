@@ -1,7 +1,7 @@
 use device::keyboard::ps2::PS2_KEYBOARD;
 use device::pic_8259 as pic;
 use device::uart_16550 as serial;
-use task::scheduler::{Scheduling, SCHEDULER};
+use task::scheduler::{global_sched, Scheduling};
 use x86_64::structures::idt::ExceptionStackFrame;
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
@@ -9,8 +9,9 @@ pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
 
     pic::MASTER.lock().ack();
 
+    // TODO DO NEED?
     interrupts::disable_then_restore(|| {
-        SCHEDULER.tick();
+        global_sched().tick();
     });
 }
 

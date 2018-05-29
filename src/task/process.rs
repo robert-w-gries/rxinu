@@ -12,10 +12,10 @@ use syscall::error::Error;
 /// When a process returns, it pops an instruction pointer off the stack then jumps to it
 /// The instruction pointer on the stack points to this function
 pub unsafe extern "C" fn process_ret() {
-    use task::scheduler::{Scheduling, SCHEDULER};
+    use task::scheduler::{Scheduling, global_sched};
 
-    let curr_id: ProcessId = SCHEDULER.getid();
-    SCHEDULER.kill(curr_id);
+    let curr_id: ProcessId = global_sched().getid();
+    global_sched().kill(curr_id);
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

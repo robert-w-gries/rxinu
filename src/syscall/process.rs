@@ -1,17 +1,13 @@
 use alloc::String;
 use syscall::error::Error;
 use task::ProcessId;
-use task::scheduler::{Scheduling, SCHEDULER};
+use task::scheduler::{Scheduling, global_sched};
 
 /// Wrapper around scheduler.create() and ready() that can be called in processes
 pub fn create(name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
-    use arch::interrupts;
-
-    interrupts::disable_then_restore(|| {
-        let pid = SCHEDULER
-            .create(name, prio, proc_entry)
-            .expect("Could not create new process!");
-        SCHEDULER.ready(pid.clone())?;
-        Ok(pid)
-    })
+    let pid = global_sched()
+        .create(name, prio, proc_entry)
+        .expect("Could not create new process!");
+    global_sched().ready(pid)?;
+    Ok(pid)
 }
