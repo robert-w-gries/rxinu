@@ -137,8 +137,18 @@ impl Scheduling for Cooperative {
 
 impl Cooperative {
     pub fn new() -> Cooperative {
-        let mut new_proc_table: BTreeMap<ProcessId, Process> = BTreeMap::new();
+        Cooperative {
+            current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
+            inner: Mutex::new(CooperativeInner {
+                next_pid: 1,
+                proc_table: BTreeMap::<ProcessId, Process>::new(),
+                ready_list: VecDeque::<ProcessId>::new(),
+            }),
+            ticks: ATOMIC_USIZE_INIT,
+        }
+    }
 
+    pub fn init(&self) {
         let null_process = Process {
             pid: ProcessId::NULL_PROCESS,
             name: String::from("NULL"),
@@ -148,17 +158,7 @@ impl Cooperative {
             priority: 0,
         };
 
-        new_proc_table.insert(ProcessId::NULL_PROCESS, null_process);
-
-        Cooperative {
-            current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
-            inner: Mutex::new(CooperativeInner {
-                next_pid: 1,
-                proc_table: new_proc_table,
-                ready_list: VecDeque::<ProcessId>::new(),
-            }),
-            ticks: ATOMIC_USIZE_INIT,
-        }
+        self.inner.lock().proc_table.insert(ProcessId::NULL_PROCESS, null_process);
     }
 
     fn get_next_pid(&self) -> Result<ProcessId, Error> {

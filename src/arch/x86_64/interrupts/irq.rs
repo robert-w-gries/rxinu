@@ -5,14 +5,8 @@ use task::scheduler::{global_sched, Scheduling};
 use x86_64::structures::idt::ExceptionStackFrame;
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
-    use arch::interrupts;
-
     pic::MASTER.lock().ack();
-
-    // TODO DO NEED?
-    interrupts::disable_then_restore(|| {
-        global_sched().tick();
-    });
+    global_sched().tick();
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStackFrame) {

@@ -136,27 +136,31 @@ impl Scheduling for Preemptive {
     }
 
     fn tick(&self) {
-        use arch::interrupts;
-
         //This counter variable is updated every time an timer interrupt occurs. The timer is set to
         //interrupt every 2ms, so this means a reschedule will occur if 20ms have passed.
         if self.ticks.fetch_add(1, atomic::Ordering::SeqCst) >= 10 {
             self.ticks.store(0, atomic::Ordering::SeqCst);
 
-            // Find another process to run while interrupts are disabled
-            interrupts::disable_then_restore(|| {
-                unsafe {
-                    self.resched();
-                }
-            });
+            unsafe {
+                self.resched();
+            }
         }
     }
 }
 
 impl Preemptive {
     pub fn new() -> Preemptive {
-        let mut proc_table = ProcessTable::new();
+        Preemptive {
+            current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
+            inner: Mutex::new(PreemptiveInner {
+                proc_table: ProcessTable::new(),
+                ready_list: BinaryHeap::<ProcessRef>::new(),
+            }),
+            ticks: ATOMIC_USIZE_INIT,
+        }
+    }
 
+    pub fn init(&self) {
         let null_process = Process {
             pid: ProcessId::NULL_PROCESS,
             name: String::from("NULL"),
@@ -166,16 +170,7 @@ impl Preemptive {
             priority: 0,
         };
 
-        proc_table.insert(ProcessId::NULL_PROCESS, Arc::new(RwLock::new(null_process)));
-
-        Preemptive {
-            current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
-            inner: Mutex::new(PreemptiveInner {
-                proc_table: proc_table,
-                ready_list: BinaryHeap::<ProcessRef>::new(),
-            }),
-            ticks: ATOMIC_USIZE_INIT,
-        }
+        self.inner.lock().proc_table.insert(ProcessId::NULL_PROCESS, Arc::new(RwLock::new(null_process)));
     }
 }
 

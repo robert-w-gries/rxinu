@@ -1,3 +1,5 @@
+#![allow(unused_must_use)]
+
 #![feature(abi_x86_interrupt)]
 #![feature(alloc, allocator_api, global_allocator)]
 #![feature(asm)]
@@ -12,8 +14,6 @@
 #![feature(unique)]
 #![no_main]
 #![no_std]
-
-#![allow(unused_must_use)]
 
 #[macro_use]
 extern crate alloc;
@@ -50,14 +50,14 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     arch::interrupts::disable();
     {
         arch::init(boot_info_address);
-
-        // First global scheduler call should be while interrupts are disabled
-        syscall::create(String::from("rxinu_main"), 0, rxinu_main);
+        task::scheduler::init();
     }
     arch::interrupts::enable();
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
+
+    syscall::create(String::from("rxinu_main"), 0, rxinu_main);
 
     loop {
         #[cfg(feature = "serial")]

@@ -24,3 +24,7 @@ pub fn global_sched() -> &'static GlobalScheduler {
         GlobalScheduler::new()
     })
 }
+
+pub fn init() {
+    global_sched().init();
+}
