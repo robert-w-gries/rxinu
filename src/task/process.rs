@@ -1,7 +1,7 @@
-use alloc::String;
-use alloc::Vec;
 use alloc::arc::Arc;
 use alloc::btree_map::{BTreeMap, IterMut};
+use alloc::String;
+use alloc::Vec;
 use arch::context::Context;
 use core::fmt;
 use spin::RwLock;
@@ -12,7 +12,7 @@ use syscall::error::Error;
 /// When a process returns, it pops an instruction pointer off the stack then jumps to it
 /// The instruction pointer on the stack points to this function
 pub unsafe extern "C" fn process_ret() {
-    use task::scheduler::{Scheduling, global_sched};
+    use task::scheduler::{global_sched, Scheduling};
 
     let curr_id: ProcessId = global_sched().getid();
     global_sched().kill(curr_id);
@@ -72,7 +72,12 @@ impl fmt::Debug for Process {
 }
 
 impl Process {
-    pub fn new(id: ProcessId, name: String, priority: usize, proc_entry: extern "C" fn()) -> Process {
+    pub fn new(
+        id: ProcessId,
+        name: String,
+        priority: usize,
+        proc_entry: extern "C" fn(),
+    ) -> Process {
         // Allocate stack
         let mut stack: Vec<usize> = vec![0; PROCESS_STACK_SIZE];
         let stack_top = unsafe { stack.as_mut_ptr().add(PROCESS_STACK_SIZE) };
@@ -134,11 +139,11 @@ impl ProcessTable {
             MAX_PID => {
                 self.next_pid = 1;
                 Err(Error::TryAgain)
-            },
+            }
             pid => {
                 self.next_pid += 1;
                 Ok(ProcessId(pid))
-            },
+            }
         }
     }
 
@@ -146,10 +151,13 @@ impl ProcessTable {
         self.map.iter_mut()
     }
 
-    pub fn insert(&mut self, pid: ProcessId, proc: Arc<RwLock<Process>>) -> Option<Arc<RwLock<Process>>> {
+    pub fn insert(
+        &mut self,
+        pid: ProcessId,
+        proc: Arc<RwLock<Process>>,
+    ) -> Option<Arc<RwLock<Process>>> {
         self.map.insert(pid, proc)
     }
-
 
     pub fn remove(&mut self, pid: ProcessId) -> Option<Arc<RwLock<Process>>> {
         self.map.remove(&pid)

@@ -35,17 +35,17 @@ impl HeapAllocator {
 /// Wrappers for inner Alloc implementation
 unsafe impl GlobalAlloc for HeapAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut Opaque {
-            self.inner
-                .lock()
-                .alloc(layout)
-                .ok()
-                .map_or(0 as *mut Opaque, |allocation| allocation.as_ptr())
+        self.inner
+            .lock()
+            .alloc(layout)
+            .ok()
+            .map_or(0 as *mut Opaque, |allocation| allocation.as_ptr())
     }
 
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut Opaque, layout: Layout) {
-            self.inner
-                .lock()
-                .dealloc(NonNull::new_unchecked(ptr), layout);
+        self.inner
+            .lock()
+            .dealloc(NonNull::new_unchecked(ptr), layout);
     }
 }

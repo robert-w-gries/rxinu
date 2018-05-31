@@ -1,12 +1,12 @@
 #![allow(dead_code)]
-use alloc::{String, Vec, VecDeque};
 use alloc::btree_map::BTreeMap;
+use alloc::{String, Vec, VecDeque};
 use arch::context::Context;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use spin::Mutex;
 use syscall::error::Error;
-use task::{Process, ProcessId, State, MAX_PID};
 use task::scheduler::Scheduling;
+use task::{Process, ProcessId, State, MAX_PID};
 
 pub struct Cooperative {
     current_pid: AtomicUsize,
@@ -22,7 +22,12 @@ struct CooperativeInner {
 
 impl Scheduling for Cooperative {
     /// Add process to process table
-    fn create(&self, name: String, _prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
+    fn create(
+        &self,
+        name: String,
+        _prio: usize,
+        proc_entry: extern "C" fn(),
+    ) -> Result<ProcessId, Error> {
         let pid = self.get_next_pid()?;
         let proc: Process = Process::new(pid, name, 0, proc_entry);
 
@@ -126,10 +131,8 @@ impl Scheduling for Cooperative {
             self.ticks.store(0, Ordering::SeqCst);
 
             // Find another process to run while interrupts are disabled
-            interrupts::disable_then_restore(|| {
-                unsafe {
-                    self.resched();
-                }
+            interrupts::disable_then_restore(|| unsafe {
+                self.resched();
             });
         }
     }
@@ -160,13 +163,17 @@ impl Cooperative {
             intr_mask: (0, 0),
         };
 
-        self.inner.lock().proc_table.insert(ProcessId::NULL_PROCESS, null_process);
+        self.inner
+            .lock()
+            .proc_table
+            .insert(ProcessId::NULL_PROCESS, null_process);
     }
 
     fn get_next_pid(&self) -> Result<ProcessId, Error> {
         let mut inner = self.inner.lock();
 
-        while inner.proc_table.contains_key(&ProcessId(inner.next_pid)) && inner.next_pid < MAX_PID {
+        while inner.proc_table.contains_key(&ProcessId(inner.next_pid)) && inner.next_pid < MAX_PID
+        {
             inner.next_pid += 1;
         }
 
@@ -174,11 +181,11 @@ impl Cooperative {
             MAX_PID => {
                 inner.next_pid = 1;
                 Err(Error::TryAgain)
-            },
+            }
             pid => {
                 inner.next_pid += 1;
                 Ok(ProcessId(pid))
-            },
+            }
         }
     }
 }

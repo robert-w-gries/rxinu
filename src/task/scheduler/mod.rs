@@ -20,9 +20,7 @@ pub trait Scheduling {
 }
 
 pub fn global_sched() -> &'static GlobalScheduler {
-    SCHEDULER.call_once(|| {
-        GlobalScheduler::new()
-    })
+    SCHEDULER.call_once(|| GlobalScheduler::new())
 }
 
 /// Safety: Scheduler lock is used. This function could cause deadlock if interrupted

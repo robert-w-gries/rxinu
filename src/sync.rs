@@ -1,7 +1,7 @@
 use arch;
-use core::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut, Drop};
+use core::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 
 pub struct IrqLock<T: ?Sized> {
     data: UnsafeCell<T>,
@@ -25,7 +25,9 @@ impl<T> IrqLock<T> {
     pub fn lock(&self) -> IrqGuard<T> {
         let was_enabled = arch::interrupts::enabled();
         if was_enabled {
-            unsafe { arch::interrupts::asm_disable(); }
+            unsafe {
+                arch::interrupts::asm_disable();
+            }
         }
 
         IrqGuard {
@@ -35,19 +37,19 @@ impl<T> IrqLock<T> {
     }
 
     pub fn lock_map<F, U>(&self, f: F) -> IrqGuard<U>
-        where F: FnOnce(&mut T) -> &mut U
+    where
+        F: FnOnce(&mut T) -> &mut U,
     {
         let was_enabled = arch::interrupts::enabled();
         if was_enabled {
-            unsafe { arch::interrupts::asm_disable(); }
+            unsafe {
+                arch::interrupts::asm_disable();
+            }
         }
 
         let data = f(unsafe { &mut *self.data.get() });
 
-        IrqGuard {
-            data,
-            was_enabled,
-        }
+        IrqGuard { data, was_enabled }
     }
 }
 
@@ -78,7 +80,9 @@ impl<'a, T: ?Sized> DerefMut for IrqGuard<'a, T> {
 impl<'a, T: ?Sized> Drop for IrqGuard<'a, T> {
     fn drop(&mut self) {
         if self.was_enabled {
-            unsafe { arch::interrupts::asm_enable(); }
+            unsafe {
+                arch::interrupts::asm_enable();
+            }
         }
     }
 }
@@ -121,7 +125,9 @@ impl<T> IrqSpinLock<T> {
 
         let was_enabled = arch::interrupts::enabled();
         if was_enabled {
-            unsafe { arch::interrupts::asm_disable(); }
+            unsafe {
+                arch::interrupts::asm_disable();
+            }
         }
 
         IrqSpinGuard {
@@ -135,12 +141,14 @@ impl<T> IrqSpinLock<T> {
         if self.lock.compare_and_swap(false, true, Ordering::Acquire) == false {
             let was_enabled = arch::interrupts::enabled();
             if was_enabled {
-                unsafe { arch::interrupts::asm_disable(); }
+                unsafe {
+                    arch::interrupts::asm_disable();
+                }
             }
             Some(IrqSpinGuard {
                 lock: &self.lock,
                 was_enabled,
-                data: unsafe { &mut *self.data.get() }
+                data: unsafe { &mut *self.data.get() },
             })
         } else {
             None
@@ -176,7 +184,9 @@ impl<'a, T: ?Sized> Drop for IrqSpinGuard<'a, T> {
     fn drop(&mut self) {
         self.lock.store(false, Ordering::Release);
         if self.was_enabled {
-            unsafe { arch::interrupts::asm_enable(); }
+            unsafe {
+                arch::interrupts::asm_enable();
+            }
         }
     }
 }

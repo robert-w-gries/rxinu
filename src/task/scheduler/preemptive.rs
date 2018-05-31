@@ -1,5 +1,5 @@
-use alloc::{BinaryHeap, String, Vec};
 use alloc::arc::Arc;
+use alloc::{BinaryHeap, String, Vec};
 use arch::context::Context;
 use core::cmp;
 use core::ops::DerefMut;
@@ -7,8 +7,8 @@ use core::sync::atomic::{self, AtomicUsize, ATOMIC_USIZE_INIT};
 use spin::RwLock;
 use sync::IrqSpinLock;
 use syscall::error::Error;
-use task::{Process, ProcessId, ProcessTable, State};
 use task::scheduler::Scheduling;
+use task::{Process, ProcessId, ProcessTable, State};
 
 pub struct Preemptive {
     current_pid: AtomicUsize,
@@ -23,14 +23,19 @@ struct PreemptiveInner {
 
 impl Scheduling for Preemptive {
     /// Add process to process table
-    fn create(&self, name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
-            let mut inner = self.inner.lock();
+    fn create(
+        &self,
+        name: String,
+        prio: usize,
+        proc_entry: extern "C" fn(),
+    ) -> Result<ProcessId, Error> {
+        let mut inner = self.inner.lock();
 
-            let pid = inner.proc_table.get_next_pid()?;
-            let proc: Process = Process::new(pid, name, prio, proc_entry);
-            inner.proc_table.add(proc)?;
+        let pid = inner.proc_table.get_next_pid()?;
+        let proc: Process = Process::new(pid, name, prio, proc_entry);
+        inner.proc_table.add(proc)?;
 
-            Ok(pid)
+        Ok(pid)
     }
 
     /// Get current process id
@@ -41,44 +46,44 @@ impl Scheduling for Preemptive {
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, id: ProcessId) {
-            // We need to scope the manipulation of the process so we don't deadlock in resched()
-            {
-                let inner = self.inner.lock();
+        // We need to scope the manipulation of the process so we don't deadlock in resched()
+        {
+            let inner = self.inner.lock();
 
-                let proc_lock = inner
-                    .proc_table
-                    .get(id)
-                    .expect("Could not find process to kill");
+            let proc_lock = inner
+                .proc_table
+                .get(id)
+                .expect("Could not find process to kill");
 
-                let mut proc = proc_lock.write();
+            let mut proc = proc_lock.write();
 
-                proc.set_state(State::Free);
-                proc.kstack = None;
-                drop(&mut proc.name);
-            }
+            proc.set_state(State::Free);
+            proc.kstack = None;
+            drop(&mut proc.name);
+        }
 
-            unsafe {
-                self.resched();
-            }
+        unsafe {
+            self.resched();
+        }
     }
 
     /// Add process to ready list
     fn ready(&self, id: ProcessId) -> Result<(), Error> {
-            let mut inner = self.inner.lock();
+        let mut inner = self.inner.lock();
 
-            let proc_ref = {
-                if let Some(proc_ref) = inner.proc_table.get(id) {
-                    let mut proc = proc_ref.write();
-                    proc.set_state(State::Ready);
-                    Arc::clone(proc_ref)
-                } else {
-                    return Err(Error::ProcessNotFound);
-                }
-            };
+        let proc_ref = {
+            if let Some(proc_ref) = inner.proc_table.get(id) {
+                let mut proc = proc_ref.write();
+                proc.set_state(State::Ready);
+                Arc::clone(proc_ref)
+            } else {
+                return Err(Error::ProcessNotFound);
+            }
+        };
 
-            inner.ready_list.push(ProcessRef(proc_ref));
+        inner.ready_list.push(ProcessRef(proc_ref));
 
-            Ok(())
+        Ok(())
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
@@ -102,14 +107,22 @@ impl Scheduling for Preemptive {
         };
 
         {
-            for (_, p) in inner.proc_table.map.iter().filter(|&(_, proc)| proc.read().state == State::Ready) {
+            for (_, p) in inner
+                .proc_table
+                .map
+                .iter()
+                .filter(|&(_, proc)| proc.read().state == State::Ready)
+            {
                 p.write().priority += 1;
             }
         }
 
         {
             let curr_ref = {
-                let proc_ref = inner.proc_table.get(curr_id).expect("resched() - Could not find current process in process table");
+                let proc_ref = inner
+                    .proc_table
+                    .get(curr_id)
+                    .expect("resched() - Could not find current process in process table");
                 Arc::clone(proc_ref)
             };
             let curr = curr_ref.read();
@@ -120,7 +133,10 @@ impl Scheduling for Preemptive {
 
         let current_proc: *mut Process = {
             let curr_ref = {
-                let proc_ref = inner.proc_table.get(curr_id).expect("resched() - Could not find current process in process table");
+                let proc_ref = inner
+                    .proc_table
+                    .get(curr_id)
+                    .expect("resched() - Could not find current process in process table");
                 Arc::clone(proc_ref)
             };
             let mut curr = curr_ref.write();
@@ -128,17 +144,18 @@ impl Scheduling for Preemptive {
             match curr.state {
                 State::Current => {
                     curr.set_state(State::Ready);
-                },
+                }
                 State::Free => {
                     inner.proc_table.remove(curr_id);
-                },
+                }
                 _ => (),
             };
 
             curr.deref_mut() as *mut Process
         };
 
-        self.current_pid.store((*next_proc).pid.0, atomic::Ordering::SeqCst);
+        self.current_pid
+            .store((*next_proc).pid.0, atomic::Ordering::SeqCst);
 
         // Drop locks to prevent deadlock after context switch
         inner.release();
@@ -185,7 +202,10 @@ impl Preemptive {
         //TODO: use this
         //let null_process = Process::new(ProcessId::NULL_PROCESS, String::from("NULL"), 0, Vec::new());
 
-        self.inner.lock().proc_table.insert(ProcessId::NULL_PROCESS, Arc::new(RwLock::new(null_process)));
+        self.inner
+            .lock()
+            .proc_table
+            .insert(ProcessId::NULL_PROCESS, Arc::new(RwLock::new(null_process)));
     }
 }
 

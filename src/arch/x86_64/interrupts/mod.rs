@@ -1,6 +1,6 @@
-use x86_64::registers::flags;
 use device::pic_8259::{MASTER, SLAVE};
 use syscall::io::Io;
+use x86_64::registers::flags;
 
 pub mod exception;
 pub mod irq;

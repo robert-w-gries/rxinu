@@ -1,5 +1,4 @@
 #![allow(unused_must_use)]
-
 #![feature(abi_x86_interrupt)]
 #![feature(alloc, allocator_api, global_allocator)]
 #![feature(asm)]
@@ -90,7 +89,9 @@ pub extern "C" fn rxinu_main() {
             use device::keyboard::ps2 as kbd;
             kbd::read(1024);
         }
-        unsafe { arch::interrupts::pause(); }
+        unsafe {
+            arch::interrupts::pause();
+        }
     }
 }
 
@@ -102,12 +103,20 @@ pub extern "C" fn test_process() {
 pub extern "C" fn process_a() {
     arch::interrupts::enable();
     kprintln!("\nIn process_a!");
-    loop { unsafe { arch::interrupts::pause(); } }
+    loop {
+        unsafe {
+            arch::interrupts::pause();
+        }
+    }
 }
 
 pub extern "C" fn process_b() {
     kprintln!("\nIn process_b!");
-    loop {unsafe { arch::interrupts::pause(); } }
+    loop {
+        unsafe {
+            arch::interrupts::pause();
+        }
+    }
 }
 
 #[cfg(not(test))]
