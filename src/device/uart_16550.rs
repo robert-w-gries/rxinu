@@ -1,16 +1,16 @@
 use alloc::vec_deque::VecDeque;
 use core::fmt::{self, Write};
 use device::{BufferedDevice, InputDevice};
-use spin::Mutex;
+use sync::IrqLock;
 use syscall::io::{Io, Port, ReadOnly};
 
 const SERIAL_PORT1: u16 = 0x3F8;
 const SERIAL_PORT2: u16 = 0x2F8;
 
-pub static COM1: Mutex<SerialPort<Port<u8>>> =
-    Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT1));
-pub static COM2: Mutex<SerialPort<Port<u8>>> =
-    Mutex::new(SerialPort::<Port<u8>>::new(SERIAL_PORT2));
+pub static COM1: IrqLock<SerialPort<Port<u8>>> =
+    IrqLock::new(SerialPort::<Port<u8>>::new(SERIAL_PORT1));
+pub static COM2: IrqLock<SerialPort<Port<u8>>> =
+    IrqLock::new(SerialPort::<Port<u8>>::new(SERIAL_PORT2));
 
 // TODO: Replace arbitrary value for clearing rows
 const BUF_MAX_HEIGHT: usize = 25;
@@ -46,13 +46,10 @@ pub fn init() {
 }
 
 pub fn read(len: usize) {
-    use arch::interrupts;
-    interrupts::disable_then_restore(|| {
-        let bytes = COM1.lock().read(len);
-        for &byte in bytes.iter() {
-            kprint!("{}", byte);
-        }
-    });
+    let bytes = COM1.lock().read(len);
+    for &byte in bytes.iter() {
+        kprint!("{}", byte);
+    }
 }
 
 fn get_fifo_ctrl_byte() -> u8 {

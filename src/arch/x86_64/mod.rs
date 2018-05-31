@@ -37,14 +37,3 @@ pub fn init(boot_info_address: usize) {
     idt::init();
     device::init();
 }
-
-#[inline]
-pub unsafe fn halt() {
-    asm!("hlt");
-}
-
-#[inline]
-pub unsafe fn pause() {
-    interrupts::enable();
-    asm!("hlt");
-}

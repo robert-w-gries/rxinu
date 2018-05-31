@@ -1,18 +1,18 @@
 use alloc::{BinaryHeap, String, Vec};
 use alloc::arc::Arc;
 use arch::context::Context;
-use arch::interrupts;
 use core::cmp;
 use core::ops::DerefMut;
 use core::sync::atomic::{self, AtomicUsize, ATOMIC_USIZE_INIT};
-use spin::{Mutex, RwLock};
+use spin::RwLock;
+use sync::IrqSpinLock;
 use syscall::error::Error;
 use task::{Process, ProcessId, ProcessTable, State};
 use task::scheduler::Scheduling;
 
 pub struct Preemptive {
     current_pid: AtomicUsize,
-    inner: Mutex<PreemptiveInner>,
+    inner: IrqSpinLock<PreemptiveInner>,
     ticks: AtomicUsize,
 }
 
@@ -24,7 +24,6 @@ struct PreemptiveInner {
 impl Scheduling for Preemptive {
     /// Add process to process table
     fn create(&self, name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
-        interrupts::disable_then_restore(|| {
             let mut inner = self.inner.lock();
 
             let pid = inner.proc_table.get_next_pid()?;
@@ -32,7 +31,6 @@ impl Scheduling for Preemptive {
             inner.proc_table.add(proc)?;
 
             Ok(pid)
-        })
     }
 
     /// Get current process id
@@ -43,7 +41,6 @@ impl Scheduling for Preemptive {
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, id: ProcessId) {
-        interrupts::disable_then_restore(|| {
             // We need to scope the manipulation of the process so we don't deadlock in resched()
             {
                 let inner = self.inner.lock();
@@ -63,14 +60,14 @@ impl Scheduling for Preemptive {
             unsafe {
                 self.resched();
             }
-        });
     }
 
     /// Add process to ready list
     fn ready(&self, id: ProcessId) -> Result<(), Error> {
-        interrupts::disable_then_restore(|| {
+            let mut inner = self.inner.lock();
+
             let proc_ref = {
-                if let Some(proc_ref) = self.inner.lock().proc_table.get(id) {
+                if let Some(proc_ref) = inner.proc_table.get(id) {
                     let mut proc = proc_ref.write();
                     proc.set_state(State::Ready);
                     Arc::clone(proc_ref)
@@ -79,16 +76,13 @@ impl Scheduling for Preemptive {
                 }
             };
 
-            self.inner.lock().ready_list.push(ProcessRef(proc_ref));
+            inner.ready_list.push(ProcessRef(proc_ref));
 
             Ok(())
-        })
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
     unsafe fn resched(&self) {
-        let intr_mask = interrupts::disable();
-
         // Important: Ensure lock is dropped before context switch
         let mut inner = self.inner.lock();
 
@@ -104,9 +98,14 @@ impl Scheduling for Preemptive {
 
             next_lock.deref_mut() as *const Process
         } else {
-            interrupts::restore(intr_mask);
             return;
         };
+
+        {
+            for (_, p) in inner.proc_table.map.iter().filter(|&(_, proc)| proc.read().state == State::Ready) {
+                p.write().priority += 1;
+            }
+        }
 
         {
             let curr_ref = {
@@ -125,7 +124,6 @@ impl Scheduling for Preemptive {
                 Arc::clone(proc_ref)
             };
             let mut curr = curr_ref.write();
-            curr.intr_mask = intr_mask;
 
             match curr.state {
                 State::Current => {
@@ -143,11 +141,9 @@ impl Scheduling for Preemptive {
         self.current_pid.store((*next_proc).pid.0, atomic::Ordering::SeqCst);
 
         // Drop locks to prevent deadlock after context switch
-        drop(inner);
+        inner.release();
 
         (*current_proc).switch_to(&*next_proc);
-
-        interrupts::restore((*current_proc).intr_mask);
     }
 
     fn tick(&self) {
@@ -167,7 +163,7 @@ impl Preemptive {
     pub fn new() -> Preemptive {
         Preemptive {
             current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
-            inner: Mutex::new(PreemptiveInner {
+            inner: IrqSpinLock::new(PreemptiveInner {
                 proc_table: ProcessTable::new(),
                 ready_list: BinaryHeap::<ProcessRef>::new(),
             }),

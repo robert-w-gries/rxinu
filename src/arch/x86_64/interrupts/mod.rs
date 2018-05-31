@@ -1,3 +1,4 @@
+use x86_64::registers::flags;
 use device::pic_8259::{MASTER, SLAVE};
 use syscall::io::Io;
 
@@ -9,13 +10,13 @@ pub const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
 /// Disable interrupts
 #[inline(always)]
-unsafe fn asm_disable() {
+pub unsafe fn asm_disable() {
     asm!("cli" : : : : "intel", "volatile");
 }
 
 /// Disable interrupts
 #[inline(always)]
-unsafe fn asm_enable() {
+pub unsafe fn asm_enable() {
     asm!("sti; nop" : : : : "intel", "volatile");
 }
 
@@ -60,6 +61,10 @@ pub fn enable() {
     }
 }
 
+pub fn enabled() -> bool {
+    flags::flags().contains(flags::Flags::IF)
+}
+
 /// Enable interrupts, restoring the previously set masks
 pub fn restore(saved_masks: (u8, u8)) {
     unsafe {
@@ -74,6 +79,16 @@ pub fn restore(saved_masks: (u8, u8)) {
     unsafe {
         asm_enable();
     }
+}
+
+#[inline(always)]
+pub unsafe fn halt() {
+    asm!("hlt");
+}
+
+#[inline(always)]
+pub unsafe fn pause() {
+    asm!("pause");
 }
 
 #[cfg(test)]

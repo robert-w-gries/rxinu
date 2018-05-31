@@ -1,7 +1,7 @@
 use alloc::String;
 use alloc::Vec;
 use alloc::arc::Arc;
-use alloc::btree_map::BTreeMap;
+use alloc::btree_map::{BTreeMap, IterMut};
 use arch::context::Context;
 use core::fmt;
 use spin::RwLock;
@@ -98,7 +98,7 @@ impl Process {
 }
 
 pub struct ProcessTable {
-    map: BTreeMap<ProcessId, Arc<RwLock<Process>>>,
+    pub map: BTreeMap<ProcessId, Arc<RwLock<Process>>>,
     next_pid: usize,
 }
 
@@ -142,9 +142,14 @@ impl ProcessTable {
         }
     }
 
+    pub fn iter_mut(&mut self) -> IterMut<ProcessId, Arc<RwLock<Process>>> {
+        self.map.iter_mut()
+    }
+
     pub fn insert(&mut self, pid: ProcessId, proc: Arc<RwLock<Process>>) -> Option<Arc<RwLock<Process>>> {
         self.map.insert(pid, proc)
     }
+
 
     pub fn remove(&mut self, pid: ProcessId) -> Option<Arc<RwLock<Process>>> {
         self.map.remove(&pid)

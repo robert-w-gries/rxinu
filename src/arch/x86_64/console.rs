@@ -1,8 +1,6 @@
 #[macro_export]
 macro_rules! kprint {
     ($($arg:tt)*) => ({
-        use arch::interrupts;
-        interrupts::disable_then_restore(|| {
             #[cfg(feature = "serial")]
             {
                 use core::fmt::Write;
@@ -20,7 +18,6 @@ macro_rules! kprint {
                 // ignore write result
                 let _ = write!(VGA.lock(), $($arg)*);
             }
-        });
     });
 }
 
@@ -32,21 +29,15 @@ macro_rules! kprintln {
 }
 
 pub fn clear_screen() {
-    use arch::interrupts;
-
     #[cfg(feature = "serial")]
     {
         use device::uart_16550::COM1;
-        interrupts::disable_then_restore(|| {
-            COM1.lock().clear_screen();
-        });
+        COM1.lock().clear_screen();
     }
 
     #[cfg(feature = "vga")]
     {
         use device::vga::VGA;
-        interrupts::disable_then_restore(|| {
-            VGA.lock().clear_screen();
-        });
+        VGA.lock().clear_screen();
     }
 }

@@ -38,6 +38,7 @@ extern crate x86_64;
 #[macro_use]
 pub mod arch;
 pub mod device;
+pub mod sync;
 pub mod syscall;
 pub mod task;
 
@@ -47,14 +48,12 @@ use arch::memory::heap::{HEAP_SIZE, HEAP_START};
 #[no_mangle]
 /// Entry point for rust code
 pub extern "C" fn _start(boot_info_address: usize) -> ! {
-    arch::interrupts::disable();
-    {
-        arch::init(boot_info_address);
+    arch::init(boot_info_address);
 
-        unsafe {
-            task::scheduler::init();
-        }
+    unsafe {
+        task::scheduler::init();
     }
+
     arch::interrupts::enable();
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
@@ -65,7 +64,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     loop {
         unsafe {
             // Save cycles by pausing until next interrupt
-            arch::pause();
+            arch::interrupts::pause();
         }
     }
 }
@@ -73,15 +72,11 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
 /// Main initialization process for rxinu
 pub extern "C" fn rxinu_main() {
     arch::console::clear_screen();
-
-    arch::interrupts::enable();
     kprintln!("In main process!\n");
 
-    syscall::create(String::from("rxinu_test"), 0, created_process);
-    syscall::create(String::from("rxinu_test"), 10, process_b);
-    syscall::create(String::from("rxinu_test"), 10, process_b);
-    syscall::create(String::from("rxinu_test"), 200, process_a);
-    syscall::create(String::from("rxinu_test"), 200, process_a);
+    syscall::create(String::from("created process"), 0, created_process);
+    syscall::create(String::from("process b"), 200, process_b);
+    syscall::create(String::from("process a"), 200, process_a);
 
     loop {
         #[cfg(feature = "serial")]
@@ -95,6 +90,7 @@ pub extern "C" fn rxinu_main() {
             use device::keyboard::ps2 as kbd;
             kbd::read(1024);
         }
+        unsafe { arch::interrupts::pause(); }
     }
 }
 
@@ -108,13 +104,14 @@ pub extern "C" fn created_process() {
 }
 
 pub extern "C" fn process_a() {
+    arch::interrupts::enable();
     kprintln!("\nIn process_a!");
-    loop { }
+    loop { unsafe { arch::interrupts::pause(); } }
 }
 
 pub extern "C" fn process_b() {
     kprintln!("\nIn process_b!");
-    //loop { }
+    loop {unsafe { arch::interrupts::pause(); } }
 }
 
 pub extern "C" fn cycle_process_a() {
