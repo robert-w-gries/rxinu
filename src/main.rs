@@ -74,9 +74,9 @@ pub extern "C" fn rxinu_main() {
     arch::console::clear_screen();
     kprintln!("In main process!\n");
 
-    syscall::create(String::from("created process"), 0, created_process);
-    syscall::create(String::from("process b"), 200, process_b);
-    syscall::create(String::from("process a"), 200, process_a);
+    syscall::create(String::from("process b"), 50, process_b);
+    syscall::create(String::from("process a"), 50, process_a);
+    syscall::create(String::from("test_process"), 0, test_process);
 
     loop {
         #[cfg(feature = "serial")]
@@ -95,12 +95,8 @@ pub extern "C" fn rxinu_main() {
 }
 
 pub extern "C" fn test_process() {
-    kprintln!("In test process!");
-}
-
-pub extern "C" fn created_process() {
-    kprintln!("\nIn rxinu_main::created_process!");
-    kprintln!("\nYou can now type...");
+    kprintln!("\nIn test process!");
+    kprintln!("\nYou can now type...\n");
 }
 
 pub extern "C" fn process_a() {
@@ -112,16 +108,6 @@ pub extern "C" fn process_a() {
 pub extern "C" fn process_b() {
     kprintln!("\nIn process_b!");
     loop {unsafe { arch::interrupts::pause(); } }
-}
-
-pub extern "C" fn cycle_process_a() {
-    kprint!(".");
-    syscall::create(String::from("cycle_process_b"), 0, cycle_process_b);
-}
-
-pub extern "C" fn cycle_process_b() {
-    kprint!(".");
-    syscall::create(String::from("cycle_process_a"), 0, cycle_process_a);
 }
 
 #[cfg(not(test))]
