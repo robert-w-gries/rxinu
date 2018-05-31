@@ -1,3 +1,4 @@
+use arch::interrupts;
 use device::keyboard::ps2::PS2_KEYBOARD;
 use device::pic_8259 as pic;
 use device::uart_16550 as serial;

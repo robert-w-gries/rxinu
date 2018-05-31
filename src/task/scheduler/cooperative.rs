@@ -148,7 +148,8 @@ impl Cooperative {
         }
     }
 
-    pub fn init(&self) {
+    /// Safety: Interrupts must be disabled during this initialization
+    pub unsafe fn init(&self) {
         let null_process = Process {
             pid: ProcessId::NULL_PROCESS,
             name: String::from("NULL"),
@@ -156,6 +157,7 @@ impl Cooperative {
             context: Context::empty(),
             kstack: Some(Vec::new()),
             priority: 0,
+            intr_mask: (0, 0),
         };
 
         self.inner.lock().proc_table.insert(ProcessId::NULL_PROCESS, null_process);

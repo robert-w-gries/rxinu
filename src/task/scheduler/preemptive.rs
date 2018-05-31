@@ -1,6 +1,7 @@
 use alloc::{BinaryHeap, String, Vec};
 use alloc::arc::Arc;
 use arch::context::Context;
+use arch::interrupts;
 use core::cmp;
 use core::ops::DerefMut;
 use core::sync::atomic::{self, AtomicUsize, ATOMIC_USIZE_INIT};
@@ -23,12 +24,15 @@ struct PreemptiveInner {
 impl Scheduling for Preemptive {
     /// Add process to process table
     fn create(&self, name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
-        let mut inner = self.inner.lock();
+        interrupts::disable_then_restore(|| {
+            let mut inner = self.inner.lock();
 
-        let pid = inner.proc_table.get_next_pid()?;
-        let proc: Process = Process::new(pid, name, prio, proc_entry);
-        inner.proc_table.add(proc)?;
-        Ok(pid)
+            let pid = inner.proc_table.get_next_pid()?;
+            let proc: Process = Process::new(pid, name, prio, proc_entry);
+            inner.proc_table.add(proc)?;
+
+            Ok(pid)
+        })
     }
 
     /// Get current process id
@@ -39,45 +43,52 @@ impl Scheduling for Preemptive {
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, id: ProcessId) {
-        // We need to scope the manipulation of the process so we don't deadlock in resched()
-        {
-            let inner = self.inner.lock();
+        interrupts::disable_then_restore(|| {
+            // We need to scope the manipulation of the process so we don't deadlock in resched()
+            {
+                let inner = self.inner.lock();
 
-            let proc_lock = inner
-                .proc_table
-                .get(id)
-                .expect("Could not find process to kill");
+                let proc_lock = inner
+                    .proc_table
+                    .get(id)
+                    .expect("Could not find process to kill");
 
-            let mut proc = proc_lock.write();
+                let mut proc = proc_lock.write();
 
-            proc.set_state(State::Free);
-            proc.kstack = None;
-            drop(&mut proc.name);
-        }
+                proc.set_state(State::Free);
+                proc.kstack = None;
+                drop(&mut proc.name);
+            }
 
-        unsafe {
-            self.resched();
-        }
+            unsafe {
+                self.resched();
+            }
+        });
     }
 
     /// Add process to ready list
     fn ready(&self, id: ProcessId) -> Result<(), Error> {
-        let proc_ref = {
-            if let Some(proc_ref) = self.inner.lock().proc_table.get(id) {
-                let mut proc = proc_ref.write();
-                proc.set_state(State::Ready);
-                Arc::clone(proc_ref)
-            } else {
-                return Err(Error::ProcessNotFound);
-            }
-        };
+        interrupts::disable_then_restore(|| {
+            let proc_ref = {
+                if let Some(proc_ref) = self.inner.lock().proc_table.get(id) {
+                    let mut proc = proc_ref.write();
+                    proc.set_state(State::Ready);
+                    Arc::clone(proc_ref)
+                } else {
+                    return Err(Error::ProcessNotFound);
+                }
+            };
 
-        self.inner.lock().ready_list.push(ProcessRef(proc_ref));
-        Ok(())
+            self.inner.lock().ready_list.push(ProcessRef(proc_ref));
+
+            Ok(())
+        })
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
     unsafe fn resched(&self) {
+        let intr_mask = interrupts::disable();
+
         // Important: Ensure lock is dropped before context switch
         let mut inner = self.inner.lock();
 
@@ -93,6 +104,7 @@ impl Scheduling for Preemptive {
 
             next_lock.deref_mut() as *const Process
         } else {
+            interrupts::restore(intr_mask);
             return;
         };
 
@@ -113,6 +125,7 @@ impl Scheduling for Preemptive {
                 Arc::clone(proc_ref)
             };
             let mut curr = curr_ref.write();
+            curr.intr_mask = intr_mask;
 
             match curr.state {
                 State::Current => {
@@ -133,6 +146,8 @@ impl Scheduling for Preemptive {
         drop(inner);
 
         (*current_proc).switch_to(&*next_proc);
+
+        interrupts::restore((*current_proc).intr_mask);
     }
 
     fn tick(&self) {
@@ -160,7 +175,8 @@ impl Preemptive {
         }
     }
 
-    pub fn init(&self) {
+    /// Safety: Interrupts must be disabled during this initialization
+    pub unsafe fn init(&self) {
         let null_process = Process {
             pid: ProcessId::NULL_PROCESS,
             name: String::from("NULL"),
@@ -168,7 +184,10 @@ impl Preemptive {
             context: Context::empty(),
             kstack: Some(Vec::new()),
             priority: 0,
+            intr_mask: (0, 0),
         };
+        //TODO: use this
+        //let null_process = Process::new(ProcessId::NULL_PROCESS, String::from("NULL"), 0, Vec::new());
 
         self.inner.lock().proc_table.insert(ProcessId::NULL_PROCESS, Arc::new(RwLock::new(null_process)));
     }

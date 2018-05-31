@@ -25,6 +25,7 @@ pub fn global_sched() -> &'static GlobalScheduler {
     })
 }
 
-pub fn init() {
+/// Safety: Scheduler lock is used. This function could cause deadlock if interrupted
+pub unsafe fn init() {
     global_sched().init();
 }

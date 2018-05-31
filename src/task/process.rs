@@ -53,6 +53,7 @@ pub struct Process {
     pub context: Context,
     pub kstack: Option<Vec<usize>>,
     pub priority: usize,
+    pub intr_mask: (u8, u8),
 }
 
 impl fmt::Debug for Process {
@@ -83,6 +84,7 @@ impl Process {
             kstack: Some(stack),
             name: name,
             priority: priority,
+            intr_mask: (0, 0),
         }
     }
 

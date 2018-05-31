@@ -50,7 +50,10 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     arch::interrupts::disable();
     {
         arch::init(boot_info_address);
-        task::scheduler::init();
+
+        unsafe {
+            task::scheduler::init();
+        }
     }
     arch::interrupts::enable();
 
@@ -58,6 +61,27 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
     syscall::create(String::from("rxinu_main"), 0, rxinu_main);
+
+    loop {
+        unsafe {
+            // Save cycles by pausing until next interrupt
+            arch::pause();
+        }
+    }
+}
+
+/// Main initialization process for rxinu
+pub extern "C" fn rxinu_main() {
+    arch::console::clear_screen();
+
+    arch::interrupts::enable();
+    kprintln!("In main process!\n");
+
+    syscall::create(String::from("rxinu_test"), 0, created_process);
+    syscall::create(String::from("rxinu_test"), 10, process_b);
+    syscall::create(String::from("rxinu_test"), 10, process_b);
+    syscall::create(String::from("rxinu_test"), 200, process_a);
+    syscall::create(String::from("rxinu_test"), 200, process_a);
 
     loop {
         #[cfg(feature = "serial")]
@@ -71,24 +95,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
             use device::keyboard::ps2 as kbd;
             kbd::read(1024);
         }
-
-        // halt instruction prevents CPU from looping too much
-        unsafe {
-            arch::halt();
-        }
     }
-}
-
-/// Main initialization process for rxinu
-pub extern "C" fn rxinu_main() {
-    arch::console::clear_screen();
-
-    kprintln!("In main process!\n");
-    syscall::create(String::from("rxinu_test"), 0, created_process);
-    syscall::create(String::from("rxinu_test"), 10, process_b);
-    syscall::create(String::from("rxinu_test"), 10, process_b);
-    syscall::create(String::from("rxinu_test"), 200, process_a);
-    syscall::create(String::from("rxinu_test"), 200, process_a);
 }
 
 pub extern "C" fn test_process() {
@@ -102,10 +109,12 @@ pub extern "C" fn created_process() {
 
 pub extern "C" fn process_a() {
     kprintln!("\nIn process_a!");
+    loop { }
 }
 
 pub extern "C" fn process_b() {
     kprintln!("\nIn process_b!");
+    //loop { }
 }
 
 pub extern "C" fn cycle_process_a() {
