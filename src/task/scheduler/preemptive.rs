@@ -199,8 +199,6 @@ impl Preemptive {
             priority: 0,
             intr_mask: (0, 0),
         };
-        //TODO: use this
-        //let null_process = Process::new(ProcessId::NULL_PROCESS, String::from("NULL"), 0, Vec::new());
 
         self.inner
             .lock()

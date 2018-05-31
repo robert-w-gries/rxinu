@@ -26,7 +26,7 @@ impl HeapAllocator {
     /// # Unsafety
     ///
     /// This function must be called at most once and must only be used on an
-    /// empty heap.  Also, it is assumed that interrupts are disabled.
+    /// empty heap.
     pub unsafe fn init(&self, heap_bottom: usize, heap_size: usize) {
         self.inner.lock().init(heap_bottom, heap_size);
     }
