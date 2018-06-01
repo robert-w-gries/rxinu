@@ -1,5 +1,5 @@
 use alloc::arc::Arc;
-use alloc::btree_map::{BTreeMap, IterMut};
+use alloc::btree_map::BTreeMap;
 use alloc::String;
 use alloc::Vec;
 use arch::context::Context;
@@ -145,10 +145,6 @@ impl ProcessTable {
                 Ok(ProcessId(pid))
             }
         }
-    }
-
-    pub fn iter_mut(&mut self) -> IterMut<ProcessId, Arc<RwLock<Process>>> {
-        self.map.iter_mut()
     }
 
     pub fn insert(

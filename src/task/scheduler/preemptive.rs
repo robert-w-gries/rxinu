@@ -106,39 +106,31 @@ impl Scheduling for Preemptive {
             return;
         };
 
+        // Process Aging - Increase priority of Ready processes that aren't in use
+        for (_, p) in inner
+            .proc_table
+            .map
+            .iter()
+            .filter(|&(_, proc)| proc.read().state == State::Ready)
         {
-            for (_, p) in inner
-                .proc_table
-                .map
-                .iter()
-                .filter(|&(_, proc)| proc.read().state == State::Ready)
-            {
-                p.write().priority += 1;
-            }
-        }
-
-        {
-            let curr_ref = {
-                let proc_ref = inner
-                    .proc_table
-                    .get(curr_id)
-                    .expect("resched() - Could not find current process in process table");
-                Arc::clone(proc_ref)
-            };
-            let curr = curr_ref.read();
-            if curr.state == State::Current {
-                inner.ready_list.push(ProcessRef(Arc::clone(&curr_ref)));
-            }
+            p.write().priority += 1;
         }
 
         let current_proc: *mut Process = {
             let curr_ref = {
-                let proc_ref = inner
-                    .proc_table
-                    .get(curr_id)
-                    .expect("resched() - Could not find current process in process table");
-                Arc::clone(proc_ref)
+                Arc::clone(
+                    &inner
+                        .proc_table
+                        .get(curr_id)
+                        .expect("resched() - Could not find current process in process table"),
+                )
             };
+
+            // Push current process reference to ready list
+            if curr_ref.read().state == State::Current {
+                inner.ready_list.push(ProcessRef(Arc::clone(&curr_ref)));
+            }
+
             let mut curr = curr_ref.write();
 
             match curr.state {
