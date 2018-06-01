@@ -44,24 +44,24 @@ impl Scheduling for Cooperative {
 
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
-    fn kill(&self, id: ProcessId) {
-        // We need to scope the manipulation of the process so we don't deadlock in resched()
-        {
-            let mut inner = self.inner.lock();
+    fn kill(&self, id: ProcessId) -> Result<(), Error> {
+        let mut inner = self.inner.lock();
 
-            let proc = inner
-                .proc_table
-                .get_mut(&id)
-                .expect("Could not find process to kill");
+        if let Some(proc_lock) = inner.proc_table.get_mut(&id) {
+            proc_lock.set_state(State::Free);
+            proc_lock.kstack = None;
+            drop(&mut proc_lock.name);
+        } else {
+            return Err(Error::BadPid);
+        };
 
-            proc.set_state(State::Free);
-            proc.kstack = None;
-            drop(&mut proc.name);
-        }
+        drop(inner);
 
         unsafe {
             self.resched();
         }
+
+        Ok(())
     }
 
     /// Add process to ready list

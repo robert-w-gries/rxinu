@@ -11,3 +11,9 @@ pub fn create(name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<
     global_sched().ready(pid)?;
     Ok(pid)
 }
+
+/// Wrapper around scheduler.kill()
+pub fn kill(proc_id: ProcessId) -> Result<(), Error> {
+    global_sched().kill(proc_id)?;
+    Ok(())
+}

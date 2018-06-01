@@ -13,7 +13,7 @@ static SCHEDULER: Once<GlobalScheduler> = Once::new();
 pub trait Scheduling {
     fn create(&self, name: String, prio: usize, func: extern "C" fn()) -> Result<ProcessId, Error>;
     fn getid(&self) -> ProcessId;
-    fn kill(&self, id: ProcessId);
+    fn kill(&self, id: ProcessId) -> Result<(), Error>;
     fn ready(&self, id: ProcessId) -> Result<(), Error>;
     unsafe fn resched(&self);
     fn tick(&self);

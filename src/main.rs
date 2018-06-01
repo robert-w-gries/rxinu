@@ -63,6 +63,18 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     loop {
         unsafe {
             // Save cycles by pausing until next interrupt
+            #[cfg(feature = "serial")]
+            {
+                use device::uart_16550 as uart;
+                uart::read(1024);
+            }
+
+            #[cfg(feature = "vga")]
+            {
+                use device::keyboard::ps2 as kbd;
+                kbd::read(1024);
+            }
+
             arch::interrupts::pause();
         }
     }
@@ -75,24 +87,9 @@ pub extern "C" fn rxinu_main() {
 
     syscall::create(String::from("process b"), 50, process_b);
     syscall::create(String::from("process a"), 50, process_a);
+    let pid = syscall::create(String::from("kill_process"), 1000, kill_process).unwrap();
+    syscall::kill(pid);
     syscall::create(String::from("test_process"), 0, test_process);
-
-    loop {
-        #[cfg(feature = "serial")]
-        {
-            use device::uart_16550 as uart;
-            uart::read(1024);
-        }
-
-        #[cfg(feature = "vga")]
-        {
-            use device::keyboard::ps2 as kbd;
-            kbd::read(1024);
-        }
-        unsafe {
-            arch::interrupts::pause();
-        }
-    }
 }
 
 pub extern "C" fn test_process() {
@@ -113,6 +110,16 @@ pub extern "C" fn process_a() {
 pub extern "C" fn process_b() {
     kprintln!("\nIn process_b!");
     loop {
+        unsafe {
+            arch::interrupts::pause();
+        }
+    }
+}
+
+pub extern "C" fn kill_process() {
+    kprintln!("");
+    loop {
+        kprint!(".");
         unsafe {
             arch::interrupts::pause();
         }

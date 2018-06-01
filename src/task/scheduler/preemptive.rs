@@ -45,17 +45,16 @@ impl Scheduling for Preemptive {
 
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
-    fn kill(&self, id: ProcessId) {
+    fn kill(&self, id: ProcessId) -> Result<(), Error> {
         // We need to scope the manipulation of the process so we don't deadlock in resched()
         {
             let inner = self.inner.lock();
 
-            let proc_lock = inner
-                .proc_table
-                .get(id)
-                .expect("Could not find process to kill");
-
-            let mut proc = proc_lock.write();
+            let mut proc = if let Some(proc_lock) = inner.proc_table.get(id) {
+                proc_lock.write()
+            } else {
+                return Err(Error::BadPid);
+            };
 
             proc.set_state(State::Free);
             proc.kstack = None;
@@ -65,6 +64,8 @@ impl Scheduling for Preemptive {
         unsafe {
             self.resched();
         }
+
+        Ok(())
     }
 
     /// Add process to ready list
@@ -77,7 +78,7 @@ impl Scheduling for Preemptive {
                 proc.set_state(State::Ready);
                 Arc::clone(proc_ref)
             } else {
-                return Err(Error::ProcessNotFound);
+                return Err(Error::BadPid);
             }
         };
 
