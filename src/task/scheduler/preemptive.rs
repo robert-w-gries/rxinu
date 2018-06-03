@@ -48,17 +48,25 @@ impl Scheduling for Preemptive {
     fn kill(&self, id: ProcessId) -> Result<(), Error> {
         // We need to scope the manipulation of the process so we don't deadlock in resched()
         {
-            let inner = self.inner.lock();
+            let mut inner = self.inner.lock();
 
-            let mut proc = if let Some(proc_lock) = inner.proc_table.get(id) {
-                proc_lock.write()
-            } else {
-                return Err(Error::BadPid);
-            };
+            {
+                let mut proc = if let Some(proc_lock) = inner.proc_table.get(id) {
+                    proc_lock.write()
+                } else {
+                    return Err(Error::BadPid);
+                };
 
-            proc.set_state(State::Free);
-            proc.kstack = None;
-            drop(&mut proc.name);
+                proc.set_state(State::Free);
+                proc.kstack = None;
+                drop(&mut proc.name);
+            }
+            inner.ready_list = inner
+                .ready_list
+                .clone()
+                .into_iter()
+                .filter(|ref proc_ref| proc_ref.0.read().pid != id)
+                .collect();
         }
 
         unsafe {
@@ -200,6 +208,7 @@ impl Preemptive {
     }
 }
 
+#[derive(Clone)]
 struct ProcessRef(Arc<RwLock<Process>>);
 
 impl Ord for ProcessRef {

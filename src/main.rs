@@ -85,11 +85,13 @@ pub extern "C" fn rxinu_main() {
     arch::console::clear_screen();
     kprintln!("In main process!\n");
 
-    syscall::create(String::from("process b"), 50, process_b);
     syscall::create(String::from("process a"), 50, process_a);
-    let pid = syscall::create(String::from("kill_process"), 1000, kill_process).unwrap();
-    syscall::kill(pid);
+    syscall::create(String::from("process b"), 50, process_b).unwrap();
+
+    let pid_kill = syscall::create(String::from("kill_process"), 75, kill_process).unwrap();
+
     syscall::create(String::from("test_process"), 0, test_process);
+    syscall::kill(pid_kill);
 }
 
 pub extern "C" fn test_process() {
@@ -98,7 +100,6 @@ pub extern "C" fn test_process() {
 }
 
 pub extern "C" fn process_a() {
-    arch::interrupts::enable();
     kprintln!("\nIn process_a!");
     loop {
         unsafe {
@@ -117,11 +118,11 @@ pub extern "C" fn process_b() {
 }
 
 pub extern "C" fn kill_process() {
-    kprintln!("");
+    kprint!("\nIn kill_process");
     loop {
-        kprint!(".");
         unsafe {
-            arch::interrupts::pause();
+            kprint!(".");
+            arch::interrupts::halt();
         }
     }
 }
