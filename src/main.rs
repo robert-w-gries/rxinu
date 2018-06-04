@@ -60,7 +60,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
-    syscall::create(String::from("rxinu_main"), 0, rxinu_main);
+    syscall::create(String::from("rxinu_main"), 10, rxinu_main);
 
     loop {
         #[cfg(feature = "serial")]
@@ -102,6 +102,7 @@ pub extern "C" fn test_process() {
 pub extern "C" fn process_a() {
     kprintln!("\nIn process_a!");
     loop {
+        syscall::yield_cpu();
         arch::interrupts::pause();
     }
 }
@@ -109,6 +110,7 @@ pub extern "C" fn process_a() {
 pub extern "C" fn process_b() {
     kprintln!("\nIn process_b!");
     loop {
+        syscall::yield_cpu();
         arch::interrupts::pause();
     }
 }
@@ -116,6 +118,7 @@ pub extern "C" fn process_b() {
 pub extern "C" fn kill_process() {
     kprint!("\nIn kill_process");
     loop {
+        syscall::yield_cpu();
         kprint!(".");
         unsafe {
             arch::interrupts::halt();

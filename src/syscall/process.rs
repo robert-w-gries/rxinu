@@ -17,3 +17,10 @@ pub fn kill(proc_id: ProcessId) -> Result<(), Error> {
     global_sched().kill(proc_id)?;
     Ok(())
 }
+
+/// Wrapper around scheduler.resched()
+pub fn yield_cpu() {
+    unsafe {
+        global_sched().resched();
+    }
+}

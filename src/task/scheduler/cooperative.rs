@@ -55,6 +55,10 @@ impl Scheduling for Cooperative {
             return Err(Error::BadPid);
         };
 
+        if let Some(index) = inner.ready_list.iter().position(|x| *x == id) {
+            inner.ready_list.remove(index);
+        }
+
         drop(inner);
 
         unsafe {
