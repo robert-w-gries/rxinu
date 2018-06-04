@@ -46,31 +46,20 @@ impl Scheduling for Preemptive {
 
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
-    fn kill(&self, id: ProcessId) -> Result<(), Error> {
+    fn kill(&self, pid: ProcessId) -> Result<(), Error> {
         interrupts::disable_then_execute(|| {
-            // We need to scope the manipulation of the process so we don't deadlock in resched()
-            {
-                let mut inner = self.inner.lock();
+            if let Some(proc_lock) = self.inner.lock().proc_table.get(pid) {
+                let mut proc = proc_lock.write();
 
-                {
-                    let mut proc = if let Some(proc_lock) = inner.proc_table.get(id) {
-                        proc_lock.write()
-                    } else {
-                        return Err(Error::BadPid);
-                    };
+                // Free memory allocated to process
+                proc.set_state(State::Free);
+                proc.kstack = None;
+                drop(&mut proc.name);
+            } else {
+                return Err(Error::BadPid);
+            };
 
-                    proc.set_state(State::Free);
-                    proc.kstack = None;
-                    drop(&mut proc.name);
-                }
-
-                inner.ready_list = inner
-                    .ready_list
-                    .clone()
-                    .into_iter()
-                    .filter(|ref proc_ref| proc_ref.0.read().pid != id)
-                    .collect();
-            }
+            self.unready(pid);
 
             unsafe {
                 self.resched();
@@ -81,11 +70,11 @@ impl Scheduling for Preemptive {
     }
 
     /// Add process to ready list
-    fn ready(&self, id: ProcessId) -> Result<(), Error> {
+    fn ready(&self, pid: ProcessId) -> Result<(), Error> {
         let mut inner = self.inner.lock();
 
         let proc_ref = {
-            if let Some(proc_ref) = inner.proc_table.get(id) {
+            if let Some(proc_ref) = inner.proc_table.get(pid) {
                 let mut proc = proc_ref.write();
                 proc.set_state(State::Ready);
                 Arc::clone(proc_ref)
@@ -179,6 +168,19 @@ impl Scheduling for Preemptive {
                 self.resched();
             }
         }
+    }
+
+    fn unready(&self, pid: ProcessId) -> Result<(), Error> {
+        let mut inner = self.inner.lock();
+
+        inner.ready_list = inner
+            .ready_list
+            .clone()
+            .into_iter()
+            .filter(|proc_ref| proc_ref.0.read().pid != pid)
+            .collect();
+
+        Ok(())
     }
 }
 

@@ -44,10 +44,8 @@ impl Scheduling for Cooperative {
 
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
-    fn kill(&self, id: ProcessId) -> Result<(), Error> {
-        let mut inner = self.inner.lock();
-
-        if let Some(proc_lock) = inner.proc_table.get_mut(&id) {
+    fn kill(&self, pid: ProcessId) -> Result<(), Error> {
+        if let Some(proc_lock) = self.inner.lock().proc_table.get_mut(&pid) {
             proc_lock.set_state(State::Free);
             proc_lock.kstack = None;
             drop(&mut proc_lock.name);
@@ -55,11 +53,7 @@ impl Scheduling for Cooperative {
             return Err(Error::BadPid);
         };
 
-        if let Some(index) = inner.ready_list.iter().position(|x| *x == id) {
-            inner.ready_list.remove(index);
-        }
-
-        drop(inner);
+        self.unready(pid);
 
         unsafe {
             self.resched();
@@ -69,8 +63,8 @@ impl Scheduling for Cooperative {
     }
 
     /// Add process to ready list
-    fn ready(&self, id: ProcessId) -> Result<(), Error> {
-        self.inner.lock().ready_list.push_back(id);
+    fn ready(&self, pid: ProcessId) -> Result<(), Error> {
+        self.inner.lock().ready_list.push_back(pid);
         Ok(())
     }
 
@@ -138,6 +132,17 @@ impl Scheduling for Cooperative {
             interrupts::mask_then_restore(|| unsafe {
                 self.resched();
             });
+        }
+    }
+
+    fn unready(&self, pid: ProcessId) -> Result<(), Error> {
+        let mut inner = self.inner.lock();
+
+        if let Some(index) = inner.ready_list.iter().position(|x| *x == pid) {
+            inner.ready_list.remove(index);
+            Ok(())
+        } else {
+            Err(Error::BadPid)
         }
     }
 }
