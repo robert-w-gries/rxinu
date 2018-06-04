@@ -77,9 +77,6 @@ impl Scheduling for Preemptive {
 
         unsafe {
             self.resched();
-        }
-
-        unsafe {
             interrupts::enable();
         }
 

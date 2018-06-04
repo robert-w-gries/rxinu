@@ -85,10 +85,10 @@ pub extern "C" fn rxinu_main() {
     arch::console::clear_screen();
     kprintln!("In main process!\n");
 
-    syscall::create(String::from("process a"), 50, process_a);
-    syscall::create(String::from("process b"), 50, process_b).unwrap();
+    syscall::create(String::from("process a"), 25, process_a);
+    syscall::create(String::from("process b"), 25, process_b).unwrap();
 
-    let pid_kill = syscall::create(String::from("kill_process"), 75, kill_process).unwrap();
+    let pid_kill = syscall::create(String::from("kill_process"), 40, kill_process).unwrap();
 
     syscall::create(String::from("test_process"), 0, test_process);
     syscall::kill(pid_kill);
