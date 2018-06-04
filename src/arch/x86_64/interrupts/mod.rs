@@ -24,6 +24,28 @@ pub fn enabled() -> bool {
     flags::flags().contains(flags::Flags::IF)
 }
 
+pub fn disable_then_execute<F, T>(uninterrupted_fn: F) -> T
+where
+    F: FnOnce() -> T,
+{
+    let interrupts_enabled = enabled();
+    if interrupts_enabled == true {
+        unsafe {
+            disable();
+        }
+    }
+
+    let result: T = uninterrupted_fn();
+
+    if interrupts_enabled == true {
+        unsafe {
+            enable();
+        }
+    }
+
+    result
+}
+
 /// Mask interrupts, execute code uninterrupted, restore original interrupts
 pub fn mask_then_restore<F, T>(uninterrupted_fn: F) -> T
 where

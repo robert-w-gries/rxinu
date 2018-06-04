@@ -47,40 +47,37 @@ impl Scheduling for Preemptive {
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, id: ProcessId) -> Result<(), Error> {
-        unsafe {
-            interrupts::disable();
-        }
-
-        // We need to scope the manipulation of the process so we don't deadlock in resched()
-        {
-            let mut inner = self.inner.lock();
-
+        interrupts::disable_then_execute(|| {
+            // We need to scope the manipulation of the process so we don't deadlock in resched()
             {
-                let mut proc = if let Some(proc_lock) = inner.proc_table.get(id) {
-                    proc_lock.write()
-                } else {
-                    return Err(Error::BadPid);
-                };
+                let mut inner = self.inner.lock();
 
-                proc.set_state(State::Free);
-                proc.kstack = None;
-                drop(&mut proc.name);
+                {
+                    let mut proc = if let Some(proc_lock) = inner.proc_table.get(id) {
+                        proc_lock.write()
+                    } else {
+                        return Err(Error::BadPid);
+                    };
+
+                    proc.set_state(State::Free);
+                    proc.kstack = None;
+                    drop(&mut proc.name);
+                }
+
+                inner.ready_list = inner
+                    .ready_list
+                    .clone()
+                    .into_iter()
+                    .filter(|ref proc_ref| proc_ref.0.read().pid != id)
+                    .collect();
             }
 
-            inner.ready_list = inner
-                .ready_list
-                .clone()
-                .into_iter()
-                .filter(|ref proc_ref| proc_ref.0.read().pid != id)
-                .collect();
-        }
+            unsafe {
+                self.resched();
+            }
 
-        unsafe {
-            self.resched();
-            interrupts::enable();
-        }
-
-        Ok(())
+            Ok(())
+        })
     }
 
     /// Add process to ready list
@@ -104,75 +101,73 @@ impl Scheduling for Preemptive {
 
     /// Safety: This method will deadlock if any scheduling locks are still held
     unsafe fn resched(&self) {
-        interrupts::disable();
+        interrupts::disable_then_execute(|| {
+            // Important: Ensure lock is dropped before context switch
+            let mut inner = self.inner.lock();
 
-        // Important: Ensure lock is dropped before context switch
-        let mut inner = self.inner.lock();
+            let curr_id: ProcessId = self.getid();
 
-        let curr_id: ProcessId = self.getid();
+            let next_proc: *const Process = if let Some(next_ref) = inner.ready_list.pop() {
+                let mut next_lock = next_ref.0.write();
 
-        let next_proc: *const Process = if let Some(next_ref) = inner.ready_list.pop() {
-            let mut next_lock = next_ref.0.write();
+                assert!(next_lock.kstack.is_some());
+                assert!(curr_id != next_lock.pid);
 
-            assert!(next_lock.kstack.is_some());
-            assert!(curr_id != next_lock.pid);
+                next_lock.set_state(State::Current);
 
-            next_lock.set_state(State::Current);
-
-            next_lock.deref_mut() as *const Process
-        } else {
-            return;
-        };
-
-        // Process Aging - Increase priority of Ready processes that aren't in use
-        for (_, p) in inner
-            .proc_table
-            .map
-            .iter()
-            .filter(|&(_, proc)| proc.read().state == State::Ready)
-        {
-            p.write().priority += 1;
-        }
-
-        let current_proc: *mut Process = {
-            let curr_ref = {
-                Arc::clone(
-                    &inner
-                        .proc_table
-                        .get(curr_id)
-                        .expect("resched() - Could not find current process in process table"),
-                )
+                next_lock.deref_mut() as *const Process
+            } else {
+                return;
             };
 
-            // Push current process reference to ready list
-            if curr_ref.read().state == State::Current {
-                inner.ready_list.push(ProcessRef(Arc::clone(&curr_ref)));
+            // Process Aging - Increase priority of Ready processes that aren't in use
+            for (_, p) in inner
+                .proc_table
+                .map
+                .iter()
+                .filter(|&(_, proc)| proc.read().state == State::Ready)
+            {
+                p.write().priority += 1;
             }
 
-            let mut curr = curr_ref.write();
+            let current_proc: *mut Process = {
+                let curr_ref = {
+                    Arc::clone(
+                        &inner
+                            .proc_table
+                            .get(curr_id)
+                            .expect("resched() - Could not find current process in process table"),
+                    )
+                };
 
-            match curr.state {
-                State::Current => {
-                    curr.set_state(State::Ready);
+                // Push current process reference to ready list
+                if curr_ref.read().state == State::Current {
+                    inner.ready_list.push(ProcessRef(Arc::clone(&curr_ref)));
                 }
-                State::Free => {
-                    inner.proc_table.remove(curr_id);
-                }
-                _ => (),
+
+                let mut curr = curr_ref.write();
+
+                match curr.state {
+                    State::Current => {
+                        curr.set_state(State::Ready);
+                    }
+                    State::Free => {
+                        inner.proc_table.remove(curr_id);
+                    }
+                    _ => (),
+                };
+
+                curr.deref_mut() as *mut Process
             };
 
-            curr.deref_mut() as *mut Process
-        };
+            self.current_pid
+                .store((*next_proc).pid.0, atomic::Ordering::SeqCst);
 
-        self.current_pid
-            .store((*next_proc).pid.0, atomic::Ordering::SeqCst);
+            // Drop locks to prevent deadlock after context switch
+            inner.release();
 
-        // Drop locks to prevent deadlock after context switch
-        inner.release();
-
-        (*current_proc).switch_to(&*next_proc);
-
-        interrupts::enable();
+            (*current_proc).switch_to(&*next_proc);
+        });
     }
 
     fn tick(&self) {
