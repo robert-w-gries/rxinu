@@ -1,6 +1,7 @@
 use alloc::arc::Arc;
 use alloc::{BinaryHeap, String, Vec};
 use arch::context::Context;
+use arch::interrupts;
 use core::cmp;
 use core::ops::DerefMut;
 use core::sync::atomic::{self, AtomicUsize, ATOMIC_USIZE_INIT};
@@ -46,6 +47,10 @@ impl Scheduling for Preemptive {
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, id: ProcessId) -> Result<(), Error> {
+        unsafe {
+            interrupts::asm_disable();
+        }
+
         // We need to scope the manipulation of the process so we don't deadlock in resched()
         {
             let mut inner = self.inner.lock();
@@ -61,6 +66,7 @@ impl Scheduling for Preemptive {
                 proc.kstack = None;
                 drop(&mut proc.name);
             }
+
             inner.ready_list = inner
                 .ready_list
                 .clone()
@@ -71,6 +77,10 @@ impl Scheduling for Preemptive {
 
         unsafe {
             self.resched();
+        }
+
+        unsafe {
+            interrupts::asm_enable();
         }
 
         Ok(())
@@ -97,6 +107,8 @@ impl Scheduling for Preemptive {
 
     /// Safety: This method will deadlock if any scheduling locks are still held
     unsafe fn resched(&self) {
+        interrupts::asm_disable();
+
         // Important: Ensure lock is dropped before context switch
         let mut inner = self.inner.lock();
 
@@ -162,6 +174,8 @@ impl Scheduling for Preemptive {
         inner.release();
 
         (*current_proc).switch_to(&*next_proc);
+
+        interrupts::asm_enable();
     }
 
     fn tick(&self) {

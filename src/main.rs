@@ -9,6 +9,7 @@
 #![feature(global_asm)]
 #![feature(lang_items)]
 #![feature(naked_functions)]
+#![feature(panic_info_message)]
 #![feature(ptr_internals)]
 #![feature(unique)]
 #![no_main]
@@ -43,6 +44,7 @@ pub mod task;
 
 use alloc::String;
 use arch::memory::heap::{HEAP_SIZE, HEAP_START};
+use core::panic::PanicInfo;
 
 #[no_mangle]
 /// Entry point for rust code
@@ -133,11 +135,19 @@ pub extern "C" fn kill_process() {
 pub extern "C" fn eh_personality() {}
 
 #[cfg(not(test))]
-#[lang = "panic_fmt"]
+#[lang = "panic_impl"]
 #[no_mangle]
-pub extern "C" fn panic_fmt(fmt: core::fmt::Arguments, file: &str, line: u32) -> ! {
-    kprintln!("\n\nPANIC in {} at line {}:", file, line);
-    kprintln!("    {}", fmt);
+pub extern "C" fn panic_fmt(info: &PanicInfo) -> ! {
+    kprintln!("\n\nPANIC");
+
+    if let Some(location) = info.location() {
+        kprint!("in {} at line {}", location.file(), location.line());
+    }
+
+    if let Some(message) = info.message() {
+        kprintln!("\n    {:?}", message);
+    }
+
     loop {}
 }
 
