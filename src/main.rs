@@ -56,7 +56,6 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         arch::interrupts::clear_mask();
     }
 
-
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 

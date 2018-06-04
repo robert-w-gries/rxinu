@@ -130,35 +130,34 @@ impl Scheduling for Preemptive {
                 p.write().priority += 1;
             }
 
-            let current_proc: *mut Process = {
-                let curr_ref = {
-                    Arc::clone(
-                        &inner
-                            .proc_table
-                            .get(curr_id)
-                            .expect("resched() - Could not find current process in process table"),
-                    )
-                };
+            let current_proc: *mut Process =
+                {
+                    let curr_ref =
+                        {
+                            Arc::clone(&inner.proc_table.get(curr_id).expect(
+                                "resched() - Could not find current process in process table",
+                            ))
+                        };
 
-                // Push current process reference to ready list
-                if curr_ref.read().state == State::Current {
-                    inner.ready_list.push(ProcessRef(Arc::clone(&curr_ref)));
-                }
-
-                let mut curr = curr_ref.write();
-
-                match curr.state {
-                    State::Current => {
-                        curr.set_state(State::Ready);
+                    // Push current process reference to ready list
+                    if curr_ref.read().state == State::Current {
+                        inner.ready_list.push(ProcessRef(Arc::clone(&curr_ref)));
                     }
-                    State::Free => {
-                        inner.proc_table.remove(curr_id);
-                    }
-                    _ => (),
-                };
 
-                curr.deref_mut() as *mut Process
-            };
+                    let mut curr = curr_ref.write();
+
+                    match curr.state {
+                        State::Current => {
+                            curr.set_state(State::Ready);
+                        }
+                        State::Free => {
+                            inner.proc_table.remove(curr_id);
+                        }
+                        _ => (),
+                    };
+
+                    curr.deref_mut() as *mut Process
+                };
 
             self.current_pid
                 .store((*next_proc).pid.0, atomic::Ordering::SeqCst);
