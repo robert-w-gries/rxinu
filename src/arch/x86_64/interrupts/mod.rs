@@ -10,31 +10,35 @@ pub const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
 /// Disable interrupts
 #[inline(always)]
-pub unsafe fn asm_disable() {
+pub unsafe fn disable() {
     asm!("cli" : : : : "intel", "volatile");
 }
 
-/// Disable interrupts
+/// Enable interrupts
 #[inline(always)]
-pub unsafe fn asm_enable() {
+pub unsafe fn enable() {
     asm!("sti; nop" : : : : "intel", "volatile");
 }
 
-/// Disable interrupts, execute code uninterrupted, restore original interrupts
-pub fn disable_then_restore<F, T>(uninterrupted_fn: F) -> T
+pub fn enabled() -> bool {
+    flags::flags().contains(flags::Flags::IF)
+}
+
+/// Mask interrupts, execute code uninterrupted, restore original interrupts
+pub fn mask_then_restore<F, T>(uninterrupted_fn: F) -> T
 where
     F: FnOnce() -> T,
 {
-    let saved_masks: (u8, u8) = disable();
+    let saved_masks: (u8, u8) = mask();
     let result: T = uninterrupted_fn();
-    restore(saved_masks);
+    restore_mask(saved_masks);
     result
 }
 
-/// Disable interrupts then return tuple of previous state for PIC1 and PIC2
-pub fn disable() -> (u8, u8) {
+/// Mask interrupts then return tuple of previous state for PIC1 and PIC2
+pub fn mask() -> (u8, u8) {
     unsafe {
-        asm_disable();
+        disable();
     }
 
     let saved_mask1 = MASTER.lock().data.read();
@@ -46,10 +50,10 @@ pub fn disable() -> (u8, u8) {
     (saved_mask1, saved_mask2)
 }
 
-/// Enable all interrupts
-pub fn enable() {
+/// Unmask all interrupts
+pub fn clear_mask() {
     unsafe {
-        asm_disable();
+        disable();
     }
 
     // Clear all masks from interrupt line so that all interrupts fire
@@ -57,18 +61,14 @@ pub fn enable() {
     SLAVE.lock().data.write(0);
 
     unsafe {
-        asm_enable();
+        enable();
     }
 }
 
-pub fn enabled() -> bool {
-    flags::flags().contains(flags::Flags::IF)
-}
-
 /// Enable interrupts, restoring the previously set masks
-pub fn restore(saved_masks: (u8, u8)) {
+pub fn restore_mask(saved_masks: (u8, u8)) {
     unsafe {
-        asm_disable();
+        disable();
     }
 
     let (saved_mask1, saved_mask2) = saved_masks;
@@ -77,7 +77,7 @@ pub fn restore(saved_masks: (u8, u8)) {
     SLAVE.lock().data.write(saved_mask2);
 
     unsafe {
-        asm_enable();
+        enable();
     }
 }
 
@@ -87,8 +87,10 @@ pub unsafe fn halt() {
 }
 
 #[inline(always)]
-pub unsafe fn pause() {
-    asm!("pause");
+pub fn pause() {
+    unsafe {
+        asm!("pause");
+    }
 }
 
 #[cfg(test)]

@@ -48,7 +48,7 @@ impl Scheduling for Preemptive {
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, id: ProcessId) -> Result<(), Error> {
         unsafe {
-            interrupts::asm_disable();
+            interrupts::disable();
         }
 
         // We need to scope the manipulation of the process so we don't deadlock in resched()
@@ -80,7 +80,7 @@ impl Scheduling for Preemptive {
         }
 
         unsafe {
-            interrupts::asm_enable();
+            interrupts::enable();
         }
 
         Ok(())
@@ -107,7 +107,7 @@ impl Scheduling for Preemptive {
 
     /// Safety: This method will deadlock if any scheduling locks are still held
     unsafe fn resched(&self) {
-        interrupts::asm_disable();
+        interrupts::disable();
 
         // Important: Ensure lock is dropped before context switch
         let mut inner = self.inner.lock();
@@ -175,7 +175,7 @@ impl Scheduling for Preemptive {
 
         (*current_proc).switch_to(&*next_proc);
 
-        interrupts::asm_enable();
+        interrupts::enable();
     }
 
     fn tick(&self) {

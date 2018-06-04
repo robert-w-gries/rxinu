@@ -131,7 +131,7 @@ impl Scheduling for Cooperative {
             self.ticks.store(0, Ordering::SeqCst);
 
             // Find another process to run while interrupts are disabled
-            interrupts::disable_then_restore(|| unsafe {
+            interrupts::mask_then_restore(|| unsafe {
                 self.resched();
             });
         }
