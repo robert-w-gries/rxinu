@@ -2,14 +2,13 @@ use alloc::arc::Arc;
 use alloc::{BinaryHeap, String, Vec};
 use arch::context::Context;
 use arch::interrupts;
-use core::cmp;
 use core::ops::DerefMut;
-use core::sync::atomic::{self, AtomicUsize, ATOMIC_USIZE_INIT};
+use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use spin::RwLock;
 use sync::IrqSpinLock;
 use syscall::error::Error;
 use task::scheduler::Scheduling;
-use task::{Process, ProcessId, ProcessTable, State};
+use task::{Process, ProcessId, ProcessRef, ProcessTable, State};
 
 pub struct Preemptive {
     current_pid: AtomicUsize,
@@ -40,26 +39,32 @@ impl Scheduling for Preemptive {
     }
 
     /// Get current process id
-    fn getid(&self) -> ProcessId {
-        ProcessId(self.current_pid.load(atomic::Ordering::SeqCst))
+    fn get_pid(&self) -> ProcessId {
+        ProcessId(self.current_pid.load(Ordering::SeqCst))
+    }
+
+    /// Get a reference to a process given a ProcessId
+    fn get_process(&self, pid: ProcessId) -> Result<ProcessRef, Error> {
+        match self.inner.lock().proc_table.get(pid) {
+            Some(proc_ref) => Ok(proc_ref.clone()),
+            None => Err(Error::BadPid),
+        }
     }
 
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, pid: ProcessId) -> Result<(), Error> {
         interrupts::disable_then_execute(|| {
-            if let Some(proc_lock) = self.inner.lock().proc_table.get(pid) {
-                let mut proc = proc_lock.write();
+            self.modify_process(pid, |proc_ref| {
+                let mut proc = proc_ref.0.write();
 
                 // Free memory allocated to process
                 proc.set_state(State::Free);
                 proc.kstack = None;
                 drop(&mut proc.name);
-            } else {
-                return Err(Error::BadPid);
-            };
+            })?;
 
-            self.unready(pid);
+            let _result = self.unready(pid);
 
             unsafe {
                 self.resched();
@@ -69,34 +74,36 @@ impl Scheduling for Preemptive {
         })
     }
 
+    /// Modify a process, given a ProcessId, and return a reference to it
+    fn modify_process<F>(&self, pid: ProcessId, modify_fn: F) -> Result<ProcessRef, Error>
+    where
+        F: Fn(&ProcessRef)
+    {
+        if let Some(proc_ref) = self.inner.lock().proc_table.get(pid) {
+            modify_fn(proc_ref);
+            Ok(ProcessRef(proc_ref.0.clone()))
+        } else {
+            Err(Error::BadPid)
+        }
+    }
+
     /// Add process to ready list
     fn ready(&self, pid: ProcessId) -> Result<(), Error> {
-        let mut inner = self.inner.lock();
+        let proc_ref = self.modify_process(pid, |proc_ref| {
+            proc_ref.0.write().set_state(State::Ready);
+        })?;
 
-        let proc_ref = {
-            if let Some(proc_ref) = inner.proc_table.get(pid) {
-                let mut proc = proc_ref.write();
-                proc.set_state(State::Ready);
-                Arc::clone(proc_ref)
-            } else {
-                return Err(Error::BadPid);
-            }
-        };
-
-        inner.ready_list.push(ProcessRef(proc_ref));
+        self.inner.lock().ready_list.push(proc_ref);
 
         Ok(())
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
-    unsafe fn resched(&self) {
+    unsafe fn resched(&self) -> Result<(), Error> {
         interrupts::disable_then_execute(|| {
-            // Important: Ensure lock is dropped before context switch
-            let mut inner = self.inner.lock();
+            let curr_id: ProcessId = self.get_pid();
 
-            let curr_id: ProcessId = self.getid();
-
-            let next_proc: *const Process = if let Some(next_ref) = inner.ready_list.pop() {
+            let next_proc: *const Process = if let Some(next_ref) = self.inner.lock().ready_list.pop() {
                 let mut next_lock = next_ref.0.write();
 
                 assert!(next_lock.kstack.is_some());
@@ -106,63 +113,47 @@ impl Scheduling for Preemptive {
 
                 next_lock.deref_mut() as *const Process
             } else {
-                return;
+                return Ok(());
             };
 
-            // Process Aging - Increase priority of Ready processes that aren't in use
-            for (_, p) in inner
-                .proc_table
-                .map
-                .iter()
-                .filter(|&(_, proc)| proc.read().state == State::Ready)
-            {
-                p.write().priority += 1;
+            // Process Aging
+            // Prevent process starvation by increasing all ready process priorities
+            self.age_processes();
+
+            let current_ref = self.modify_process(curr_id, |proc_ref| {
+                let mut proc = proc_ref.0.write();
+
+                if proc.state == State::Current {
+                    proc.set_state(State::Ready);
+                }
+            })?;
+
+            match current_ref.0.read().state {
+                State::Ready => {
+                    self.inner.lock().ready_list.push(current_ref.clone());
+                },
+                State::Free => {
+                    self.inner.lock().proc_table.remove(curr_id);
+                },
+                _ => (),
             }
 
-            let current_proc: *mut Process =
-                {
-                    let curr_ref =
-                        {
-                            Arc::clone(&inner.proc_table.get(curr_id).expect(
-                                "resched() - Could not find current process in process table",
-                            ))
-                        };
-
-                    // Push current process reference to ready list
-                    if curr_ref.read().state == State::Current {
-                        inner.ready_list.push(ProcessRef(Arc::clone(&curr_ref)));
-                    }
-
-                    let mut curr = curr_ref.write();
-
-                    match curr.state {
-                        State::Current => {
-                            curr.set_state(State::Ready);
-                        }
-                        State::Free => {
-                            inner.proc_table.remove(curr_id);
-                        }
-                        _ => (),
-                    };
-
-                    curr.deref_mut() as *mut Process
-                };
+            let current_proc: *mut Process = current_ref.0.write().deref_mut() as *mut Process;
 
             self.current_pid
-                .store((*next_proc).pid.0, atomic::Ordering::SeqCst);
-
-            // Drop locks to prevent deadlock after context switch
-            inner.release();
+                .store((*next_proc).pid.0, Ordering::SeqCst);
 
             (*current_proc).switch_to(&*next_proc);
-        });
+
+            Ok(())
+        })
     }
 
     fn tick(&self) {
         //This counter variable is updated every time an timer interrupt occurs. The timer is set to
         //interrupt every 2ms, so this means a reschedule will occur if 20ms have passed.
-        if self.ticks.fetch_add(1, atomic::Ordering::SeqCst) >= 10 {
-            self.ticks.store(0, atomic::Ordering::SeqCst);
+        if self.ticks.fetch_add(1, Ordering::SeqCst) >= 10 {
+            self.ticks.store(0, Ordering::SeqCst);
 
             unsafe {
                 self.resched();
@@ -211,29 +202,17 @@ impl Preemptive {
         self.inner
             .lock()
             .proc_table
-            .insert(ProcessId::NULL_PROCESS, Arc::new(RwLock::new(null_process)));
+            .insert(ProcessId::NULL_PROCESS, ProcessRef(Arc::new(RwLock::new(null_process))));
     }
-}
 
-#[derive(Clone)]
-struct ProcessRef(Arc<RwLock<Process>>);
-
-impl Ord for ProcessRef {
-    fn cmp(&self, other: &ProcessRef) -> cmp::Ordering {
-        self.0.read().priority.cmp(&other.0.read().priority)
-    }
-}
-
-impl PartialOrd for ProcessRef {
-    fn partial_cmp(&self, other: &ProcessRef) -> Option<cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Eq for ProcessRef {}
-
-impl PartialEq for ProcessRef {
-    fn eq(&self, other: &ProcessRef) -> bool {
-        self.0.read().priority == other.0.read().priority
+    fn age_processes(&self) {
+        for (_, p) in self.inner.lock()
+            .proc_table
+            .map
+            .iter()
+            .filter(|&(_, proc)| proc.0.read().state == State::Ready)
+        {
+            p.0.write().priority += 1;
+        }
     }
 }

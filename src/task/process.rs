@@ -3,6 +3,7 @@ use alloc::btree_map::BTreeMap;
 use alloc::String;
 use alloc::Vec;
 use arch::context::Context;
+use core::cmp;
 use core::fmt;
 use spin::RwLock;
 use syscall::error::Error;
@@ -14,7 +15,7 @@ use syscall::error::Error;
 pub unsafe extern "C" fn process_ret() {
     use task::scheduler::{global_sched, Scheduling};
 
-    let curr_id: ProcessId = global_sched().getid();
+    let curr_id: ProcessId = global_sched().get_pid();
     global_sched().kill(curr_id);
 }
 
@@ -103,7 +104,7 @@ impl Process {
 }
 
 pub struct ProcessTable {
-    pub map: BTreeMap<ProcessId, Arc<RwLock<Process>>>,
+    pub map: BTreeMap<ProcessId, ProcessRef>,
     next_pid: usize,
 }
 
@@ -117,14 +118,14 @@ impl ProcessTable {
 
     pub fn add(&mut self, proc: Process) -> Result<ProcessId, Error> {
         let pid = proc.pid;
-        match self.map.insert(pid, Arc::new(RwLock::new(proc))) {
+        match self.map.insert(pid, ProcessRef(Arc::new(RwLock::new(proc)))) {
             // PID already used
             Some(_) => Err(Error::BadPid),
             None => Ok(pid),
         }
     }
 
-    pub fn get(&self, pid: ProcessId) -> Option<&Arc<RwLock<Process>>> {
+    pub fn get(&self, pid: ProcessId) -> Option<&ProcessRef> {
         self.map.get(&pid)
     }
 
@@ -150,12 +151,35 @@ impl ProcessTable {
     pub fn insert(
         &mut self,
         pid: ProcessId,
-        proc: Arc<RwLock<Process>>,
-    ) -> Option<Arc<RwLock<Process>>> {
+        proc: ProcessRef,
+    ) -> Option<ProcessRef> {
         self.map.insert(pid, proc)
     }
 
-    pub fn remove(&mut self, pid: ProcessId) -> Option<Arc<RwLock<Process>>> {
+    pub fn remove(&mut self, pid: ProcessId) -> Option<ProcessRef> {
         self.map.remove(&pid)
+    }
+}
+
+#[derive(Clone)]
+pub struct ProcessRef(pub Arc<RwLock<Process>>);
+
+impl Ord for ProcessRef {
+    fn cmp(&self, other: &ProcessRef) -> cmp::Ordering {
+        self.0.read().priority.cmp(&other.0.read().priority)
+    }
+}
+
+impl PartialOrd for ProcessRef {
+    fn partial_cmp(&self, other: &ProcessRef) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for ProcessRef {}
+
+impl PartialEq for ProcessRef {
+    fn eq(&self, other: &ProcessRef) -> bool {
+        self.0.read().priority == other.0.read().priority
     }
 }

@@ -1,22 +1,23 @@
 #![allow(dead_code)]
-use alloc::btree_map::BTreeMap;
 use alloc::{String, Vec, VecDeque};
+use alloc::arc::Arc;
 use arch::context::Context;
+use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use spin::Mutex;
+use spin::RwLock;
+use sync::IrqSpinLock;
 use syscall::error::Error;
 use task::scheduler::Scheduling;
-use task::{Process, ProcessId, State, MAX_PID};
+use task::{Process, ProcessId, ProcessRef, ProcessTable, State};
 
 pub struct Cooperative {
     current_pid: AtomicUsize,
-    inner: Mutex<CooperativeInner>,
+    inner: IrqSpinLock<CooperativeInner>,
     ticks: AtomicUsize,
 }
 
 struct CooperativeInner {
-    next_pid: usize,
-    proc_table: BTreeMap<ProcessId, Process>,
+    proc_table: ProcessTable,
     ready_list: VecDeque<ProcessId>,
 }
 
@@ -28,96 +29,109 @@ impl Scheduling for Cooperative {
         _prio: usize,
         proc_entry: extern "C" fn(),
     ) -> Result<ProcessId, Error> {
-        let pid = self.get_next_pid()?;
-        let proc: Process = Process::new(pid, name, 0, proc_entry);
+        let mut inner = self.inner.lock();
 
-        match self.inner.lock().proc_table.insert(pid, proc) {
-            Some(_) => Err(Error::BadPid),
-            None => Ok(pid),
-        }
+        let pid = inner.proc_table.get_next_pid()?;
+        let proc: Process = Process::new(pid, name, 0, proc_entry);
+        inner.proc_table.add(proc)?;
+
+        Ok(pid)
     }
 
     /// Get current process id
-    fn getid(&self) -> ProcessId {
+    fn get_pid(&self) -> ProcessId {
         ProcessId(self.current_pid.load(Ordering::SeqCst))
+    }
+
+    /// Get a reference to a process given a ProcessId
+    fn get_process(&self, pid: ProcessId) -> Result<ProcessRef, Error> {
+        match self.inner.lock().proc_table.get(pid) {
+            Some(proc_ref) => Ok(proc_ref.clone()),
+            None => Err(Error::BadPid),
+        }
     }
 
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, pid: ProcessId) -> Result<(), Error> {
-        if let Some(proc_lock) = self.inner.lock().proc_table.get_mut(&pid) {
-            proc_lock.set_state(State::Free);
-            proc_lock.kstack = None;
-            drop(&mut proc_lock.name);
-        } else {
-            return Err(Error::BadPid);
-        };
+        self.modify_process(pid, |proc_ref| {
+            let mut proc = proc_ref.0.write();
 
-        self.unready(pid);
+            proc.set_state(State::Free);
+            proc.kstack = None;
+            drop(&mut proc.name);
+        })?;
+
+        // We don't care whether process was actually in ready list or not
+        let _result = self.unready(pid);
 
         unsafe {
-            self.resched();
+            self.resched()?;
         }
 
         Ok(())
     }
 
+    /// Modify a process, given a ProcessId, and return a reference to it
+    fn modify_process<F>(&self, pid: ProcessId, modify_fn: F) -> Result<ProcessRef, Error>
+    where
+        F: Fn(&ProcessRef)
+    {
+        if let Some(proc_ref) = self.inner.lock().proc_table.get(pid) {
+            modify_fn(proc_ref);
+            Ok(proc_ref.clone())
+        } else {
+            Err(Error::BadPid)
+        }
+    }
+
     /// Add process to ready list
     fn ready(&self, pid: ProcessId) -> Result<(), Error> {
+        self.modify_process(pid, |proc_ref| {
+            proc_ref.0.write().set_state(State::Ready);
+        });
+
         self.inner.lock().ready_list.push_back(pid);
         Ok(())
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
-    unsafe fn resched(&self) {
-        // Important: Ensure lock is dropped before context switch
-        let mut inner = self.inner.lock();
-
-        let curr_id: ProcessId = self.getid();
-        let next_id = if let Some(next_id) = inner.ready_list.pop_front() {
+    unsafe fn resched(&self) -> Result<(), Error> {
+        let curr_id: ProcessId = self.get_pid();
+        let next_id = if let Some(next_id) = self.inner.lock().ready_list.pop_front() {
             assert!(curr_id != next_id);
             next_id
         } else {
-            return;
+            return Ok(());
         };
 
-        let current_proc_ptr = {
-            let mut current_proc = inner
-                .proc_table
-                .get_mut(&curr_id)
-                .expect("Could not find current process in process table");
-
-            // Add current process back to ready list
-            if current_proc.state == State::Current {
-                current_proc.set_state(State::Ready);
+        let curr_ref = self.modify_process(curr_id, |proc_ref| {
+            let mut proc = proc_ref.0.write();
+            if proc.state == State::Current {
+                proc.set_state(State::Ready);
             }
+        })?;
 
-            current_proc as *mut Process
-        };
+        let curr_proc: *mut Process = curr_ref.0.write().deref_mut() as *mut Process;
 
-        let next_proc_ptr = {
-            let mut next_proc = inner
-                .proc_table
-                .get_mut(&next_id)
-                .expect("Process ID in ready list is not in process table");
-
-            assert!(next_proc.kstack.is_some());
-
-            next_proc.set_state(State::Current);
-
-            next_proc as *const Process
-        };
-
-        if (*current_proc_ptr).state == State::Ready {
-            inner.ready_list.push_back(curr_id);
+        if (*curr_proc).state == State::Ready {
+            self.inner.lock().ready_list.push_back(curr_id);
         }
+
+        let next_ref = self.modify_process(next_id, |proc_ref| {
+            let mut proc = proc_ref.0.write();
+
+            assert!(proc.kstack.is_some());
+            proc.set_state(State::Current);
+        })?;
+
+        let next_proc = next_ref.0.write().deref_mut() as *mut Process;
 
         self.current_pid.store(next_id.0, Ordering::SeqCst);
 
-        // Drop locks to prevent deadlock after context switch
-        drop(inner);
+        (*curr_proc).switch_to(&*next_proc);
 
-        (*current_proc_ptr).switch_to(&*next_proc_ptr);
+        Ok(())
     }
 
     fn tick(&self) {
@@ -128,8 +142,7 @@ impl Scheduling for Cooperative {
         if self.ticks.fetch_add(1, Ordering::SeqCst) >= 10 {
             self.ticks.store(0, Ordering::SeqCst);
 
-            // Find another process to run while interrupts are disabled
-            interrupts::mask_then_restore(|| unsafe {
+            interrupts::disable_then_execute(|| unsafe {
                 self.resched();
             });
         }
@@ -151,9 +164,8 @@ impl Cooperative {
     pub fn new() -> Cooperative {
         Cooperative {
             current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
-            inner: Mutex::new(CooperativeInner {
-                next_pid: 1,
-                proc_table: BTreeMap::<ProcessId, Process>::new(),
+            inner: IrqSpinLock::new(CooperativeInner {
+                proc_table: ProcessTable::new(),
                 ready_list: VecDeque::<ProcessId>::new(),
             }),
             ticks: ATOMIC_USIZE_INIT,
@@ -175,26 +187,6 @@ impl Cooperative {
         self.inner
             .lock()
             .proc_table
-            .insert(ProcessId::NULL_PROCESS, null_process);
-    }
-
-    fn get_next_pid(&self) -> Result<ProcessId, Error> {
-        let mut inner = self.inner.lock();
-
-        while inner.proc_table.contains_key(&ProcessId(inner.next_pid)) && inner.next_pid < MAX_PID
-        {
-            inner.next_pid += 1;
-        }
-
-        match inner.next_pid {
-            MAX_PID => {
-                inner.next_pid = 1;
-                Err(Error::TryAgain)
-            }
-            pid => {
-                inner.next_pid += 1;
-                Ok(ProcessId(pid))
-            }
-        }
+            .insert(ProcessId::NULL_PROCESS, ProcessRef(Arc::new(RwLock::new(null_process))));
     }
 }
