@@ -73,7 +73,7 @@ impl Scheduling for Cooperative {
     /// Modify a process, given a ProcessId, and return a reference to it
     fn modify_process<F>(&self, pid: ProcessId, modify_fn: F) -> Result<ProcessRef, Error>
     where
-        F: Fn(&ProcessRef)
+        F: Fn(&ProcessRef),
     {
         if let Some(proc_ref) = self.inner.lock().proc_table.get(pid) {
             modify_fn(proc_ref);

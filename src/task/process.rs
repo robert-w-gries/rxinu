@@ -118,7 +118,10 @@ impl ProcessTable {
 
     pub fn add(&mut self, proc: Process) -> Result<ProcessId, Error> {
         let pid = proc.pid;
-        match self.map.insert(pid, ProcessRef(Arc::new(RwLock::new(proc)))) {
+        match self
+            .map
+            .insert(pid, ProcessRef(Arc::new(RwLock::new(proc))))
+        {
             // PID already used
             Some(_) => Err(Error::BadPid),
             None => Ok(pid),
@@ -148,11 +151,7 @@ impl ProcessTable {
         }
     }
 
-    pub fn insert(
-        &mut self,
-        pid: ProcessId,
-        proc: ProcessRef,
-    ) -> Option<ProcessRef> {
+    pub fn insert(&mut self, pid: ProcessId, proc: ProcessRef) -> Option<ProcessRef> {
         self.map.insert(pid, proc)
     }
 

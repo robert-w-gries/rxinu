@@ -47,7 +47,7 @@ pub fn suspend(pid: ProcessId) -> Result<(), Error> {
                 })?;
 
                 global_sched().unready(pid)?;
-            },
+            }
 
             State::Current => {
                 global_sched().modify_process(pid, |proc_ref| {
@@ -57,7 +57,7 @@ pub fn suspend(pid: ProcessId) -> Result<(), Error> {
                 unsafe {
                     global_sched().resched()?;
                 }
-            },
+            }
 
             _ => return Err(Error::InvalidOperation),
         }

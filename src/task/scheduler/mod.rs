@@ -16,7 +16,8 @@ pub trait Scheduling {
     fn get_process(&self, pid: ProcessId) -> Result<ProcessRef, Error>;
     fn kill(&self, pid: ProcessId) -> Result<(), Error>;
     fn modify_process<F>(&self, pid: ProcessId, modify_fn: F) -> Result<ProcessRef, Error>
-        where F: Fn(&ProcessRef);
+    where
+        F: Fn(&ProcessRef);
     fn ready(&self, pid: ProcessId) -> Result<(), Error>;
     unsafe fn resched(&self) -> Result<(), Error>;
     fn tick(&self);

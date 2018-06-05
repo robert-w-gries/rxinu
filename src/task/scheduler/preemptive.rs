@@ -75,7 +75,7 @@ impl Scheduling for Preemptive {
     /// Modify a process, given a ProcessId, and return a reference to it
     fn modify_process<F>(&self, pid: ProcessId, modify_fn: F) -> Result<ProcessRef, Error>
     where
-        F: Fn(&ProcessRef)
+        F: Fn(&ProcessRef),
     {
         if let Some(proc_ref) = self.inner.lock().proc_table.get(pid) {
             modify_fn(proc_ref);
@@ -101,18 +101,19 @@ impl Scheduling for Preemptive {
         interrupts::disable_then_execute(|| {
             let curr_id: ProcessId = self.get_pid();
 
-            let next_proc: *const Process = if let Some(next_ref) = self.inner.lock().ready_list.pop() {
-                let mut next_lock = next_ref.write();
+            let next_proc: *const Process =
+                if let Some(next_ref) = self.inner.lock().ready_list.pop() {
+                    let mut next_lock = next_ref.write();
 
-                assert!(next_lock.kstack.is_some());
-                assert!(curr_id != next_lock.pid);
+                    assert!(next_lock.kstack.is_some());
+                    assert!(curr_id != next_lock.pid);
 
-                next_lock.set_state(State::Current);
+                    next_lock.set_state(State::Current);
 
-                next_lock.deref_mut() as *const Process
-            } else {
-                return Ok(());
-            };
+                    next_lock.deref_mut() as *const Process
+                } else {
+                    return Ok(());
+                };
 
             // Process Aging
             // Prevent process starvation by increasing all ready process priorities
@@ -129,17 +130,16 @@ impl Scheduling for Preemptive {
             match current_ref.read().state {
                 State::Ready => {
                     self.inner.lock().ready_list.push(current_ref.clone());
-                },
+                }
                 State::Free => {
                     self.inner.lock().proc_table.remove(curr_id);
-                },
+                }
                 _ => (),
             }
 
             let current_proc: *mut Process = current_ref.write().deref_mut() as *mut Process;
 
-            self.current_pid
-                .store((*next_proc).pid.0, Ordering::SeqCst);
+            self.current_pid.store((*next_proc).pid.0, Ordering::SeqCst);
 
             (*current_proc).switch_to(&*next_proc);
 
@@ -204,7 +204,9 @@ impl Preemptive {
     }
 
     fn age_processes(&self) {
-        for (_, p) in self.inner.lock()
+        for (_, p) in self
+            .inner
+            .lock()
             .proc_table
             .map
             .iter()
