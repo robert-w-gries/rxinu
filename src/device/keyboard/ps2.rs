@@ -3,9 +3,9 @@ use device::keyboard::Key::*;
 use device::keyboard::Modifier::*;
 use device::keyboard::{Key, KeyEvent, STATE};
 use device::{BufferedDevice, InputDevice};
-use spin::Mutex;
+use sync::IrqLock;
 
-pub static PS2_KEYBOARD: Mutex<Ps2> = Mutex::new(Ps2::new());
+pub static PS2_KEYBOARD: IrqLock<Ps2> = IrqLock::new(Ps2::new());
 
 pub fn init() {
     PS2_KEYBOARD.lock().init();
@@ -37,13 +37,11 @@ pub fn parse_key(scancode: u8) -> Option<u8> {
 }
 
 pub fn read(len: usize) {
-    use arch::interrupts;
-    interrupts::disable_then_restore(|| {
-        let bytes = PS2_KEYBOARD.lock().read(len);
-        for &byte in bytes.iter() {
-            kprint!("{}", byte);
-        }
-    });
+    let bytes = PS2_KEYBOARD.lock().read(len);
+
+    for &byte in bytes.iter() {
+        kprint!("{}", byte);
+    }
 }
 
 /// Keep reading bytes until sequence is finished and combine bytes into an integer

@@ -1,4 +1,5 @@
 use core::mem;
+use x86_64::registers::flags::Flags;
 
 global_asm!(include_str!("context_switch.asm"));
 
@@ -35,7 +36,7 @@ impl Context {
 
     pub fn new(stack_top: *mut u8, proc_entry: usize) -> Context {
         let mut ctx = Context {
-            rflags: 0,
+            rflags: Flags::IF.bits(),
             rbx: 0,
             r12: 0,
             r13: 0,
@@ -60,7 +61,7 @@ impl Context {
     }
 
     #[inline]
-    pub unsafe extern "C" fn switch_to(&mut self, next: &mut Context) {
+    pub unsafe fn switch_to(&mut self, next: &Context) {
         x86_64_context_switch(self as *mut _, next as *const _);
     }
 }

@@ -1,6 +1,6 @@
-#![allow(dead_code)]
-use alloc::{String, Vec, VecDeque};
+use alloc::{BinaryHeap, String, Vec};
 use arch::context::Context;
+use arch::interrupts;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use sync::IrqSpinLock;
@@ -8,29 +8,29 @@ use syscall::error::Error;
 use task::scheduler::Scheduling;
 use task::{Process, ProcessId, ProcessRef, ProcessTable, State};
 
-pub struct Cooperative {
+pub struct Preemptive {
     current_pid: AtomicUsize,
-    inner: IrqSpinLock<CooperativeInner>,
+    inner: IrqSpinLock<PreemptiveInner>,
     ticks: AtomicUsize,
 }
 
-struct CooperativeInner {
+struct PreemptiveInner {
     proc_table: ProcessTable,
-    ready_list: VecDeque<ProcessId>,
+    ready_list: BinaryHeap<ProcessRef>,
 }
 
-impl Scheduling for Cooperative {
+impl Scheduling for Preemptive {
     /// Add process to process table
     fn create(
         &self,
         name: String,
-        _prio: usize,
+        prio: usize,
         proc_entry: extern "C" fn(),
     ) -> Result<ProcessId, Error> {
         let mut inner = self.inner.lock();
 
         let pid = inner.proc_table.get_next_pid()?;
-        let proc: Process = Process::new(pid, name, 0, proc_entry);
+        let proc: Process = Process::new(pid, name, prio, proc_entry);
         inner.proc_table.add(proc)?;
 
         Ok(pid)
@@ -52,22 +52,24 @@ impl Scheduling for Cooperative {
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, pid: ProcessId) -> Result<(), Error> {
-        self.modify_process(pid, |proc_ref| {
-            let mut proc = proc_ref.write();
+        interrupts::disable_then_execute(|| {
+            self.modify_process(pid, |proc_ref| {
+                let mut proc = proc_ref.write();
 
-            proc.set_state(State::Free);
-            proc.kstack = None;
-            drop(&mut proc.name);
-        })?;
+                // Free memory allocated to process
+                proc.set_state(State::Free);
+                proc.kstack = None;
+                drop(&mut proc.name);
+            })?;
 
-        // We don't care whether process was actually in ready list or not
-        let _result = self.unready(pid);
+            let _result = self.unready(pid);
 
-        unsafe {
-            self.resched()?;
-        }
+            unsafe {
+                self.resched();
+            }
 
-        Ok(())
+            Ok(())
+        })
     }
 
     /// Modify a process, given a ProcessId, and return a reference to it
@@ -85,86 +87,99 @@ impl Scheduling for Cooperative {
 
     /// Add process to ready list
     fn ready(&self, pid: ProcessId) -> Result<(), Error> {
-        self.modify_process(pid, |proc_ref| {
+        let proc_ref = self.modify_process(pid, |proc_ref| {
             proc_ref.write().set_state(State::Ready);
-        });
+        })?;
 
-        self.inner.lock().ready_list.push_back(pid);
+        self.inner.lock().ready_list.push(proc_ref);
+
         Ok(())
     }
 
     /// Safety: This method will deadlock if any scheduling locks are still held
     unsafe fn resched(&self) -> Result<(), Error> {
-        let curr_id: ProcessId = self.get_pid();
-        let next_id = if let Some(next_id) = self.inner.lock().ready_list.pop_front() {
-            assert!(curr_id != next_id);
-            next_id
-        } else {
-            return Ok(());
-        };
+        interrupts::disable_then_execute(|| {
+            let curr_id: ProcessId = self.get_pid();
 
-        let curr_ref = self.modify_process(curr_id, |proc_ref| {
-            let mut proc = proc_ref.write();
-            if proc.state == State::Current {
-                proc.set_state(State::Ready);
+            let next_proc: *const Process =
+                if let Some(next_ref) = self.inner.lock().ready_list.pop() {
+                    let mut next_lock = next_ref.write();
+
+                    assert!(next_lock.kstack.is_some());
+                    assert!(curr_id != next_lock.pid);
+
+                    next_lock.set_state(State::Current);
+
+                    next_lock.deref_mut() as *const Process
+                } else {
+                    return Ok(());
+                };
+
+            // Process Aging
+            // Prevent process starvation by increasing all ready process priorities
+            self.age_processes();
+
+            let current_ref = self.modify_process(curr_id, |proc_ref| {
+                let mut proc = proc_ref.write();
+
+                if proc.state == State::Current {
+                    proc.set_state(State::Ready);
+                }
+            })?;
+
+            match current_ref.read().state {
+                State::Ready => {
+                    self.inner.lock().ready_list.push(current_ref.clone());
+                }
+                State::Free => {
+                    self.inner.lock().proc_table.remove(curr_id);
+                }
+                _ => (),
             }
-        })?;
 
-        let curr_proc: *mut Process = curr_ref.write().deref_mut() as *mut Process;
+            let current_proc: *mut Process = current_ref.write().deref_mut() as *mut Process;
 
-        if (*curr_proc).state == State::Ready {
-            self.inner.lock().ready_list.push_back(curr_id);
-        }
+            self.current_pid.store((*next_proc).pid.0, Ordering::SeqCst);
 
-        let next_ref = self.modify_process(next_id, |proc_ref| {
-            let mut proc = proc_ref.write();
+            (*current_proc).switch_to(&*next_proc);
 
-            assert!(proc.kstack.is_some());
-            proc.set_state(State::Current);
-        })?;
-
-        let next_proc = next_ref.write().deref_mut() as *mut Process;
-
-        self.current_pid.store(next_id.0, Ordering::SeqCst);
-
-        (*curr_proc).switch_to(&*next_proc);
-
-        Ok(())
+            Ok(())
+        })
     }
 
     fn tick(&self) {
-        use arch::interrupts;
-
         //This counter variable is updated every time an timer interrupt occurs. The timer is set to
         //interrupt every 2ms, so this means a reschedule will occur if 20ms have passed.
         if self.ticks.fetch_add(1, Ordering::SeqCst) >= 10 {
             self.ticks.store(0, Ordering::SeqCst);
 
-            interrupts::disable_then_execute(|| unsafe {
+            unsafe {
                 self.resched();
-            });
+            }
         }
     }
 
     fn unready(&self, pid: ProcessId) -> Result<(), Error> {
         let mut inner = self.inner.lock();
 
-        if let Some(index) = inner.ready_list.iter().position(|x| *x == pid) {
-            inner.ready_list.remove(index);
-            Ok(())
-        } else {
-            Err(Error::BadPid)
-        }
+        inner.ready_list = inner
+            .ready_list
+            .clone()
+            .into_iter()
+            .filter(|proc_ref| proc_ref.read().pid != pid)
+            .collect();
+
+        Ok(())
     }
 }
 
-impl Cooperative {
-    pub fn new() -> Cooperative {
-        Cooperative {
+impl Preemptive {
+    pub fn new() -> Preemptive {
+        Preemptive {
             current_pid: AtomicUsize::new(ProcessId::NULL_PROCESS.get_usize()),
-            inner: IrqSpinLock::new(CooperativeInner {
+            inner: IrqSpinLock::new(PreemptiveInner {
                 proc_table: ProcessTable::new(),
-                ready_list: VecDeque::<ProcessId>::new(),
+                ready_list: BinaryHeap::<ProcessRef>::new(),
             }),
             ticks: ATOMIC_USIZE_INIT,
         }
@@ -186,5 +201,18 @@ impl Cooperative {
             .lock()
             .proc_table
             .insert(ProcessId::NULL_PROCESS, ProcessRef::new(null_process));
+    }
+
+    fn age_processes(&self) {
+        for (_, p) in self
+            .inner
+            .lock()
+            .proc_table
+            .map
+            .iter()
+            .filter(|&(_, proc)| proc.read().state == State::Ready)
+        {
+            p.write().priority += 1;
+        }
     }
 }

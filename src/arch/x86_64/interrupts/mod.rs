@@ -1,5 +1,6 @@
 use device::pic_8259::{MASTER, SLAVE};
 use syscall::io::Io;
+use x86_64::registers::flags;
 
 pub mod exception;
 pub mod irq;
@@ -9,31 +10,57 @@ pub const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
 /// Disable interrupts
 #[inline(always)]
-unsafe fn asm_disable() {
+pub unsafe fn disable() {
     asm!("cli" : : : : "intel", "volatile");
 }
 
-/// Disable interrupts
+/// Enable interrupts
 #[inline(always)]
-unsafe fn asm_enable() {
+pub unsafe fn enable() {
     asm!("sti; nop" : : : : "intel", "volatile");
 }
 
-/// Disable interrupts, execute code uninterrupted, restore original interrupts
-pub fn disable_then_restore<F, T>(uninterrupted_fn: F) -> T
+pub fn enabled() -> bool {
+    flags::flags().contains(flags::Flags::IF)
+}
+
+pub fn disable_then_execute<F, T>(uninterrupted_fn: F) -> T
 where
     F: FnOnce() -> T,
 {
-    let saved_masks: (u8, u8) = disable();
+    let interrupts_enabled = enabled();
+    if interrupts_enabled == true {
+        unsafe {
+            disable();
+        }
+    }
+
     let result: T = uninterrupted_fn();
-    restore(saved_masks);
+
+    if interrupts_enabled == true {
+        unsafe {
+            enable();
+        }
+    }
+
     result
 }
 
-/// Disable interrupts then return tuple of previous state for PIC1 and PIC2
-pub fn disable() -> (u8, u8) {
+/// Mask interrupts, execute code uninterrupted, restore original interrupts
+pub fn mask_then_restore<F, T>(uninterrupted_fn: F) -> T
+where
+    F: FnOnce() -> T,
+{
+    let saved_masks: (u8, u8) = mask();
+    let result: T = uninterrupted_fn();
+    restore_mask(saved_masks);
+    result
+}
+
+/// Mask interrupts then return tuple of previous state for PIC1 and PIC2
+pub fn mask() -> (u8, u8) {
     unsafe {
-        asm_disable();
+        disable();
     }
 
     let saved_mask1 = MASTER.lock().data.read();
@@ -45,10 +72,10 @@ pub fn disable() -> (u8, u8) {
     (saved_mask1, saved_mask2)
 }
 
-/// Enable all interrupts
-pub fn enable() {
+/// Unmask all interrupts
+pub fn clear_mask() {
     unsafe {
-        asm_disable();
+        disable();
     }
 
     // Clear all masks from interrupt line so that all interrupts fire
@@ -56,14 +83,14 @@ pub fn enable() {
     SLAVE.lock().data.write(0);
 
     unsafe {
-        asm_enable();
+        enable();
     }
 }
 
 /// Enable interrupts, restoring the previously set masks
-pub fn restore(saved_masks: (u8, u8)) {
+pub fn restore_mask(saved_masks: (u8, u8)) {
     unsafe {
-        asm_disable();
+        disable();
     }
 
     let (saved_mask1, saved_mask2) = saved_masks;
@@ -72,7 +99,19 @@ pub fn restore(saved_masks: (u8, u8)) {
     SLAVE.lock().data.write(saved_mask2);
 
     unsafe {
-        asm_enable();
+        enable();
+    }
+}
+
+#[inline(always)]
+pub unsafe fn halt() {
+    asm!("hlt");
+}
+
+#[inline(always)]
+pub fn pause() {
+    unsafe {
+        asm!("pause");
     }
 }
 

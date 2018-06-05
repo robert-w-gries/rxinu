@@ -1,3 +1,4 @@
+#![allow(unused_must_use)]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc, allocator_api, global_allocator)]
 #![feature(asm)]
@@ -8,6 +9,7 @@
 #![feature(global_asm)]
 #![feature(lang_items)]
 #![feature(naked_functions)]
+#![feature(panic_info_message)]
 #![feature(ptr_internals)]
 #![feature(unique)]
 #![no_main]
@@ -36,25 +38,28 @@ extern crate x86_64;
 #[macro_use]
 pub mod arch;
 pub mod device;
+pub mod sync;
 pub mod syscall;
 pub mod task;
 
 use alloc::String;
 use arch::memory::heap::{HEAP_SIZE, HEAP_START};
+use core::panic::PanicInfo;
 
 #[no_mangle]
 /// Entry point for rust code
 pub extern "C" fn _start(boot_info_address: usize) -> ! {
-    arch::interrupts::disable();
-    {
-        arch::init(boot_info_address);
+    arch::init(boot_info_address);
+
+    unsafe {
+        task::scheduler::init();
+        arch::interrupts::clear_mask();
     }
-    arch::interrupts::enable();
 
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
-    syscall::create(rxinu_main, String::from("rxinu_main"));
+    syscall::create(String::from("rxinu_main"), 10, rxinu_main);
 
     loop {
         #[cfg(feature = "serial")]
@@ -69,38 +74,57 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
             kbd::read(1024);
         }
 
-        // halt instruction prevents CPU from looping too much
-        unsafe {
-            arch::halt();
-        }
+        // Save cycles by pausing until next interrupt
+        arch::interrupts::pause();
     }
 }
 
 /// Main initialization process for rxinu
 pub extern "C" fn rxinu_main() {
     arch::console::clear_screen();
-
     kprintln!("In main process!\n");
-    syscall::create(created_process, String::from("rxinu_test"));
+
+    syscall::create(String::from("process a"), 25, process_a);
+    syscall::create(String::from("process b"), 25, process_b).unwrap();
+
+    let pid_kill = syscall::create(String::from("kill_process"), 40, kill_process).unwrap();
+
+    let pid = syscall::create(String::from("test_process"), 0, test_process).unwrap();
+    syscall::suspend(pid);
+    syscall::kill(pid_kill);
+    syscall::resume(pid);
 }
 
 pub extern "C" fn test_process() {
-    kprintln!("In test process!");
+    kprintln!("\nIn test process!");
+    kprintln!("\nYou can now type...\n");
 }
 
-pub extern "C" fn created_process() {
-    kprintln!("\nIn rxinu_main::created_process!");
-    kprintln!("\nYou can now type...");
+pub extern "C" fn process_a() {
+    kprintln!("\nIn process_a!");
+    loop {
+        syscall::yield_cpu();
+        arch::interrupts::pause();
+    }
 }
 
-pub extern "C" fn cycle_process_a() {
-    kprint!(".");
-    syscall::create(cycle_process_b, String::from("cycle_process_b"));
+pub extern "C" fn process_b() {
+    kprintln!("\nIn process_b!");
+    loop {
+        syscall::yield_cpu();
+        arch::interrupts::pause();
+    }
 }
 
-pub extern "C" fn cycle_process_b() {
-    kprint!(".");
-    syscall::create(cycle_process_a, String::from("cycle_process_a"));
+pub extern "C" fn kill_process() {
+    kprint!("\nIn kill_process");
+    loop {
+        syscall::yield_cpu();
+        kprint!(".");
+        unsafe {
+            arch::interrupts::halt();
+        }
+    }
 }
 
 #[cfg(not(test))]
@@ -109,11 +133,19 @@ pub extern "C" fn cycle_process_b() {
 pub extern "C" fn eh_personality() {}
 
 #[cfg(not(test))]
-#[lang = "panic_fmt"]
+#[lang = "panic_impl"]
 #[no_mangle]
-pub extern "C" fn panic_fmt(fmt: core::fmt::Arguments, file: &str, line: u32) -> ! {
-    kprintln!("\n\nPANIC in {} at line {}:", file, line);
-    kprintln!("    {}", fmt);
+pub extern "C" fn panic_fmt(info: &PanicInfo) -> ! {
+    kprintln!("\n\nPANIC");
+
+    if let Some(location) = info.location() {
+        kprint!("in {} at line {}", location.file(), location.line());
+    }
+
+    if let Some(message) = info.message() {
+        kprintln!("\n    {:?}", message);
+    }
+
     loop {}
 }
 

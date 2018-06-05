@@ -1,15 +1,74 @@
 use alloc::String;
-use task::{ProcessId, Scheduling, SCHEDULER};
+use arch::interrupts;
+use syscall::error::Error;
+use task::scheduler::{global_sched, Scheduling};
+use task::{ProcessId, State};
 
 /// Wrapper around scheduler.create() and ready() that can be called in processes
-pub fn create(new_proc: extern "C" fn(), name: String) -> ProcessId {
-    use arch::interrupts;
+pub fn create(name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
+    let pid = global_sched()
+        .create(name, prio, proc_entry)
+        .expect("Could not create new process!");
+    global_sched().ready(pid)?;
+    Ok(pid)
+}
 
-    interrupts::disable_then_restore(|| -> ProcessId {
-        let pid = SCHEDULER
-            .create(new_proc, name)
-            .expect("Could not create new process!");
-        SCHEDULER.ready(pid.clone());
-        pid
+/// Wrapper around scheduler.kill()
+pub fn kill(pid: ProcessId) -> Result<(), Error> {
+    global_sched().kill(pid)?;
+    Ok(())
+}
+
+/// Ready a suspended process
+pub fn resume(pid: ProcessId) -> Result<(), Error> {
+    let proc_ref = global_sched().get_process(pid)?;
+    if proc_ref.read().state == State::Suspended {
+        global_sched().ready(pid)?;
+        Ok(())
+    } else {
+        Err(Error::InvalidOperation)
+    }
+}
+
+/// Suspend a ready or currently running process
+pub fn suspend(pid: ProcessId) -> Result<(), Error> {
+    let proc_ref = global_sched().get_process(pid)?;
+
+    if pid == ProcessId::NULL_PROCESS {
+        return Err(Error::InvalidOperation);
+    }
+
+    interrupts::disable_then_execute(|| {
+        let state = proc_ref.read().state;
+        match state {
+            State::Ready => {
+                global_sched().modify_process(pid, |proc_ref| {
+                    proc_ref.write().set_state(State::Suspended);
+                })?;
+
+                global_sched().unready(pid)?;
+            }
+
+            State::Current => {
+                global_sched().modify_process(pid, |proc_ref| {
+                    proc_ref.write().set_state(State::Suspended);
+                })?;
+
+                unsafe {
+                    global_sched().resched()?;
+                }
+            }
+
+            _ => return Err(Error::InvalidOperation),
+        }
+
+        Ok(())
     })
+}
+
+/// Donate CPU time slice to another process
+pub fn yield_cpu() {
+    unsafe {
+        global_sched().resched();
+    }
 }

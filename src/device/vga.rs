@@ -2,13 +2,13 @@
 
 use core::fmt;
 use core::ptr::Unique;
-use spin::Mutex;
+use sync::IrqLock;
 use volatile::Volatile;
 
 const MAX_HEIGHT: usize = 25;
 const MAX_WIDTH: usize = 80;
 
-pub static VGA: Mutex<Writer> = Mutex::new(Writer {
+pub static VGA: IrqLock<Writer> = IrqLock::new(Writer {
     column_position: 0,
     color_code: ColorCode::new(Color::LightGreen, Color::Black),
     buffer: unsafe { Unique::new_unchecked(0xb8000 as *mut _) },

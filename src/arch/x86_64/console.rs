@@ -1,8 +1,6 @@
 #[macro_export]
 macro_rules! kprint {
     ($($arg:tt)*) => ({
-        use arch::interrupts;
-        interrupts::disable_then_restore(|| {
             #[cfg(feature = "serial")]
             {
                 use core::fmt::Write;
@@ -20,7 +18,6 @@ macro_rules! kprint {
                 // ignore write result
                 let _ = write!(VGA.lock(), $($arg)*);
             }
-        });
     });
 }
 

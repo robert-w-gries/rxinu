@@ -46,4 +46,3 @@ x86_64_context_switch:
 
     # leap of faith
     ret
-
