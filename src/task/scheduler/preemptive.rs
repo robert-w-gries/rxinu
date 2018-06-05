@@ -1,10 +1,8 @@
-use alloc::arc::Arc;
 use alloc::{BinaryHeap, String, Vec};
 use arch::context::Context;
 use arch::interrupts;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use spin::RwLock;
 use sync::IrqSpinLock;
 use syscall::error::Error;
 use task::scheduler::Scheduling;
@@ -56,7 +54,7 @@ impl Scheduling for Preemptive {
     fn kill(&self, pid: ProcessId) -> Result<(), Error> {
         interrupts::disable_then_execute(|| {
             self.modify_process(pid, |proc_ref| {
-                let mut proc = proc_ref.0.write();
+                let mut proc = proc_ref.write();
 
                 // Free memory allocated to process
                 proc.set_state(State::Free);
@@ -81,7 +79,7 @@ impl Scheduling for Preemptive {
     {
         if let Some(proc_ref) = self.inner.lock().proc_table.get(pid) {
             modify_fn(proc_ref);
-            Ok(ProcessRef(proc_ref.0.clone()))
+            Ok(proc_ref.clone())
         } else {
             Err(Error::BadPid)
         }
@@ -90,7 +88,7 @@ impl Scheduling for Preemptive {
     /// Add process to ready list
     fn ready(&self, pid: ProcessId) -> Result<(), Error> {
         let proc_ref = self.modify_process(pid, |proc_ref| {
-            proc_ref.0.write().set_state(State::Ready);
+            proc_ref.write().set_state(State::Ready);
         })?;
 
         self.inner.lock().ready_list.push(proc_ref);
@@ -104,7 +102,7 @@ impl Scheduling for Preemptive {
             let curr_id: ProcessId = self.get_pid();
 
             let next_proc: *const Process = if let Some(next_ref) = self.inner.lock().ready_list.pop() {
-                let mut next_lock = next_ref.0.write();
+                let mut next_lock = next_ref.write();
 
                 assert!(next_lock.kstack.is_some());
                 assert!(curr_id != next_lock.pid);
@@ -121,14 +119,14 @@ impl Scheduling for Preemptive {
             self.age_processes();
 
             let current_ref = self.modify_process(curr_id, |proc_ref| {
-                let mut proc = proc_ref.0.write();
+                let mut proc = proc_ref.write();
 
                 if proc.state == State::Current {
                     proc.set_state(State::Ready);
                 }
             })?;
 
-            match current_ref.0.read().state {
+            match current_ref.read().state {
                 State::Ready => {
                     self.inner.lock().ready_list.push(current_ref.clone());
                 },
@@ -138,7 +136,7 @@ impl Scheduling for Preemptive {
                 _ => (),
             }
 
-            let current_proc: *mut Process = current_ref.0.write().deref_mut() as *mut Process;
+            let current_proc: *mut Process = current_ref.write().deref_mut() as *mut Process;
 
             self.current_pid
                 .store((*next_proc).pid.0, Ordering::SeqCst);
@@ -168,7 +166,7 @@ impl Scheduling for Preemptive {
             .ready_list
             .clone()
             .into_iter()
-            .filter(|proc_ref| proc_ref.0.read().pid != pid)
+            .filter(|proc_ref| proc_ref.read().pid != pid)
             .collect();
 
         Ok(())
@@ -202,7 +200,7 @@ impl Preemptive {
         self.inner
             .lock()
             .proc_table
-            .insert(ProcessId::NULL_PROCESS, ProcessRef(Arc::new(RwLock::new(null_process))));
+            .insert(ProcessId::NULL_PROCESS, ProcessRef::new(null_process));
     }
 
     fn age_processes(&self) {
@@ -210,9 +208,9 @@ impl Preemptive {
             .proc_table
             .map
             .iter()
-            .filter(|&(_, proc)| proc.0.read().state == State::Ready)
+            .filter(|&(_, proc)| proc.read().state == State::Ready)
         {
-            p.0.write().priority += 1;
+            p.write().priority += 1;
         }
     }
 }

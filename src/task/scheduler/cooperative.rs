@@ -1,10 +1,8 @@
 #![allow(dead_code)]
 use alloc::{String, Vec, VecDeque};
-use alloc::arc::Arc;
 use arch::context::Context;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use spin::RwLock;
 use sync::IrqSpinLock;
 use syscall::error::Error;
 use task::scheduler::Scheduling;
@@ -55,7 +53,7 @@ impl Scheduling for Cooperative {
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, pid: ProcessId) -> Result<(), Error> {
         self.modify_process(pid, |proc_ref| {
-            let mut proc = proc_ref.0.write();
+            let mut proc = proc_ref.write();
 
             proc.set_state(State::Free);
             proc.kstack = None;
@@ -88,7 +86,7 @@ impl Scheduling for Cooperative {
     /// Add process to ready list
     fn ready(&self, pid: ProcessId) -> Result<(), Error> {
         self.modify_process(pid, |proc_ref| {
-            proc_ref.0.write().set_state(State::Ready);
+            proc_ref.write().set_state(State::Ready);
         });
 
         self.inner.lock().ready_list.push_back(pid);
@@ -106,26 +104,26 @@ impl Scheduling for Cooperative {
         };
 
         let curr_ref = self.modify_process(curr_id, |proc_ref| {
-            let mut proc = proc_ref.0.write();
+            let mut proc = proc_ref.write();
             if proc.state == State::Current {
                 proc.set_state(State::Ready);
             }
         })?;
 
-        let curr_proc: *mut Process = curr_ref.0.write().deref_mut() as *mut Process;
+        let curr_proc: *mut Process = curr_ref.write().deref_mut() as *mut Process;
 
         if (*curr_proc).state == State::Ready {
             self.inner.lock().ready_list.push_back(curr_id);
         }
 
         let next_ref = self.modify_process(next_id, |proc_ref| {
-            let mut proc = proc_ref.0.write();
+            let mut proc = proc_ref.write();
 
             assert!(proc.kstack.is_some());
             proc.set_state(State::Current);
         })?;
 
-        let next_proc = next_ref.0.write().deref_mut() as *mut Process;
+        let next_proc = next_ref.write().deref_mut() as *mut Process;
 
         self.current_pid.store(next_id.0, Ordering::SeqCst);
 
@@ -187,6 +185,6 @@ impl Cooperative {
         self.inner
             .lock()
             .proc_table
-            .insert(ProcessId::NULL_PROCESS, ProcessRef(Arc::new(RwLock::new(null_process))));
+            .insert(ProcessId::NULL_PROCESS, ProcessRef::new(null_process));
     }
 }

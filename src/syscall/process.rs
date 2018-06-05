@@ -22,7 +22,7 @@ pub fn kill(pid: ProcessId) -> Result<(), Error> {
 /// Ready a suspended process
 pub fn resume(pid: ProcessId) -> Result<(), Error> {
     let proc_ref = global_sched().get_process(pid)?;
-    if proc_ref.0.read().state == State::Suspended {
+    if proc_ref.read().state == State::Suspended {
         global_sched().ready(pid)?;
         Ok(())
     } else {
@@ -39,11 +39,11 @@ pub fn suspend(pid: ProcessId) -> Result<(), Error> {
     }
 
     interrupts::disable_then_execute(|| {
-        let state = proc_ref.0.read().state;
+        let state = proc_ref.read().state;
         match state {
             State::Ready => {
                 global_sched().modify_process(pid, |proc_ref| {
-                    proc_ref.0.write().set_state(State::Suspended);
+                    proc_ref.write().set_state(State::Suspended);
                 })?;
 
                 global_sched().unready(pid)?;
@@ -51,7 +51,7 @@ pub fn suspend(pid: ProcessId) -> Result<(), Error> {
 
             State::Current => {
                 global_sched().modify_process(pid, |proc_ref| {
-                    proc_ref.0.write().set_state(State::Suspended);
+                    proc_ref.write().set_state(State::Suspended);
                 })?;
 
                 unsafe {

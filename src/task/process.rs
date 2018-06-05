@@ -5,7 +5,7 @@ use alloc::Vec;
 use arch::context::Context;
 use core::cmp;
 use core::fmt;
-use spin::RwLock;
+use spin::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use syscall::error::Error;
 
 /// Once the process it completed, kill it
@@ -161,8 +161,22 @@ impl ProcessTable {
     }
 }
 
-#[derive(Clone)]
-pub struct ProcessRef(pub Arc<RwLock<Process>>);
+#[derive(Clone, Debug)]
+pub struct ProcessRef(Arc<RwLock<Process>>);
+
+impl ProcessRef {
+    pub fn new(proc: Process) -> ProcessRef {
+        ProcessRef(Arc::new(RwLock::new(proc)))
+    }
+
+    pub fn read<'a>(&'a self) -> RwLockReadGuard<'a, Process> {
+        self.0.read()
+    }
+
+    pub fn write<'a>(&'a self) -> RwLockWriteGuard<'a, Process> {
+        self.0.write()
+    }
+}
 
 impl Ord for ProcessRef {
     fn cmp(&self, other: &ProcessRef) -> cmp::Ordering {
