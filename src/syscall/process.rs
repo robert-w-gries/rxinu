@@ -1,7 +1,8 @@
 use alloc::String;
+use arch::interrupts;
 use syscall::error::Error;
 use task::scheduler::{global_sched, Scheduling};
-use task::ProcessId;
+use task::{ProcessId, State};
 
 /// Wrapper around scheduler.create() and ready() that can be called in processes
 pub fn create(name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
@@ -13,12 +14,59 @@ pub fn create(name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<
 }
 
 /// Wrapper around scheduler.kill()
-pub fn kill(proc_id: ProcessId) -> Result<(), Error> {
-    global_sched().kill(proc_id)?;
+pub fn kill(pid: ProcessId) -> Result<(), Error> {
+    global_sched().kill(pid)?;
     Ok(())
 }
 
-/// Wrapper around scheduler.resched()
+/// Ready a suspended process
+pub fn resume(pid: ProcessId) -> Result<(), Error> {
+    let proc_ref = global_sched().get_process(pid)?;
+    if proc_ref.0.read().state == State::Suspended {
+        global_sched().ready(pid)?;
+        Ok(())
+    } else {
+        Err(Error::InvalidOperation)
+    }
+}
+
+/// Suspend a ready or currently running process
+pub fn suspend(pid: ProcessId) -> Result<(), Error> {
+    let proc_ref = global_sched().get_process(pid)?;
+
+    if pid == ProcessId::NULL_PROCESS {
+        return Err(Error::InvalidOperation);
+    }
+
+    interrupts::disable_then_execute(|| {
+        let state = proc_ref.0.read().state;
+        match state {
+            State::Ready => {
+                global_sched().modify_process(pid, |proc_ref| {
+                    proc_ref.0.write().set_state(State::Suspended);
+                })?;
+
+                global_sched().unready(pid)?;
+            },
+
+            State::Current => {
+                global_sched().modify_process(pid, |proc_ref| {
+                    proc_ref.0.write().set_state(State::Suspended);
+                })?;
+
+                unsafe {
+                    global_sched().resched()?;
+                }
+            },
+
+            _ => return Err(Error::InvalidOperation),
+        }
+
+        Ok(())
+    })
+}
+
+/// Donate CPU time slice to another process
 pub fn yield_cpu() {
     unsafe {
         global_sched().resched();

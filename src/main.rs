@@ -89,8 +89,10 @@ pub extern "C" fn rxinu_main() {
 
     let pid_kill = syscall::create(String::from("kill_process"), 40, kill_process).unwrap();
 
-    syscall::create(String::from("test_process"), 0, test_process);
+    let pid = syscall::create(String::from("test_process"), 0, test_process).unwrap();
+    syscall::suspend(pid);
     syscall::kill(pid_kill);
+    syscall::resume(pid);
 }
 
 pub extern "C" fn test_process() {
