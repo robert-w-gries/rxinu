@@ -21,10 +21,10 @@ pub unsafe extern "C" fn process_ret() {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum State {
-    Free,
     Current,
-    Suspended,
+    Free,
     Ready,
+    Suspended,
 }
 
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
@@ -132,7 +132,7 @@ impl ProcessTable {
         self.map.get(&pid)
     }
 
-    pub fn get_next_pid(&mut self) -> Result<ProcessId, Error> {
+    pub fn next_pid(&mut self) -> Result<ProcessId, Error> {
         use task::MAX_PID;
 
         while self.map.contains_key(&ProcessId(self.next_pid)) && self.next_pid < MAX_PID {
@@ -179,7 +179,7 @@ impl ProcessRef {
 
 impl Ord for ProcessRef {
     fn cmp(&self, other: &ProcessRef) -> cmp::Ordering {
-        self.0.read().priority.cmp(&other.0.read().priority)
+        self.read().priority.cmp(&other.read().priority)
     }
 }
 
@@ -193,6 +193,6 @@ impl Eq for ProcessRef {}
 
 impl PartialEq for ProcessRef {
     fn eq(&self, other: &ProcessRef) -> bool {
-        self.0.read().priority == other.0.read().priority
+        self.read().priority == other.0.read().priority
     }
 }

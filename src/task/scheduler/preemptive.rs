@@ -29,7 +29,7 @@ impl Scheduling for Preemptive {
     ) -> Result<ProcessId, Error> {
         let mut inner = self.inner.lock();
 
-        let pid = inner.proc_table.get_next_pid()?;
+        let pid = inner.proc_table.next_pid()?;
         let proc: Process = Process::new(pid, name, prio, proc_entry);
         inner.proc_table.add(proc)?;
 
