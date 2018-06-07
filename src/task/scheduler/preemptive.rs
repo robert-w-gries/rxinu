@@ -194,7 +194,6 @@ impl Preemptive {
             context: Context::empty(),
             kstack: Some(Vec::new()),
             priority: 0,
-            intr_mask: (0, 0),
         };
 
         self.inner

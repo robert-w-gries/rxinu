@@ -28,6 +28,7 @@ pub enum State {
 }
 
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+// TODO: Remove the 'pub'
 pub struct ProcessId(pub usize);
 
 impl fmt::Debug for ProcessId {
@@ -48,13 +49,12 @@ const PROCESS_STACK_SIZE: usize = 1024 * 4;
 
 #[derive(Clone)]
 pub struct Process {
-    pub pid: ProcessId,
-    pub name: String,
-    pub state: State,
     pub context: Context,
     pub kstack: Option<Vec<usize>>,
+    pub pid: ProcessId,
     pub priority: usize,
-    pub intr_mask: (u8, u8),
+    pub name: String,
+    pub state: State,
 }
 
 impl fmt::Debug for Process {
@@ -90,7 +90,6 @@ impl Process {
             kstack: Some(stack),
             name: name,
             priority: priority,
-            intr_mask: (0, 0),
         }
     }
 
