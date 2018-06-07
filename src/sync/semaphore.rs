@@ -1,69 +1,81 @@
 use alloc::VecDeque;
-use sync::IrqLock;
+use core::sync::atomic::{AtomicUsize, Ordering};
 use syscall::error::Error;
 use task::{global_sched, ProcessId, Scheduling, State};
 
 pub struct Semaphore {
-    inner: IrqLock<SemaphoreInner>,
-}
-
-struct SemaphoreInner {
-    count: usize,
+    count: AtomicUsize,
     wait_queue: VecDeque<ProcessId>,
 }
 
 impl Semaphore {
     pub fn new(count: usize) -> Semaphore {
         Semaphore {
-            inner: IrqLock::new(SemaphoreInner {
-                count: count,
-                wait_queue: VecDeque::new(),
-            }),
+            count: AtomicUsize::new(count),
+            wait_queue: VecDeque::new(),
         }
     }
 
-    pub fn signal(&self) -> Result<(), Error> {
-        let mut inner = self.inner.lock();
+    pub fn count(&self) -> usize {
+        self.count.load(Ordering::SeqCst)
+    }
 
-        match inner.count {
+    pub fn signal(&mut self) -> Result<(), Error> {
+        self.signaln(1)
+    }
+
+    pub fn signaln(&mut self, count: usize) -> Result<(), Error> {
+        let mut should_resched = false;
+
+        match self.count() {
             0 => {
-                let pid = inner
+                self.count.fetch_add(1, Ordering::SeqCst);
+
+                let pid = self
                     .wait_queue
                     .pop_front()
                     .expect("signal() - No processes waiting on semaphore");
                 global_sched().ready(pid)?;
 
-                // Safety: Lock must be droppped before resched()
-                drop(inner);
-                unsafe {
-                    global_sched().resched()?;
-                }
+                should_resched = true;
             }
-            _ => inner.count += 1,
+            _ => {
+                self.count.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+
+        for _ in 1..count {
+            self.count.fetch_add(1, Ordering::SeqCst);
+        }
+
+        if should_resched {
+            unsafe {
+                global_sched().resched()?;
+            }
         }
 
         Ok(())
     }
 
-    pub fn wait(&self) -> Result<(), Error> {
-        let mut inner = self.inner.lock();
-
-        match inner.count {
+    pub fn wait(&mut self) -> Result<(), Error> {
+        match self.count() {
             0 => {
                 let curr_pid = global_sched().get_pid();
                 global_sched().modify_process(curr_pid, |proc_ref| {
                     proc_ref.write().state = State::Wait;
                 })?;
 
-                inner.wait_queue.push_back(curr_pid);
+                self.wait_queue.push_back(curr_pid);
 
-                // Safety: Lock must be dropped before resched()
-                drop(inner);
                 unsafe {
                     global_sched().resched()?;
                 }
+
+                self.count.fetch_sub(1, Ordering::SeqCst);
             }
-            _ => inner.count -= 1,
+            _ => {
+                self.count.fetch_sub(1, Ordering::SeqCst);
+            }
         }
 
         Ok(())

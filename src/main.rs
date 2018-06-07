@@ -44,9 +44,10 @@ pub mod task;
 use alloc::String;
 use arch::memory::heap::{HEAP_SIZE, HEAP_START};
 use core::panic::PanicInfo;
+use sync::{IrqLock, Semaphore};
 
 lazy_static! {
-    static ref SEM: sync::Semaphore = sync::Semaphore::new(5);
+    static ref SEM: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(5));
 }
 
 #[no_mangle]
@@ -98,9 +99,8 @@ pub extern "C" fn rxinu_main() {
     syscall::resume(pid).unwrap();
 
     // Print five more times
-    for _ in 0..5 {
-        SEM.signal().unwrap();
-    }
+    kprintln!("\nSIGNAL");
+    SEM.lock().signaln(5).unwrap();
 }
 
 pub extern "C" fn test_process() {
@@ -111,7 +111,7 @@ pub extern "C" fn test_process() {
 pub extern "C" fn process_a() {
     kprintln!("\nIn process_a!");
     loop {
-        SEM.wait().unwrap();
+        SEM.lock().wait().unwrap();
         kprintln!("Process_a waited!");
         syscall::yield_cpu().unwrap();
         arch::interrupts::pause();
@@ -121,7 +121,7 @@ pub extern "C" fn process_a() {
 pub extern "C" fn process_b() {
     kprintln!("\nIn process_b!");
     loop {
-        SEM.wait().unwrap();
+        SEM.lock().wait().unwrap();
         kprintln!("Process_b waited!");
         syscall::yield_cpu().unwrap();
         arch::interrupts::pause();
