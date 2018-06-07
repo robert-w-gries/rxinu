@@ -1,4 +1,3 @@
-#![allow(unused_must_use)]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc, allocator_api, global_allocator)]
 #![feature(asm)]
@@ -46,6 +45,10 @@ use alloc::String;
 use arch::memory::heap::{HEAP_SIZE, HEAP_START};
 use core::panic::PanicInfo;
 
+lazy_static! {
+    static ref SEM: sync::Semaphore = sync::Semaphore::new(5);
+}
+
 #[no_mangle]
 /// Entry point for rust code
 pub extern "C" fn _start(boot_info_address: usize) -> ! {
@@ -59,7 +62,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
-    syscall::create(String::from("rxinu_main"), 10, rxinu_main);
+    syscall::create(String::from("rxinu_main"), 10, rxinu_main).unwrap();
 
     loop {
         #[cfg(feature = "serial")]
@@ -84,15 +87,20 @@ pub extern "C" fn rxinu_main() {
     arch::console::clear_screen();
     kprintln!("In main process!\n");
 
-    syscall::create(String::from("process a"), 25, process_a);
+    syscall::create(String::from("process a"), 25, process_a).unwrap();
     syscall::create(String::from("process b"), 25, process_b).unwrap();
 
     let pid_kill = syscall::create(String::from("kill_process"), 40, kill_process).unwrap();
 
     let pid = syscall::create(String::from("test_process"), 0, test_process).unwrap();
-    syscall::suspend(pid);
-    syscall::kill(pid_kill);
-    syscall::resume(pid);
+    syscall::suspend(pid).unwrap();
+    syscall::kill(pid_kill).unwrap();
+    syscall::resume(pid).unwrap();
+
+    // Print five more times
+    for _ in 0..5 {
+        SEM.signal().unwrap();
+    }
 }
 
 pub extern "C" fn test_process() {
@@ -103,7 +111,9 @@ pub extern "C" fn test_process() {
 pub extern "C" fn process_a() {
     kprintln!("\nIn process_a!");
     loop {
-        syscall::yield_cpu();
+        SEM.wait().unwrap();
+        kprintln!("Process_a waited!");
+        syscall::yield_cpu().unwrap();
         arch::interrupts::pause();
     }
 }
@@ -111,7 +121,9 @@ pub extern "C" fn process_a() {
 pub extern "C" fn process_b() {
     kprintln!("\nIn process_b!");
     loop {
-        syscall::yield_cpu();
+        SEM.wait().unwrap();
+        kprintln!("Process_b waited!");
+        syscall::yield_cpu().unwrap();
         arch::interrupts::pause();
     }
 }
@@ -119,7 +131,7 @@ pub extern "C" fn process_b() {
 pub extern "C" fn kill_process() {
     kprint!("\nIn kill_process");
     loop {
-        syscall::yield_cpu();
+        syscall::yield_cpu().unwrap();
         kprint!(".");
         unsafe {
             arch::interrupts::halt();

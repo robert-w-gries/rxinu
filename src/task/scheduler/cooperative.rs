@@ -87,7 +87,7 @@ impl Scheduling for Cooperative {
     fn ready(&self, pid: ProcessId) -> Result<(), Error> {
         self.modify_process(pid, |proc_ref| {
             proc_ref.write().set_state(State::Ready);
-        });
+        })?;
 
         self.inner.lock().ready_list.push_back(pid);
         Ok(())
@@ -141,7 +141,7 @@ impl Scheduling for Cooperative {
             self.ticks.store(0, Ordering::SeqCst);
 
             interrupts::disable_then_execute(|| unsafe {
-                self.resched();
+                self.resched().unwrap();
             });
         }
     }

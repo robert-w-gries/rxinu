@@ -65,7 +65,7 @@ impl Scheduling for Preemptive {
             let _result = self.unready(pid);
 
             unsafe {
-                self.resched();
+                self.resched()?;
             }
 
             Ok(())
@@ -154,7 +154,7 @@ impl Scheduling for Preemptive {
             self.ticks.store(0, Ordering::SeqCst);
 
             unsafe {
-                self.resched();
+                self.resched().unwrap();
             }
         }
     }

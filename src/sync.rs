@@ -1,7 +1,10 @@
-use arch;
+use alloc::VecDeque;
+use arch::interrupts;
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut, Drop};
 use core::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
+use syscall::error::Error;
+use task::{global_sched, ProcessId, Scheduling, State};
 
 pub struct IrqLock<T: ?Sized> {
     data: UnsafeCell<T>,
@@ -23,10 +26,10 @@ impl<T> IrqLock<T> {
     }
 
     pub fn lock(&self) -> IrqGuard<T> {
-        let was_enabled = arch::interrupts::enabled();
+        let was_enabled = interrupts::enabled();
         if was_enabled {
             unsafe {
-                arch::interrupts::disable();
+                interrupts::disable();
             }
         }
 
@@ -40,10 +43,10 @@ impl<T> IrqLock<T> {
     where
         F: FnOnce(&mut T) -> &mut U,
     {
-        let was_enabled = arch::interrupts::enabled();
+        let was_enabled = interrupts::enabled();
         if was_enabled {
             unsafe {
-                arch::interrupts::disable();
+                interrupts::disable();
             }
         }
 
@@ -81,7 +84,7 @@ impl<'a, T: ?Sized> Drop for IrqGuard<'a, T> {
     fn drop(&mut self) {
         if self.was_enabled {
             unsafe {
-                arch::interrupts::enable();
+                interrupts::enable();
             }
         }
     }
@@ -113,7 +116,7 @@ impl<T> IrqSpinLock<T> {
     fn obtain_lock(&self) {
         while self.lock.compare_and_swap(false, true, Ordering::Acquire) != false {
             while self.lock.load(Ordering::Relaxed) {
-                arch::interrupts::pause();
+                interrupts::pause();
             }
         }
     }
@@ -121,10 +124,10 @@ impl<T> IrqSpinLock<T> {
     pub fn lock(&self) -> IrqSpinGuard<T> {
         self.obtain_lock();
 
-        let was_enabled = arch::interrupts::enabled();
+        let was_enabled = interrupts::enabled();
         if was_enabled {
             unsafe {
-                arch::interrupts::disable();
+                interrupts::disable();
             }
         }
 
@@ -137,10 +140,10 @@ impl<T> IrqSpinLock<T> {
 
     pub fn try_lock(&self) -> Option<IrqSpinGuard<T>> {
         if self.lock.compare_and_swap(false, true, Ordering::Acquire) == false {
-            let was_enabled = arch::interrupts::enabled();
+            let was_enabled = interrupts::enabled();
             if was_enabled {
                 unsafe {
-                    arch::interrupts::disable();
+                    interrupts::disable();
                 }
             }
             Some(IrqSpinGuard {
@@ -183,8 +186,75 @@ impl<'a, T: ?Sized> Drop for IrqSpinGuard<'a, T> {
         self.lock.store(false, Ordering::Release);
         if self.was_enabled {
             unsafe {
-                arch::interrupts::enable();
+                interrupts::enable();
             }
         }
+    }
+}
+
+pub struct Semaphore {
+    inner: IrqLock<SemaphoreInner>,
+}
+
+struct SemaphoreInner {
+    count: usize,
+    wait_queue: VecDeque<ProcessId>,
+}
+
+impl Semaphore {
+    pub fn new(count: usize) -> Semaphore {
+        Semaphore {
+            inner: IrqLock::new(SemaphoreInner {
+                count: count,
+                wait_queue: VecDeque::new(),
+            }),
+        }
+    }
+
+    pub fn signal(&self) -> Result<(), Error> {
+        let mut inner = self.inner.lock();
+
+        match inner.count {
+            0 => {
+                let pid = inner
+                    .wait_queue
+                    .pop_front()
+                    .expect("signal() - No threads waiting on semaphore");
+                global_sched().ready(pid)?;
+
+                // Important; Lock must be droppped before resched()
+                drop(inner);
+                unsafe {
+                    global_sched().resched()?;
+                }
+            }
+            _ => inner.count += 1,
+        }
+
+        Ok(())
+    }
+
+    pub fn wait(&self) -> Result<(), Error> {
+        let mut inner = self.inner.lock();
+
+        match inner.count {
+            0 => {
+                let curr_pid = global_sched().get_pid();
+                global_sched().modify_process(curr_pid, |proc_ref| {
+                    proc_ref.write().state = State::Wait;
+                })?;
+
+                inner.wait_queue.push_back(curr_pid);
+
+                // Safety: Lock must be dropped before resched()
+                drop(inner);
+                unsafe {
+                    global_sched().resched()?;
+                }
+            }
+            _ => inner.count -= 1,
+        }
+
+        Ok(())
     }
 }

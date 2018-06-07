@@ -16,7 +16,7 @@ pub unsafe extern "C" fn process_ret() {
     use task::scheduler::{global_sched, Scheduling};
 
     let curr_id: ProcessId = global_sched().get_pid();
-    global_sched().kill(curr_id);
+    global_sched().kill(curr_id).unwrap();
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -25,6 +25,7 @@ pub enum State {
     Free,
     Ready,
     Suspended,
+    Wait,
 }
 
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
@@ -84,12 +85,12 @@ impl Process {
         let stack_top = unsafe { stack.as_mut_ptr().add(PROCESS_STACK_SIZE) };
 
         Process {
-            pid: id,
-            state: State::Suspended,
             context: Context::new(stack_top as *mut u8, proc_entry as usize),
             kstack: Some(stack),
-            name: name,
+            pid: id,
             priority: priority,
+            name: name,
+            state: State::Suspended,
         }
     }
 
