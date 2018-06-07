@@ -219,10 +219,10 @@ impl Semaphore {
                 let pid = inner
                     .wait_queue
                     .pop_front()
-                    .expect("signal() - No threads waiting on semaphore");
+                    .expect("signal() - No processes waiting on semaphore");
                 global_sched().ready(pid)?;
 
-                // Important; Lock must be droppped before resched()
+                // Safety: Lock must be droppped before resched()
                 drop(inner);
                 unsafe {
                     global_sched().resched()?;
