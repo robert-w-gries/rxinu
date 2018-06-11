@@ -31,18 +31,18 @@ impl Semaphore {
         interrupts::disable_then_execute(|| {
             let mut should_resched = false;
 
-            if self.waiting {
-                let pid = self
-                    .wait_queue
-                    .pop_front()
-                    .expect("signal() - No processes waiting on semaphore");
-                global_sched().ready(pid)?;
-
-                self.waiting = !self.wait_queue.is_empty();
-                should_resched = true;
-            }
-
             for _ in 0..count {
+                if self.waiting {
+                    let pid = self
+                        .wait_queue
+                        .pop_front()
+                        .expect("signal() - No processes waiting on semaphore");
+                    global_sched().ready(pid)?;
+
+                    self.waiting = !self.wait_queue.is_empty();
+                    should_resched = true;
+                }
+
                 self.count.fetch_add(1, Ordering::SeqCst);
             }
 

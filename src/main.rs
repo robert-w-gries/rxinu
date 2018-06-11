@@ -39,7 +39,7 @@ use core::panic::PanicInfo;
 use sync::{IrqLock, Semaphore};
 
 lazy_static! {
-    static ref SEM: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(5));
+    static ref SEM: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(2));
 }
 
 #[no_mangle]
@@ -93,7 +93,6 @@ pub extern "C" fn rxinu_main() {
 
     // Both process A and B should run again
     SEM.lock().signaln(2).unwrap();
-    SEM.lock().signaln(2).unwrap();
 
     syscall::resume(pid).unwrap();
 }
@@ -107,7 +106,7 @@ pub extern "C" fn process_a() {
     kprintln!("\nIn process_a!");
     loop {
         SEM.lock().wait().unwrap();
-        kprintln!("Process_a waited!");
+
         syscall::yield_cpu().unwrap();
         arch::interrupts::pause();
     }
@@ -117,7 +116,7 @@ pub extern "C" fn process_b() {
     kprintln!("\nIn process_b!");
     loop {
         SEM.lock().wait().unwrap();
-        kprintln!("Process_b waited!");
+
         syscall::yield_cpu().unwrap();
         arch::interrupts::pause();
     }
