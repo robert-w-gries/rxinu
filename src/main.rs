@@ -77,11 +77,13 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
 
 /// Main initialization process for rxinu
 pub extern "C" fn rxinu_main() {
+    use task::{global_sched, ProcessId, State, Scheduling};
+
     arch::console::clear_screen();
     kprintln!("In main process!\n");
 
-    syscall::create(String::from("process a"), 25, process_a).unwrap();
-    syscall::create(String::from("process b"), 25, process_b).unwrap();
+    let process_a = syscall::create(String::from("process a"), 25, process_a).unwrap();
+    let process_b = syscall::create(String::from("process b"), 25, process_b).unwrap();
 
     // Kill process before it can run
     let pid_kill = syscall::create(String::from("kill_process"), 0, kill_process).unwrap();
@@ -95,6 +97,17 @@ pub extern "C" fn rxinu_main() {
     SEM.lock().signaln(2).unwrap();
 
     syscall::resume(pid).unwrap();
+
+    let check_state = |p: ProcessId, s: State| {
+        let proc_ref = global_sched().get_process(p).unwrap();
+        let state = proc_ref.read().state;
+        state == s
+    };
+
+    assert!(check_state(pid, State::Ready));
+    assert!(check_state(process_a, State::Wait));
+    assert!(check_state(process_b, State::Wait));
+    assert!(global_sched().get_process(pid_kill).is_err());
 }
 
 pub extern "C" fn test_process() {
@@ -152,7 +165,11 @@ pub extern "C" fn panic_fmt(info: &PanicInfo) -> ! {
         kprintln!("\n    {:?}", message);
     }
 
-    loop {}
+    loop {
+        unsafe {
+            arch::interrupts::halt();
+        }
+    }
 }
 
 #[allow(non_snake_case)]

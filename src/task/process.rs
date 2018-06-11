@@ -61,14 +61,15 @@ pub struct Process {
 impl fmt::Debug for Process {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = f.debug_struct("Process");
-        s.field("pid", &self.pid);
-        s.field("name", &self.name);
         s.field("context", &self.context);
         match self.kstack {
             Some(ref stk) => s.field("kstack", &(stk.as_ptr() as usize)),
             None => s.field("kstack", &self.kstack),
         };
+        s.field("pid", &self.pid);
         s.field("priority", &self.priority);
+        s.field("name", &self.name);
+        s.field("state", &self.state);
         s.finish()
     }
 }
