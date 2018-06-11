@@ -52,19 +52,36 @@ impl Scheduling for Cooperative {
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, pid: ProcessId) -> Result<(), Error> {
+        let state = {
+            let proc = self.get_process(pid)?;
+            let state = proc.read().state;
+            state
+        };
+
         self.modify_process(pid, |proc_ref| {
             let mut proc = proc_ref.write();
 
+            // Free memory allocated to process
             proc.set_state(State::Free);
             proc.kstack = None;
-            drop(&mut proc.name);
         })?;
 
-        // We don't care whether process was actually in ready list or not
-        let _result = self.unready(pid);
-
-        unsafe {
-            self.resched()?;
+        match state {
+            State::Current => {
+                unsafe {
+                    self.resched()?;
+                }
+            }
+            State::Free => (),
+            State::Ready => {
+                self.unready(pid)?;
+                self.inner.lock().proc_table.remove(pid);
+            }
+            State::Suspended => {
+                self.inner.lock().proc_table.remove(pid);
+            }
+            // TODO: Handle killing of waiting process
+            State::Wait => panic!("Killing waiting processes is currently not supported"),
         }
 
         Ok(())

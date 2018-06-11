@@ -53,19 +53,36 @@ impl Scheduling for Preemptive {
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, pid: ProcessId) -> Result<(), Error> {
         interrupts::disable_then_execute(|| {
+            let state = {
+                let proc = self.get_process(pid)?;
+                let state = proc.read().state;
+                state
+            };
+
             self.modify_process(pid, |proc_ref| {
                 let mut proc = proc_ref.write();
 
                 // Free memory allocated to process
                 proc.set_state(State::Free);
                 proc.kstack = None;
-                drop(&mut proc.name);
             })?;
 
-            let _result = self.unready(pid);
-
-            unsafe {
-                self.resched()?;
+            match state {
+                State::Current => {
+                    unsafe {
+                        self.resched()?;
+                    }
+                }
+                State::Free => (),
+                State::Ready => {
+                    self.unready(pid)?;
+                    self.inner.lock().proc_table.remove(pid);
+                }
+                State::Suspended => {
+                    self.inner.lock().proc_table.remove(pid);
+                }
+                // TODO: Handle killing of waiting process
+                State::Wait => panic!("Killing waiting processes is currently not supported"),
             }
 
             Ok(())
@@ -203,13 +220,11 @@ impl Preemptive {
     }
 
     fn age_processes(&self) {
-        for (_, p) in self
+        for p in self
             .inner
             .lock()
-            .proc_table
-            .map
+            .ready_list
             .iter()
-            .filter(|&(_, proc)| proc.read().state == State::Ready)
         {
             p.write().priority += 1;
         }

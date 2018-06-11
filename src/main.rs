@@ -86,17 +86,23 @@ pub extern "C" fn rxinu_main() {
     let process_b = syscall::create(String::from("process b"), 25, process_b).unwrap();
 
     // Kill process before it can run
-    let pid_kill = syscall::create(String::from("kill_process"), 0, kill_process).unwrap();
-    syscall::kill(pid_kill).unwrap();
+    let kill_process = syscall::create(String::from("kill_process"), 0, kill_process).unwrap();
+    syscall::kill(kill_process).unwrap();
 
     // Suspend process before it can run
-    let pid = syscall::create(String::from("test_process"), 0, test_process).unwrap();
-    syscall::suspend(pid).unwrap();
+    let test_process = syscall::create(String::from("test_process"), 0, test_process).unwrap();
+    syscall::suspend(test_process).unwrap();
 
     // Both process A and B should run again
     SEM.lock().signaln(2).unwrap();
 
-    syscall::resume(pid).unwrap();
+    syscall::resume(test_process).unwrap();
+
+    // Assertions: Call resched once to ensure timing is correct
+
+    unsafe {
+        global_sched().resched().unwrap();
+    }
 
     let check_state = |p: ProcessId, s: State| {
         let proc_ref = global_sched().get_process(p).unwrap();
@@ -104,10 +110,12 @@ pub extern "C" fn rxinu_main() {
         state == s
     };
 
-    assert!(check_state(pid, State::Ready));
+    // kill_process should be removed from process list by now
+    assert!(global_sched().get_process(kill_process).is_err());
+
+    assert!(check_state(test_process, State::Ready));
     assert!(check_state(process_a, State::Wait));
     assert!(check_state(process_b, State::Wait));
-    assert!(global_sched().get_process(pid_kill).is_err());
 }
 
 pub extern "C" fn test_process() {
@@ -155,15 +163,17 @@ pub extern "C" fn eh_personality() {}
 #[lang = "panic_impl"]
 #[no_mangle]
 pub extern "C" fn panic_fmt(info: &PanicInfo) -> ! {
-    kprintln!("\n\nPANIC");
+    arch::interrupts::disable_then_execute(|| {
+        kprintln!("\n\nPANIC");
 
-    if let Some(location) = info.location() {
-        kprint!("in {} at line {}", location.file(), location.line());
-    }
+        if let Some(location) = info.location() {
+            kprint!("in {} at line {}", location.file(), location.line());
+        }
 
-    if let Some(message) = info.message() {
-        kprintln!("\n    {:?}", message);
-    }
+        if let Some(message) = info.message() {
+            kprintln!("\n    {:?}", message);
+        }
+    });
 
     loop {
         unsafe {
