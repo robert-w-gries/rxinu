@@ -5,8 +5,8 @@ use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use sync::IrqSpinLock;
 use syscall::error::Error;
-use task::scheduler::Scheduling;
-use task::{Process, ProcessId, ProcessRef, ProcessTable, State};
+use task::scheduler::{ProcessTable, Scheduling};
+use task::{Process, ProcessId, ProcessRef, State};
 
 pub struct Preemptive {
     current_pid: AtomicUsize,
@@ -53,11 +53,7 @@ impl Scheduling for Preemptive {
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, pid: ProcessId) -> Result<(), Error> {
         interrupts::disable_then_execute(|| {
-            let state = {
-                let proc = self.get_process(pid)?;
-                let state = proc.read().state;
-                state
-            };
+            let state = self.get_process(pid)?.state();
 
             self.modify_process(pid, |proc_ref| {
                 let mut proc = proc_ref.write();

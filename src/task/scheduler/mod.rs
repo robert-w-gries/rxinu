@@ -1,7 +1,9 @@
 use alloc::String;
-use spin::Once;
+use alloc::arc::Arc;
+use alloc::btree_map::BTreeMap;
+use spin::{Once, RwLock};
 use syscall::error::Error;
-use task::process::{ProcessId, ProcessRef};
+use task::process::{Process, ProcessId, ProcessRef};
 
 mod cooperative;
 mod preemptive;
@@ -31,4 +33,61 @@ pub fn global_sched() -> &'static GlobalScheduler {
 /// Safety: Scheduler lock is used. This function could cause deadlock if interrupted
 pub unsafe fn init() {
     global_sched().init();
+}
+
+pub struct ProcessTable {
+    pub map: BTreeMap<ProcessId, ProcessRef>,
+    next_pid: usize,
+}
+
+impl ProcessTable {
+    pub fn new() -> ProcessTable {
+        ProcessTable {
+            map: BTreeMap::new(),
+            next_pid: 1,
+        }
+    }
+
+    pub fn add(&mut self, proc: Process) -> Result<ProcessId, Error> {
+        let pid = proc.pid;
+        match self
+            .map
+            .insert(pid, ProcessRef(Arc::new(RwLock::new(proc))))
+        {
+            // PID already used
+            Some(_) => Err(Error::BadPid),
+            None => Ok(pid),
+        }
+    }
+
+    pub fn get(&self, pid: ProcessId) -> Option<&ProcessRef> {
+        self.map.get(&pid)
+    }
+
+    pub fn next_pid(&mut self) -> Result<ProcessId, Error> {
+        use task::MAX_PID;
+
+        while self.map.contains_key(&ProcessId(self.next_pid)) && self.next_pid < MAX_PID {
+            self.next_pid += 1;
+        }
+
+        match self.next_pid {
+            MAX_PID => {
+                self.next_pid = 1;
+                Err(Error::TryAgain)
+            }
+            pid => {
+                self.next_pid += 1;
+                Ok(ProcessId(pid))
+            }
+        }
+    }
+
+    pub fn insert(&mut self, pid: ProcessId, proc: ProcessRef) -> Option<ProcessRef> {
+        self.map.insert(pid, proc)
+    }
+
+    pub fn remove(&mut self, pid: ProcessId) -> Option<ProcessRef> {
+        self.map.remove(&pid)
+    }
 }

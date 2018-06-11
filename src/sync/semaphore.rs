@@ -41,9 +41,9 @@ impl Semaphore {
 
                     self.waiting = !self.wait_queue.is_empty();
                     should_resched = true;
+                } else {
+                    self.count.fetch_add(1, Ordering::SeqCst);
                 }
-
-                self.count.fetch_add(1, Ordering::SeqCst);
             }
 
             if should_resched {

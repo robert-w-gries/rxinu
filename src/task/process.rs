@@ -1,12 +1,10 @@
 use alloc::arc::Arc;
-use alloc::btree_map::BTreeMap;
 use alloc::String;
 use alloc::Vec;
 use arch::context::Context;
 use core::cmp;
 use core::fmt;
 use spin::{RwLock, RwLockReadGuard, RwLockWriteGuard};
-use syscall::error::Error;
 
 /// Once the process it completed, kill it
 ///
@@ -104,65 +102,8 @@ impl Process {
     }
 }
 
-pub struct ProcessTable {
-    pub map: BTreeMap<ProcessId, ProcessRef>,
-    next_pid: usize,
-}
-
-impl ProcessTable {
-    pub fn new() -> ProcessTable {
-        ProcessTable {
-            map: BTreeMap::new(),
-            next_pid: 1,
-        }
-    }
-
-    pub fn add(&mut self, proc: Process) -> Result<ProcessId, Error> {
-        let pid = proc.pid;
-        match self
-            .map
-            .insert(pid, ProcessRef(Arc::new(RwLock::new(proc))))
-        {
-            // PID already used
-            Some(_) => Err(Error::BadPid),
-            None => Ok(pid),
-        }
-    }
-
-    pub fn get(&self, pid: ProcessId) -> Option<&ProcessRef> {
-        self.map.get(&pid)
-    }
-
-    pub fn next_pid(&mut self) -> Result<ProcessId, Error> {
-        use task::MAX_PID;
-
-        while self.map.contains_key(&ProcessId(self.next_pid)) && self.next_pid < MAX_PID {
-            self.next_pid += 1;
-        }
-
-        match self.next_pid {
-            MAX_PID => {
-                self.next_pid = 1;
-                Err(Error::TryAgain)
-            }
-            pid => {
-                self.next_pid += 1;
-                Ok(ProcessId(pid))
-            }
-        }
-    }
-
-    pub fn insert(&mut self, pid: ProcessId, proc: ProcessRef) -> Option<ProcessRef> {
-        self.map.insert(pid, proc)
-    }
-
-    pub fn remove(&mut self, pid: ProcessId) -> Option<ProcessRef> {
-        self.map.remove(&pid)
-    }
-}
-
 #[derive(Clone, Debug)]
-pub struct ProcessRef(Arc<RwLock<Process>>);
+pub struct ProcessRef(pub Arc<RwLock<Process>>);
 
 impl ProcessRef {
     pub fn new(proc: Process) -> ProcessRef {
@@ -175,6 +116,14 @@ impl ProcessRef {
 
     pub fn write<'a>(&'a self) -> RwLockWriteGuard<'a, Process> {
         self.0.write()
+    }
+
+    pub fn set_state(&self, state: State) {
+        self.write().state = state;
+    }
+
+    pub fn state(&self) -> State {
+        self.read().state
     }
 }
 

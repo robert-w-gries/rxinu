@@ -5,8 +5,8 @@ use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use sync::IrqSpinLock;
 use syscall::error::Error;
-use task::scheduler::Scheduling;
-use task::{Process, ProcessId, ProcessRef, ProcessTable, State};
+use task::scheduler::{ProcessTable, Scheduling};
+use task::{Process, ProcessId, ProcessRef, State};
 
 pub struct Cooperative {
     current_pid: AtomicUsize,

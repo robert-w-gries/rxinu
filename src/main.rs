@@ -40,6 +40,7 @@ use sync::{IrqLock, Semaphore};
 
 lazy_static! {
     static ref SEM: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(2));
+    static ref COMPLETED_TEST: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(0));
 }
 
 #[no_mangle]
@@ -55,7 +56,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
-    syscall::create(String::from("rxinu_main"), 10, rxinu_main).unwrap();
+    syscall::create(String::from("rxinu_main"), 0, rxinu_main).unwrap();
 
     loop {
         #[cfg(feature = "serial")]
@@ -98,35 +99,33 @@ pub extern "C" fn rxinu_main() {
 
     syscall::resume(test_process).unwrap();
 
-    // Assertions: Call resched once to ensure timing is correct
+    // Assertions: Process waits until signal from test_process
+    COMPLETED_TEST.lock().wait().unwrap();
 
-    unsafe {
-        global_sched().resched().unwrap();
-    }
+    kprintln!("\nTesting scheduler state...");
 
-    let check_state = |p: ProcessId, s: State| {
-        let proc_ref = global_sched().get_process(p).unwrap();
-        let state = proc_ref.read().state;
-        state == s
-    };
+    let check_state = |p: ProcessId, s: State| global_sched().get_process(p).unwrap().state() == s;
 
     // kill_process should be removed from process list by now
     assert!(global_sched().get_process(kill_process).is_err());
+    assert!(global_sched().get_process(test_process).is_err());
 
-    assert!(check_state(test_process, State::Ready));
     assert!(check_state(process_a, State::Wait));
     assert!(check_state(process_b, State::Wait));
+
+    kprintln!("Scheduling tests passed!\n\n");
 }
 
 pub extern "C" fn test_process() {
     kprintln!("\nIn test process!");
-    kprintln!("\nYou can now type...\n");
+    COMPLETED_TEST.lock().signal().unwrap();
 }
 
 pub extern "C" fn process_a() {
     kprintln!("\nIn process_a!");
     loop {
         SEM.lock().wait().unwrap();
+        kprintln!("ProcessA Waited!");
 
         syscall::yield_cpu().unwrap();
         arch::interrupts::pause();
@@ -137,6 +136,7 @@ pub extern "C" fn process_b() {
     kprintln!("\nIn process_b!");
     loop {
         SEM.lock().wait().unwrap();
+        kprintln!("ProcessB Waited!");
 
         syscall::yield_cpu().unwrap();
         arch::interrupts::pause();
