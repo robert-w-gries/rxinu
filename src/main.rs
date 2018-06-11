@@ -1,16 +1,8 @@
-#![feature(abi_x86_interrupt)]
-#![feature(alloc, allocator_api, global_allocator)]
-#![feature(asm)]
-#![feature(const_fn)]
-#![feature(const_max_value)]
-#![feature(const_unique_new, const_atomic_usize_new)]
-#![feature(const_fn)]
-#![feature(global_asm)]
-#![feature(lang_items)]
-#![feature(naked_functions)]
-#![feature(panic_info_message)]
-#![feature(ptr_internals)]
-#![feature(unique)]
+#![feature(
+    abi_x86_interrupt, alloc, allocator_api, global_allocator, asm, const_fn, const_max_value,
+    const_unique_new, const_atomic_usize_new, const_fn, global_asm, lang_items, naked_functions,
+    panic_info_message, ptr_internals, unique
+)]
 #![no_main]
 #![no_std]
 
