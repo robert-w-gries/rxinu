@@ -1,5 +1,5 @@
 use core::mem;
-use x86_64::registers::flags::Flags;
+use x86_64::registers::rflags::RFlags;
 
 global_asm!(include_str!("context_switch.asm"));
 
@@ -36,7 +36,7 @@ impl Context {
 
     pub fn new(stack_top: *mut u8, proc_entry: usize) -> Context {
         let mut ctx = Context {
-            rflags: Flags::IF.bits(),
+            rflags: RFlags::INTERRUPT_FLAG.bits() as usize,
             rbx: 0,
             r12: 0,
             r13: 0,

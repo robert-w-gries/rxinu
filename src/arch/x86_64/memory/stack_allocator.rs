@@ -1,6 +1,6 @@
 use arch::x86_64::memory::{map_page, FrameAllocator};
 use x86_64::structures::paging::{
-    Page, PageRangeInclusive, PageSize, PageTableFlags, RecursivePageTable, Size4KB,
+    Page, PageRangeInclusive, PageSize, PageTableFlags, RecursivePageTable, Size4KiB,
 };
 
 pub struct StackAllocator {
@@ -54,7 +54,7 @@ impl StackAllocator {
                 }
 
                 // create a new stack
-                let top_of_stack = end.start_address() + Size4KB::SIZE;
+                let top_of_stack = end.start_address() + Size4KiB::SIZE;
                 Some(Stack::new(
                     top_of_stack.as_u64() as usize,
                     start.start_address().as_u64() as usize,

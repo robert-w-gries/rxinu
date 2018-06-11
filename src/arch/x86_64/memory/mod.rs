@@ -1,6 +1,6 @@
 use os_bootinfo::BootInfo;
 use x86_64::structures::paging::{
-    MapToError, Mapper, Page, PageTableFlags, PhysFrame, RecursivePageTable, Size4KB,
+    MapToError, Mapper, Page, PageTableFlags, PhysFrame, RecursivePageTable, Size4KiB,
 };
 use x86_64::VirtAddr;
 
@@ -45,7 +45,7 @@ pub fn init<'a>(
 }
 
 pub fn map_page<'a>(
-    page: Page<Size4KB>,
+    page: Page<Size4KiB>,
     flags: PageTableFlags,
     page_table: &mut RecursivePageTable<'a>,
     frame_allocator: &mut FrameAllocator,
