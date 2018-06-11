@@ -1,6 +1,6 @@
 use arch::x86_64::memory::FrameAllocator;
 use os_bootinfo::{FrameRange, MemoryMap, MemoryRegionType};
-use x86_64::structures::paging::{PhysFrame, PhysFrameRange, Size4KB};
+use x86_64::structures::paging::{PhysFrame, PhysFrameRange, Size4KiB};
 
 pub struct AreaFrameAllocator {
     memory_map: MemoryMap,
@@ -30,7 +30,7 @@ impl FrameAllocator for AreaFrameAllocator {
             .expect("Could not find usable memory region")
             .range;
 
-        let mut phys_range = PhysFrameRange::<Size4KB>::from(*frame_range);
+        let mut phys_range = PhysFrameRange::<Size4KiB>::from(*frame_range);
 
         if let Some(frame) = phys_range.next() {
             frame_range.start_frame_number =

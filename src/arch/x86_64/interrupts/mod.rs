@@ -1,6 +1,6 @@
 use device::pic_8259::{MASTER, SLAVE};
 use syscall::io::Io;
-use x86_64::registers::flags;
+use x86_64::registers::rflags::{self, RFlags};
 
 pub mod exception;
 pub mod irq;
@@ -21,7 +21,7 @@ pub unsafe fn enable() {
 }
 
 pub fn enabled() -> bool {
-    flags::flags().contains(flags::Flags::IF)
+    rflags::read().contains(RFlags::INTERRUPT_FLAG)
 }
 
 pub fn disable_then_execute<F, T>(uninterrupted_fn: F) -> T
