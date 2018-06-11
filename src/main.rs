@@ -83,16 +83,19 @@ pub extern "C" fn rxinu_main() {
     syscall::create(String::from("process a"), 25, process_a).unwrap();
     syscall::create(String::from("process b"), 25, process_b).unwrap();
 
-    let pid_kill = syscall::create(String::from("kill_process"), 40, kill_process).unwrap();
+    // Kill process before it can run
+    let pid_kill = syscall::create(String::from("kill_process"), 0, kill_process).unwrap();
+    syscall::kill(pid_kill).unwrap();
 
+    // Suspend process before it can run
     let pid = syscall::create(String::from("test_process"), 0, test_process).unwrap();
     syscall::suspend(pid).unwrap();
-    syscall::kill(pid_kill).unwrap();
-    syscall::resume(pid).unwrap();
 
-    // Print five more times
-    kprintln!("\nSIGNAL");
-    SEM.lock().signaln(5).unwrap();
+    // Both process A and B should run again
+    SEM.lock().signaln(2).unwrap();
+    SEM.lock().signaln(2).unwrap();
+
+    syscall::resume(pid).unwrap();
 }
 
 pub extern "C" fn test_process() {
@@ -123,8 +126,8 @@ pub extern "C" fn process_b() {
 pub extern "C" fn kill_process() {
     kprint!("\nIn kill_process");
     loop {
-        syscall::yield_cpu().unwrap();
         kprint!(".");
+        syscall::yield_cpu().unwrap();
         unsafe {
             arch::interrupts::halt();
         }
