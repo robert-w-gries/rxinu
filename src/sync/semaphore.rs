@@ -4,6 +4,7 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use syscall::error::Error;
 use task::{global_sched, ProcessId, Scheduling, State};
 
+#[derive(Debug)]
 pub struct Semaphore {
     count: AtomicUsize,
     wait_queue: VecDeque<ProcessId>,

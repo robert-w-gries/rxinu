@@ -29,6 +29,7 @@ extern crate x86_64;
 #[macro_use]
 pub mod arch;
 pub mod device;
+pub mod ipc;
 pub mod sync;
 pub mod syscall;
 pub mod task;
@@ -41,7 +42,10 @@ use sync::{IrqLock, Semaphore};
 lazy_static! {
     static ref SEM: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(2));
     static ref COMPLETED_TEST: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(0));
+    static ref BUF: IrqLock<BoundedBuffer<char>> = IrqLock::new(BoundedBuffer::new(100));
 }
+
+use ipc::bounded_buffer::BoundedBuffer;
 
 #[no_mangle]
 /// Entry point for rust code
@@ -83,6 +87,10 @@ pub extern "C" fn rxinu_main() {
     arch::console::clear_screen();
     kprintln!("In main process!\n");
 
+    for i in b"Hello World!" {
+        BUF.lock().push(*i as char).unwrap();
+    }
+
     let process_a = syscall::create(String::from("process a"), 25, process_a).unwrap();
     let process_b = syscall::create(String::from("process b"), 25, process_b).unwrap();
 
@@ -101,6 +109,9 @@ pub extern "C" fn rxinu_main() {
 
     // Assertions: Process waits until signal from test_process
     COMPLETED_TEST.lock().wait().unwrap();
+    unsafe {
+        global_sched().resched().unwrap();
+    }
 
     kprintln!("\nTesting scheduler state...");
 
@@ -113,11 +124,20 @@ pub extern "C" fn rxinu_main() {
     assert!(check_state(process_a, State::Wait));
     assert!(check_state(process_b, State::Wait));
 
-    kprintln!("Scheduling tests passed!\n\n");
+    kprintln!("Scheduling tests passed!\n");
 }
 
 pub extern "C" fn test_process() {
-    kprintln!("\nIn test process!");
+    kprint!("\nIn test process!\nBuffer = ");
+    let len = BUF.lock().len();
+    for _ in 0..len {
+        // This works
+        //let c = BUF.lock().pop().unwrap();
+        //kprint!("{}", c);
+        // This doesn't
+        kprint!("{}", BUF.lock().pop().unwrap());
+    }
+    kprintln!();
     COMPLETED_TEST.lock().signal().unwrap();
 }
 

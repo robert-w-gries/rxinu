@@ -17,7 +17,7 @@ volatile = "0.1.0"
 x86_64 = { git = "https://github.com/robert-w-gries/x86_64", branch = "frame_alloc_fix" }
 
 [dependencies.lazy_static]
-version = "0.2.4"
+version = "1.0.1"
 features = ["spin_no_std"]
 
 [features]

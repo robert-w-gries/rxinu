@@ -6,8 +6,7 @@ macro_rules! kprint {
                 use core::fmt::Write;
                 use $crate::device::uart_16550::COM1;
 
-                // ignore write result
-                let _  = write!(COM1.lock(), $($arg)*);
+                let _ = COM1.lock().write_fmt(format_args!($($arg)*));
             }
 
             #[cfg(feature = "vga")]
@@ -15,8 +14,7 @@ macro_rules! kprint {
                 use core::fmt::Write;
                 use $crate::device::vga::VGA;
 
-                // ignore write result
-                let _ = write!(VGA.lock(), $($arg)*);
+                let _ = VGA.lock().write_fmt(format_args!($($arg)*));
             }
     });
 }
