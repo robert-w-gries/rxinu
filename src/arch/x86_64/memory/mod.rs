@@ -1,6 +1,6 @@
 use os_bootinfo::BootInfo;
 use x86_64::structures::paging::{
-    MapToError, Mapper, Page, PageTableFlags, PhysFrame, RecursivePageTable, Size4KiB,
+    FrameAllocator, MapToError, Mapper, Page, PageTableFlags, RecursivePageTable, Size4KiB,
 };
 use x86_64::VirtAddr;
 
@@ -44,26 +44,24 @@ pub fn init<'a>(
     }
 }
 
-pub fn map_page<'a>(
+pub fn map_page<'a, A>(
     page: Page<Size4KiB>,
     flags: PageTableFlags,
     page_table: &mut RecursivePageTable<'a>,
-    frame_allocator: &mut FrameAllocator,
-) -> Result<(), MapToError> {
+    frame_allocator: &mut A,
+) -> Result<(), MapToError>
+where
+    A: FrameAllocator<Size4KiB>,
+{
     let frame = frame_allocator
-        .allocate_frame()
+        .alloc()
         .expect("OOM - Cannot allocate frame");
 
     page_table
-        .map_to(page, frame, flags, &mut || frame_allocator.allocate_frame())?
+        .map_to(page, frame, flags, frame_allocator)?
         .flush();
 
     Ok(())
-}
-
-pub trait FrameAllocator {
-    fn allocate_frame(&mut self) -> Option<PhysFrame>;
-    fn deallocate_frame(&mut self, frame: PhysFrame);
 }
 
 pub struct MemoryController<'a> {

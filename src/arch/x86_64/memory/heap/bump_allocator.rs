@@ -1,4 +1,4 @@
-use core::alloc::{Alloc, AllocErr, Layout, Opaque};
+use alloc::allocator::{Alloc, AllocErr, Layout};
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
@@ -21,7 +21,7 @@ impl BumpAllocator {
 }
 
 unsafe impl<'a> Alloc for &'a BumpAllocator {
-    unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<Opaque>, AllocErr> {
+    unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
         loop {
             // load current state of the `next` field
             let current_next = self.next.load(Ordering::Relaxed);
@@ -35,7 +35,7 @@ unsafe impl<'a> Alloc for &'a BumpAllocator {
                         .compare_and_swap(current_next, alloc_end, Ordering::Relaxed);
                 if next_now == current_next {
                     // next address was successfully updated, allocation succeeded
-                    return Ok(NonNull::new(alloc_start as *mut Opaque).unwrap());
+                    return Ok(NonNull::new(alloc_start as *mut u8).unwrap());
                 }
             } else {
                 return Err(AllocErr);
@@ -43,7 +43,7 @@ unsafe impl<'a> Alloc for &'a BumpAllocator {
         }
     }
 
-    unsafe fn dealloc(&mut self, _ptr: NonNull<Opaque>, _layout: Layout) {
+    unsafe fn dealloc(&mut self, _ptr: NonNull<u8>, _layout: Layout) {
         // do nothing, leak memory
     }
 }
