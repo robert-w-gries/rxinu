@@ -1,7 +1,7 @@
 /// Use allocator wrapper, similar to what le-jzr/sisyphos-kernel-uefi-x86_64 uses
 pub mod bump_allocator;
 
-use core::alloc::{Alloc, GlobalAlloc, Layout, Opaque};
+use core::alloc::{Alloc, GlobalAlloc, Layout};
 use core::ptr::NonNull;
 use linked_list_allocator::Heap;
 use sync::IrqLock;
@@ -34,16 +34,16 @@ impl HeapAllocator {
 
 /// Wrappers for inner Alloc implementation
 unsafe impl GlobalAlloc for HeapAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut Opaque {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         self.inner
             .lock()
             .alloc(layout)
             .ok()
-            .map_or(0 as *mut Opaque, |allocation| allocation.as_ptr())
+            .map_or(0 as *mut u8, |allocation| allocation.as_ptr())
     }
 
     #[inline]
-    unsafe fn dealloc(&self, ptr: *mut Opaque, layout: Layout) {
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         self.inner
             .lock()
             .dealloc(NonNull::new_unchecked(ptr), layout);
