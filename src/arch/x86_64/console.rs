@@ -1,13 +1,13 @@
 #[macro_export]
 macro_rules! kprint {
     ($($arg:tt)*) => ({
-            #[cfg(feature = "serial")]
-            {
-                use core::fmt::Write;
-                use $crate::device::uart_16550::COM1;
+            //#[cfg(feature = "serial")]
+            //{
+            //    use core::fmt::Write;
+            //    use $crate::device::uart_16550::COM1;
 
-                let _ = COM1.lock().write_fmt(format_args!($($arg)*));
-            }
+            //    let _ = COM1.lock().write_fmt(format_args!($($arg)*));
+            //}
 
             #[cfg(feature = "vga")]
             {

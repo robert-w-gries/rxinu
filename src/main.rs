@@ -1,5 +1,5 @@
 #![feature(
-    abi_x86_interrupt, alloc, allocator_api, global_allocator, asm, const_fn, const_max_value,
+    abi_x86_interrupt, alloc, allocator_api, asm, const_fn, const_max_value,
     const_unique_new, const_atomic_usize_new, const_fn, global_asm, lang_items, naked_functions,
     panic_info_message, ptr_internals, unique
 )]
@@ -131,10 +131,6 @@ pub extern "C" fn test_process() {
     kprint!("\nIn test process!\nBuffer = ");
     let len = BUF.lock().len();
     for _ in 0..len {
-        // This works
-        //let c = BUF.lock().pop().unwrap();
-        //kprint!("{}", c);
-        // This doesn't
         kprint!("{}", BUF.lock().pop().unwrap());
     }
     kprintln!();
