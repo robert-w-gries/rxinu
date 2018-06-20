@@ -1,4 +1,7 @@
 #[macro_use]
+pub mod console;
+
+#[macro_use]
 pub mod keyboard;
 
 pub mod pic_8259;

@@ -48,7 +48,7 @@ pub fn init() {
 pub fn read(len: usize) {
     let bytes = COM1.lock().read(len);
     for &byte in bytes.iter() {
-        kprint!("{}", byte);
+        serial_print!("{}", byte);
     }
 }
 

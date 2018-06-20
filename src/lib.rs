@@ -1,9 +1,8 @@
 #![feature(
     abi_x86_interrupt, alloc, allocator_api, asm, const_fn, const_max_value,
     const_unique_new, const_atomic_usize_new, const_fn, global_asm, lang_items, naked_functions,
-    panic_info_message, ptr_internals, unique
+    ptr_internals, unique
 )]
-#![no_main]
 #![no_std]
 
 #[macro_use]
@@ -27,16 +26,17 @@ extern crate volatile;
 extern crate x86_64;
 
 #[macro_use]
-pub mod arch;
 pub mod device;
+
+#[macro_use]
+pub mod arch;
+
 pub mod ipc;
 pub mod sync;
 pub mod syscall;
 pub mod task;
 
 use alloc::String;
-use arch::memory::heap::{HEAP_SIZE, HEAP_START};
-use core::panic::PanicInfo;
 use ipc::bounded_buffer::BoundedBuffer;
 use sync::{IrqLock, Semaphore};
 
@@ -51,8 +51,9 @@ lazy_static! {
 pub extern "C" fn rxinu_main() {
     use task::{global_sched, ProcessId, State, Scheduling};
 
-    arch::console::clear_screen();
+    device::console::clear_screen();
     kprintln!("In main process!\n");
+    serial_println!("In main process!\n");
 
     for i in b"Hello World!" {
         BUF.lock().push(*i as char).unwrap();
