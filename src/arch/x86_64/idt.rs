@@ -1,10 +1,10 @@
-use arch::x86_64::gdt::{Descriptor, Gdt};
 use arch::x86_64::interrupts::{exception, irq};
 use spin::Once;
+use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable};
 use x86_64::structures::idt::Idt;
 use x86_64::structures::tss::TaskStateSegment;
 
-static GDT: Once<Gdt> = Once::new();
+static GDT: Once<GlobalDescriptorTable> = Once::new();
 static TSS: Once<TaskStateSegment> = Once::new();
 
 const IRQ_OFFSET: usize = 32;
@@ -64,7 +64,7 @@ pub fn init() {
     let mut code_selector = SegmentSelector(0);
     let mut tss_selector = SegmentSelector(0);
     let gdt = GDT.call_once(|| {
-        let mut gdt = Gdt::new();
+        let mut gdt = GlobalDescriptorTable::new();
         code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
         tss_selector = gdt.add_entry(Descriptor::tss_segment(&tss));
         gdt
