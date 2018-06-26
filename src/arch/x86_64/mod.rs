@@ -3,7 +3,7 @@ use x86_64::structures::paging::{PageTable, RecursivePageTable};
 
 pub mod context;
 mod device;
-mod idt;
+pub mod idt;
 pub mod interrupts;
 pub mod memory;
 

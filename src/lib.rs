@@ -25,6 +25,11 @@ extern crate spin;
 extern crate volatile;
 extern crate x86_64;
 
+#[cfg(test)]
+extern crate array_init;
+#[cfg(test)]
+extern crate std;
+
 #[macro_use]
 pub mod device;
 
@@ -39,7 +44,6 @@ pub mod task;
 use alloc::String;
 use ipc::bounded_buffer::BoundedBuffer;
 use sync::{IrqLock, Semaphore};
-
 
 lazy_static! {
     static ref SEM: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(2));
@@ -136,6 +140,13 @@ pub extern "C" fn kill_process() {
             arch::interrupts::halt();
         }
     }
+}
+
+pub unsafe fn exit_qemu() {
+    use x86_64::instructions::port::Port;
+
+    let mut port = Port::<u32>::new(0xf4);
+    port.write(0);
 }
 
 #[cfg(not(test))]

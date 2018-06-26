@@ -1,4 +1,4 @@
-#![feature(alloc, lang_items, panic_info_message)]
+#![feature(alloc, lang_items, panic_implementation)]
 #![no_std]
 #![cfg_attr(not(test), no_main)]
 #![cfg_attr(test, allow(dead_code, unused_macros, unused_imports))]
@@ -11,6 +11,7 @@ use alloc::String;
 use core::panic::PanicInfo;
 use rxinu::{arch, device, syscall, task};
 
+#[cfg(not(test))]
 #[no_mangle]
 /// Entry point for rust code
 pub extern "C" fn _start(boot_info_address: usize) -> ! {
@@ -47,20 +48,10 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
 }
 
 #[cfg(not(test))]
-#[lang = "panic_impl"]
+#[panic_implementation]
 #[no_mangle]
-pub extern "C" fn panic_fmt(info: &PanicInfo) -> ! {
-    arch::interrupts::disable_then_execute(|| {
-        kprintln!("\n\nPANIC");
-
-        if let Some(location) = info.location() {
-            kprint!("in {} at line {}", location.file(), location.line());
-        }
-
-        if let Some(message) = info.message() {
-            kprintln!("\n    {:?}", message);
-        }
-    });
+pub fn panic(info: &PanicInfo) -> ! {
+    kprintln!("{}", info);
 
     loop {
         unsafe {

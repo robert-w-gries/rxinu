@@ -24,3 +24,6 @@ features = ["spin_no_std"]
 default = ["serial", "vga"]
 serial = []
 vga = []
+
+[package.metadata.bootimage]
+default-target = "x86_64-rxinu.json"

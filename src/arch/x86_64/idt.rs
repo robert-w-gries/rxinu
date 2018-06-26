@@ -1,11 +1,43 @@
 use arch::x86_64::interrupts::{exception, irq};
-use spin::Once;
-use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable};
+use x86_64::VirtAddr;
+use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector};
 use x86_64::structures::idt::Idt;
 use x86_64::structures::tss::TaskStateSegment;
 
-static GDT: Once<GlobalDescriptorTable> = Once::new();
-static TSS: Once<TaskStateSegment> = Once::new();
+pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
+
+lazy_static! {
+    static ref TSS: TaskStateSegment = {
+        let mut tss = TaskStateSegment::new();
+        tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
+            const STACK_SIZE: usize = 4096;
+            static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
+
+            let stack_start = VirtAddr::from_ptr(unsafe { &STACK });
+            let stack_end = stack_start + STACK_SIZE;
+            stack_end
+        };
+        tss
+    };
+
+    static ref GDT: (GlobalDescriptorTable, Selectors) = {
+        let mut gdt = GlobalDescriptorTable::new();
+        let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
+        let tss_selector = gdt.add_entry(Descriptor::tss_segment(&TSS));
+
+        let selectors = Selectors {
+            code_selector,
+            tss_selector,
+        };
+
+        (gdt, selectors)
+    };
+}
+
+struct Selectors {
+    code_selector: SegmentSelector,
+    tss_selector: SegmentSelector,
+}
 
 const IRQ_OFFSET: usize = 32;
 #[allow(dead_code)]
@@ -23,7 +55,10 @@ lazy_static! {
         idt.bound_range_exceeded.set_handler_fn(exception::bound_range_exceeded);
         idt.invalid_opcode.set_handler_fn(exception::invalid_opcode);
         idt.device_not_available.set_handler_fn(exception::device_not_available);
-        idt.double_fault.set_handler_fn(exception::double_fault);
+        unsafe {
+            idt.double_fault.set_handler_fn(exception::double_fault)
+                .set_stack_index(DOUBLE_FAULT_IST_INDEX);
+        }
         idt.invalid_tss.set_handler_fn(exception::invalid_tss);
         idt.segment_not_present.set_handler_fn(exception::segment_not_present);
         idt.stack_segment_fault.set_handler_fn(exception::stack_segment_fault);
@@ -52,29 +87,12 @@ lazy_static! {
 pub fn init() {
     use x86_64::instructions::segmentation::set_cs;
     use x86_64::instructions::tables::load_tss;
-    use x86_64::structures::gdt::SegmentSelector;
 
-    let tss = TSS.call_once(|| {
-        let tss = TaskStateSegment::new();
-        // TODO: Why is this missing now?
-        // tss.interrupt.stack_table[DOUBLE_FAULT_IST_INDEX] = VirtAddr::new()
-        tss
-    });
-
-    let mut code_selector = SegmentSelector(0);
-    let mut tss_selector = SegmentSelector(0);
-    let gdt = GDT.call_once(|| {
-        let mut gdt = GlobalDescriptorTable::new();
-        code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
-        tss_selector = gdt.add_entry(Descriptor::tss_segment(&tss));
-        gdt
-    });
-
-    gdt.load();
+    GDT.0.load();
 
     unsafe {
-        set_cs(code_selector);
-        load_tss(tss_selector);
+        set_cs(GDT.1.code_selector);
+        load_tss(GDT.1.tss_selector);
     }
 
     IDT.load();
