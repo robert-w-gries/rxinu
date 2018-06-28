@@ -36,7 +36,6 @@ pub mod device;
 #[macro_use]
 pub mod arch;
 
-pub mod ipc;
 pub mod sync;
 pub mod syscall;
 pub mod task;
