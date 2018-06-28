@@ -10,7 +10,6 @@ extern crate alloc;
 extern crate rxinu;
 
 use rxinu::exit_qemu;
-use rxinu::task::Scheduling;
 use core::panic::PanicInfo;
 
 /// This function is the entry point, since the linker looks for a function
@@ -23,11 +22,9 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         rxinu::task::scheduler::init();
     }
 
-    let _ = rxinu::syscall::create(alloc::String::from("test process!"), 0, test_process);
+    let _ = rxinu::syscall::create(alloc::String::from("test process!"), 0, test_process).unwrap();
 
-    unsafe {
-        let _ = rxinu::task::scheduler::global_sched().resched();
-    }
+    let _ = rxinu::syscall::yield_cpu().unwrap();
 
     serial_println!("failed");
     unsafe {
