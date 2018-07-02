@@ -1,7 +1,7 @@
 use arch::x86_64::interrupts::{exception, irq};
 use x86_64::VirtAddr;
 use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector};
-use x86_64::structures::idt::Idt;
+use x86_64::structures::idt::InterruptDescriptorTable;
 use x86_64::structures::tss::TaskStateSegment;
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
@@ -44,8 +44,8 @@ const IRQ_OFFSET: usize = 32;
 const SYSCALL_OFFSET: usize = 0x80;
 
 lazy_static! {
-    static ref IDT: Idt = {
-        let mut idt = Idt::new();
+    static ref IDT: InterruptDescriptorTable  = {
+        let mut idt = InterruptDescriptorTable::new();
 
         idt.divide_by_zero.set_handler_fn(exception::divide_by_zero);
         idt.debug.set_handler_fn(exception::debug);
