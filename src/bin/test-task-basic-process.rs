@@ -27,6 +27,8 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     let _ = rxinu::syscall::yield_cpu().unwrap();
 
     serial_println!("failed");
+    serial_println!("Process did not run.");
+
     unsafe {
         exit_qemu();
     }
@@ -47,7 +49,6 @@ pub extern "C" fn test_process() {
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
     serial_println!("failed");
-
     serial_println!("{}", info);
 
     unsafe {

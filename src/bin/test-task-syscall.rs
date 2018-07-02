@@ -10,11 +10,12 @@ extern crate rxinu;
 extern crate alloc;
 extern crate spin;
 
-use rxinu::exit_qemu;
+use alloc::String;
 use core::panic::PanicInfo;
-use spin::Mutex;
+use core::sync::atomic::{AtomicBool, Ordering};
+use rxinu::exit_qemu;
 
-static SUSPENDED: Mutex<bool> = Mutex::new(false);
+static SUSPENDED_PROC: AtomicBool = AtomicBool::new(false);
 
 #[cfg(not(test))]
 #[no_mangle]
@@ -26,32 +27,41 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         rxinu::task::scheduler::init();
     }
 
-    let kill_pid = syscall::create(alloc::String::from("kill"), 0, kill_process).unwrap();
+    let kill_pid = syscall::create(String::from("kill"), 0, kill_process).unwrap();
     match syscall::kill(kill_pid) {
         Ok(()) => (),
-        _ => serial_println!("failed"),
+        _ => {
+            serial_println!("failed");
+            serial_println!("Failed to kill process");
+        }
     }
 
-    let suspend_pid = syscall::create(alloc::String::from("suspend"), 0, suspend_process).unwrap();
+    let suspend_pid = syscall::create(String::from("suspend"), 0, suspend_process).unwrap();
     match syscall::suspend(suspend_pid) {
         Ok(()) => (),
-        _ => serial_println!("failed"),
+        _ => {
+            serial_println!("failed");
+            serial_println!("Failed to suspend process");
+        }
     }
 
-    *SUSPENDED.lock() = true;
+    SUSPENDED_PROC.store(true, Ordering::SeqCst);
 
-    let _ = syscall::create(alloc::String::from("loop"), 0, loop_process).unwrap();
-
+    let _ = syscall::create(String::from("loop"), 0, loop_process).unwrap();
     let _ = syscall::yield_cpu().unwrap();
 
     match syscall::resume(suspend_pid) {
         Ok(()) => (),
-        _ => serial_println!("failed"),
+        _ => {
+            serial_println!("failed");
+            serial_println!("Failed to resume process");
+        }
     }
 
     let _ = syscall::yield_cpu().unwrap();
 
     serial_println!("failed");
+    serial_println!("'suspend' process did not run!");
     unsafe {
         exit_qemu();
     }
@@ -66,6 +76,7 @@ pub extern "C" fn kill_process() {
     }
 }
 
+/// Test repeated calls to `yield_cpu()`
 pub extern "C" fn loop_process() {
     loop {
         let _ = rxinu::syscall::yield_cpu().unwrap();
@@ -73,7 +84,7 @@ pub extern "C" fn loop_process() {
 }
 
 pub extern "C" fn suspend_process() {
-    assert!(*SUSPENDED.lock());
+    assert!(SUSPENDED_PROC.load(Ordering::SeqCst));
 
     serial_println!("ok");
     unsafe {

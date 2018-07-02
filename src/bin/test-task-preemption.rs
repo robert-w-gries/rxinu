@@ -10,11 +10,11 @@ extern crate rxinu;
 extern crate alloc;
 extern crate spin;
 
-use rxinu::exit_qemu;
 use core::panic::PanicInfo;
-use spin::Mutex;
+use core::sync::atomic::{AtomicUsize, Ordering};
+use rxinu::exit_qemu;
 
-static LOOPED: Mutex<bool> = Mutex::new(false);
+static EXECUTED: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(not(test))]
 #[no_mangle]
@@ -27,12 +27,14 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         rxinu::arch::interrupts::clear_mask();
     }
 
-    let _ = syscall::create(alloc::String::from("process1"), 5, loop_process).unwrap();
-    let _ = syscall::create(alloc::String::from("process2"), 5, loop_process).unwrap();
+    // Scheduler task selection => process1, process2, NULL_PROCESS
+    let _ = syscall::create(alloc::String::from("process1"), 1, loop_process).unwrap();
+    let _ = syscall::create(alloc::String::from("process2"), 1, loop_process).unwrap();
 
     let _ = syscall::yield_cpu().unwrap();
 
-    assert!(*LOOPED.lock());
+    // Both processes should run
+    assert_eq!(EXECUTED.load(Ordering::SeqCst), 2);
 
     serial_println!("ok");
     unsafe {
@@ -43,21 +45,24 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
 }
 
 pub extern "C" fn loop_process() {
-    *LOOPED.lock() = true;
-    loop {
-        rxinu::arch::interrupts::pause();
-    }
+    EXECUTED.fetch_add(1, Ordering::SeqCst);
+    loop {}
 }
 
 #[cfg(not(test))]
 #[panic_implementation]
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
-    serial_println!("failed");
+    unsafe {
+        rxinu::arch::interrupts::disable();
+    }
 
+    serial_println!("failed");
     serial_println!("{}", info);
+
     unsafe {
         exit_qemu();
     }
+
     loop {}
 }
