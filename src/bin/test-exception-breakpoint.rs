@@ -10,9 +10,9 @@ extern crate x86_64;
 #[macro_use]
 extern crate lazy_static;
 
-use rxinu::exit_qemu;
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use rxinu::exit_qemu;
 
 static BREAKPOINT_HANDLER_CALLED: AtomicUsize = AtomicUsize::new(0);
 

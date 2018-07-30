@@ -66,11 +66,9 @@ impl Scheduling for Preemptive {
             })?;
 
             match state {
-                State::Current => {
-                    unsafe {
-                        self.resched()?;
-                    }
-                }
+                State::Current => unsafe {
+                    self.resched()?;
+                },
                 State::Free => (),
                 State::Ready => {
                     self.unready(pid)?;
@@ -218,12 +216,7 @@ impl Preemptive {
     }
 
     fn age_processes(&self) {
-        for p in self
-            .inner
-            .lock()
-            .ready_list
-            .iter()
-        {
+        for p in self.inner.lock().ready_list.iter() {
             p.write().priority += 1;
         }
     }

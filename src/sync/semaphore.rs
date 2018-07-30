@@ -59,23 +59,21 @@ impl Semaphore {
 
     pub fn wait(&mut self) -> Result<(), Error> {
         match self.count() {
-            0 => {
-                interrupts::disable_then_execute(|| {
-                    let curr_pid = global_sched().get_pid();
-                    global_sched().modify_process(curr_pid, |proc_ref| {
-                        proc_ref.write().state = State::Wait;
-                    })?;
+            0 => interrupts::disable_then_execute(|| {
+                let curr_pid = global_sched().get_pid();
+                global_sched().modify_process(curr_pid, |proc_ref| {
+                    proc_ref.write().state = State::Wait;
+                })?;
 
-                    self.wait_queue.push_back(curr_pid);
-                    self.waiting = true;
+                self.wait_queue.push_back(curr_pid);
+                self.waiting = true;
 
-                    unsafe {
-                        global_sched().resched()?;
-                    }
+                unsafe {
+                    global_sched().resched()?;
+                }
 
-                    Ok(())
-                })
-            }
+                Ok(())
+            }),
             _ => {
                 self.count.fetch_sub(1, Ordering::SeqCst);
                 Ok(())

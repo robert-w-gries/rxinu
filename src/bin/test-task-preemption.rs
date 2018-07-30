@@ -41,7 +41,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         exit_qemu();
     }
 
-    loop{}
+    loop {}
 }
 
 pub extern "C" fn loop_process() {

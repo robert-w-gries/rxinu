@@ -9,8 +9,8 @@ extern crate alloc;
 #[macro_use]
 extern crate rxinu;
 
-use rxinu::exit_qemu;
 use core::panic::PanicInfo;
+use rxinu::exit_qemu;
 
 /// This function is the entry point, since the linker looks for a function
 /// named `_start` by default.
@@ -22,7 +22,11 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         rxinu::task::scheduler::init();
     }
 
-    let _ = rxinu::syscall::create(alloc::string::String::from("test process!"), 0, test_process).unwrap();
+    let _ = rxinu::syscall::create(
+        alloc::string::String::from("test process!"),
+        0,
+        test_process,
+    ).unwrap();
 
     let _ = rxinu::syscall::yield_cpu().unwrap();
 
@@ -33,7 +37,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         exit_qemu();
     }
 
-    loop{}
+    loop {}
 }
 
 pub extern "C" fn test_process() {

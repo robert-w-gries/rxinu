@@ -8,8 +8,8 @@
 #[macro_use]
 extern crate rxinu;
 
-use rxinu::exit_qemu;
 use core::panic::PanicInfo;
+use rxinu::exit_qemu;
 
 /// This function is the entry point, since the linker looks for a function
 /// named `_start` by default.

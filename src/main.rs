@@ -1,9 +1,4 @@
-#![feature(
-    alloc,
-    alloc_error_handler,
-    lang_items,
-    panic_implementation
-)]
+#![feature(alloc, alloc_error_handler, lang_items, panic_implementation)]
 #![no_std]
 #![cfg_attr(not(test), no_main)]
 #![cfg_attr(test, allow(dead_code, unused_macros, unused_imports))]

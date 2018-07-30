@@ -1,7 +1,7 @@
 #![allow(dead_code)]
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::collections::VecDeque;
 use arch::context::Context;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
@@ -69,11 +69,9 @@ impl Scheduling for Cooperative {
         })?;
 
         match state {
-            State::Current => {
-                unsafe {
-                    self.resched()?;
-                }
-            }
+            State::Current => unsafe {
+                self.resched()?;
+            },
             State::Free => (),
             State::Ready => {
                 self.unready(pid)?;

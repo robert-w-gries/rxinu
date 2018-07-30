@@ -10,8 +10,8 @@ extern crate x86_64;
 #[macro_use]
 extern crate lazy_static;
 
-use rxinu::exit_qemu;
 use core::panic::PanicInfo;
+use rxinu::exit_qemu;
 
 #[cfg(not(test))]
 #[no_mangle]
