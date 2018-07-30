@@ -34,7 +34,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         rxinu::arch::interrupts::clear_mask();
     }
 
-    let p1 = syscall::create(alloc::String::from("process1"), 100, loop_process).unwrap();
+    let p1 = syscall::create(alloc::string::String::from("process1"), 100, loop_process).unwrap();
 
     let check_state = |p: ProcessId, s: State| global_sched().get_process(p).unwrap().state() == s;
 

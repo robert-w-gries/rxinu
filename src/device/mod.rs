@@ -10,7 +10,7 @@ pub mod ps2_controller_8042;
 pub mod uart_16550;
 pub mod vga;
 
-use alloc::VecDeque;
+use alloc::collections::VecDeque;
 
 pub trait BufferedDevice {
     fn buffer(&self) -> &VecDeque<u8>;

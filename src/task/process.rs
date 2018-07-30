@@ -1,6 +1,6 @@
-use alloc::arc::Arc;
-use alloc::String;
-use alloc::Vec;
+use alloc::string::String;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use arch::context::Context;
 use core::cmp;
 use core::fmt;

@@ -22,7 +22,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         rxinu::task::scheduler::init();
     }
 
-    let _ = rxinu::syscall::create(alloc::String::from("test process!"), 0, test_process).unwrap();
+    let _ = rxinu::syscall::create(alloc::string::String::from("test process!"), 0, test_process).unwrap();
 
     let _ = rxinu::syscall::yield_cpu().unwrap();
 

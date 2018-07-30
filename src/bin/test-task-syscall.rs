@@ -10,7 +10,7 @@ extern crate rxinu;
 extern crate alloc;
 extern crate spin;
 
-use alloc::String;
+use alloc::string::String;
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicBool, Ordering};
 use rxinu::exit_qemu;

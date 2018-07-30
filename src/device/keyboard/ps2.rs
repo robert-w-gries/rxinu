@@ -1,4 +1,5 @@
-use alloc::{Vec, VecDeque};
+use alloc::collections::VecDeque;
+use alloc::vec::Vec;
 use device::keyboard::Key::*;
 use device::keyboard::Modifier::*;
 use device::keyboard::{Key, KeyEvent, STATE};

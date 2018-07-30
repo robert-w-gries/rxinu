@@ -1,4 +1,6 @@
-use alloc::{BinaryHeap, String, Vec};
+use alloc::collections::BinaryHeap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use arch::context::Context;
 use arch::interrupts;
 use core::ops::DerefMut;

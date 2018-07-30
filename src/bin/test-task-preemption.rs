@@ -28,8 +28,8 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
     }
 
     // Scheduler task selection => process1, process2, NULL_PROCESS
-    let _ = syscall::create(alloc::String::from("process1"), 1, loop_process).unwrap();
-    let _ = syscall::create(alloc::String::from("process2"), 1, loop_process).unwrap();
+    let _ = syscall::create(alloc::string::String::from("process1"), 1, loop_process).unwrap();
+    let _ = syscall::create(alloc::string::String::from("process2"), 1, loop_process).unwrap();
 
     let _ = syscall::yield_cpu().unwrap();
 

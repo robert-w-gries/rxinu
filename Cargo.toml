@@ -8,6 +8,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 bit_field = "0.7.0"
 bitflags = "1.0.1"
+bootloader_precompiled = "0.2.0"
 linked_list_allocator = "0.6.0"
 once = "0.3.2"
 os_bootinfo = "0.2.0"

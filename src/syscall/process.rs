@@ -1,4 +1,4 @@
-use alloc::String;
+use alloc::string::String;
 use arch::interrupts;
 use syscall::error::Error;
 use task::scheduler::{global_sched, Scheduling};

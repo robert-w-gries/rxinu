@@ -1,4 +1,4 @@
-use alloc::VecDeque;
+use alloc::collections::VecDeque;
 use arch::interrupts;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use syscall::error::Error;

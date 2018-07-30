@@ -1,5 +1,7 @@
 #![allow(dead_code)]
-use alloc::{String, Vec, VecDeque};
+use alloc::string::String;
+use alloc::vec::Vec;
+use alloc::collections::VecDeque;
 use arch::context::Context;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};

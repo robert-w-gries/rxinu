@@ -1,4 +1,4 @@
-use alloc::vec_deque::VecDeque;
+use alloc::collections::VecDeque;
 use core::fmt::{self, Write};
 use device::{BufferedDevice, InputDevice};
 use sync::IrqLock;

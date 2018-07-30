@@ -1,7 +1,19 @@
 #![feature(
-    abi_x86_interrupt, alloc, allocator_api, asm, const_fn, const_max_value,
-    const_unique_new, const_atomic_usize_new, const_fn, global_asm, lang_items, naked_functions,
-    ptr_internals, unique
+    abi_x86_interrupt,
+    alloc,
+    allocator_api,
+    alloc_error_handler,
+    asm,
+    const_fn,
+    const_max_value,
+    const_unique_new,
+    const_atomic_usize_new,
+    const_fn,
+    global_asm,
+    lang_items,
+    naked_functions,
+    ptr_internals,
+    unique
 )]
 #![no_std]
 
@@ -65,10 +77,9 @@ pub extern "C" fn _Unwind_Resume() -> ! {
     loop {}
 }
 
-#[lang = "oom"]
-#[no_mangle]
-pub fn rust_oom() -> ! {
-    panic!("Out of memory");
+#[alloc_error_handler]
+pub fn rust_oom(info: core::alloc::Layout) -> ! {
+    panic!("{:?}", info);
 }
 
 use arch::memory::heap::HeapAllocator;

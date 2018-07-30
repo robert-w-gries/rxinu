@@ -1,4 +1,9 @@
-#![feature(alloc, lang_items, panic_implementation)]
+#![feature(
+    alloc,
+    alloc_error_handler,
+    lang_items,
+    panic_implementation
+)]
 #![no_std]
 #![cfg_attr(not(test), no_main)]
 #![cfg_attr(test, allow(dead_code, unused_macros, unused_imports))]
@@ -7,7 +12,7 @@
 extern crate rxinu;
 extern crate alloc;
 
-use alloc::String;
+use alloc::string::String;
 use core::panic::PanicInfo;
 use rxinu::{arch, device, syscall, task};
 
