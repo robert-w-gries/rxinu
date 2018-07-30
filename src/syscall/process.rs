@@ -1,4 +1,4 @@
-use alloc::String;
+use alloc::string::String;
 use arch::interrupts;
 use syscall::error::Error;
 use task::scheduler::{global_sched, Scheduling};
@@ -67,8 +67,10 @@ pub fn suspend(pid: ProcessId) -> Result<(), Error> {
 }
 
 /// Donate CPU time slice to another process
-pub fn yield_cpu() {
+pub fn yield_cpu() -> Result<(), Error> {
     unsafe {
-        global_sched().resched();
+        global_sched().resched()?;
     }
+
+    Ok(())
 }

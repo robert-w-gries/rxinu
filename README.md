@@ -9,7 +9,7 @@ curl https://sh.rustup.rs -sSf | sh -s -- -y
 export PATH="${PATH}:$HOME/.cargo/bin"
 rustup default nightly
 rustup component add rust-src
-cargo install xargo
+cargo install cargo-xbuild
 cargo install bootimage
 ```
 

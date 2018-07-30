@@ -1,12 +1,14 @@
-use alloc::{BinaryHeap, String, Vec};
+use alloc::collections::BinaryHeap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use arch::context::Context;
 use arch::interrupts;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use sync::IrqSpinLock;
 use syscall::error::Error;
-use task::scheduler::Scheduling;
-use task::{Process, ProcessId, ProcessRef, ProcessTable, State};
+use task::scheduler::{ProcessTable, Scheduling};
+use task::{Process, ProcessId, ProcessRef, State};
 
 pub struct Preemptive {
     current_pid: AtomicUsize,
@@ -29,7 +31,7 @@ impl Scheduling for Preemptive {
     ) -> Result<ProcessId, Error> {
         let mut inner = self.inner.lock();
 
-        let pid = inner.proc_table.get_next_pid()?;
+        let pid = inner.proc_table.next_pid()?;
         let proc: Process = Process::new(pid, name, prio, proc_entry);
         inner.proc_table.add(proc)?;
 
@@ -53,19 +55,30 @@ impl Scheduling for Preemptive {
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, pid: ProcessId) -> Result<(), Error> {
         interrupts::disable_then_execute(|| {
+            let state = self.get_process(pid)?.state();
+
             self.modify_process(pid, |proc_ref| {
                 let mut proc = proc_ref.write();
 
                 // Free memory allocated to process
                 proc.set_state(State::Free);
                 proc.kstack = None;
-                drop(&mut proc.name);
             })?;
 
-            let _result = self.unready(pid);
-
-            unsafe {
-                self.resched();
+            match state {
+                State::Current => unsafe {
+                    self.resched()?;
+                },
+                State::Free => (),
+                State::Ready => {
+                    self.unready(pid)?;
+                    self.inner.lock().proc_table.remove(pid);
+                }
+                State::Suspended => {
+                    self.inner.lock().proc_table.remove(pid);
+                }
+                // TODO: Handle killing of waiting process
+                State::Wait => panic!("Killing waiting processes is currently not supported"),
             }
 
             Ok(())
@@ -154,7 +167,7 @@ impl Scheduling for Preemptive {
             self.ticks.store(0, Ordering::SeqCst);
 
             unsafe {
-                self.resched();
+                self.resched().unwrap();
             }
         }
     }
@@ -194,7 +207,6 @@ impl Preemptive {
             context: Context::empty(),
             kstack: Some(Vec::new()),
             priority: 0,
-            intr_mask: (0, 0),
         };
 
         self.inner
@@ -204,14 +216,7 @@ impl Preemptive {
     }
 
     fn age_processes(&self) {
-        for (_, p) in self
-            .inner
-            .lock()
-            .proc_table
-            .map
-            .iter()
-            .filter(|&(_, proc)| proc.read().state == State::Ready)
-        {
+        for p in self.inner.lock().ready_list.iter() {
             p.write().priority += 1;
         }
     }

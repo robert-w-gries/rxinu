@@ -1,4 +1,7 @@
 #[macro_use]
+pub mod console;
+
+#[macro_use]
 pub mod keyboard;
 
 pub mod pic_8259;
@@ -7,7 +10,7 @@ pub mod ps2_controller_8042;
 pub mod uart_16550;
 pub mod vga;
 
-use alloc::VecDeque;
+use alloc::collections::VecDeque;
 
 pub trait BufferedDevice {
     fn buffer(&self) -> &VecDeque<u8>;

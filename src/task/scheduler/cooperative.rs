@@ -1,12 +1,14 @@
 #![allow(dead_code)]
-use alloc::{String, Vec, VecDeque};
+use alloc::collections::VecDeque;
+use alloc::string::String;
+use alloc::vec::Vec;
 use arch::context::Context;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use sync::IrqSpinLock;
 use syscall::error::Error;
-use task::scheduler::Scheduling;
-use task::{Process, ProcessId, ProcessRef, ProcessTable, State};
+use task::scheduler::{ProcessTable, Scheduling};
+use task::{Process, ProcessId, ProcessRef, State};
 
 pub struct Cooperative {
     current_pid: AtomicUsize,
@@ -29,7 +31,7 @@ impl Scheduling for Cooperative {
     ) -> Result<ProcessId, Error> {
         let mut inner = self.inner.lock();
 
-        let pid = inner.proc_table.get_next_pid()?;
+        let pid = inner.proc_table.next_pid()?;
         let proc: Process = Process::new(pid, name, 0, proc_entry);
         inner.proc_table.add(proc)?;
 
@@ -52,19 +54,34 @@ impl Scheduling for Cooperative {
     /// Scheduler's method to kill processes
     /// Currently, we just mark the process as FREE and leave its memory in the proc table
     fn kill(&self, pid: ProcessId) -> Result<(), Error> {
+        let state = {
+            let proc = self.get_process(pid)?;
+            let state = proc.read().state;
+            state
+        };
+
         self.modify_process(pid, |proc_ref| {
             let mut proc = proc_ref.write();
 
+            // Free memory allocated to process
             proc.set_state(State::Free);
             proc.kstack = None;
-            drop(&mut proc.name);
         })?;
 
-        // We don't care whether process was actually in ready list or not
-        let _result = self.unready(pid);
-
-        unsafe {
-            self.resched()?;
+        match state {
+            State::Current => unsafe {
+                self.resched()?;
+            },
+            State::Free => (),
+            State::Ready => {
+                self.unready(pid)?;
+                self.inner.lock().proc_table.remove(pid);
+            }
+            State::Suspended => {
+                self.inner.lock().proc_table.remove(pid);
+            }
+            // TODO: Handle killing of waiting process
+            State::Wait => panic!("Killing waiting processes is currently not supported"),
         }
 
         Ok(())
@@ -87,7 +104,7 @@ impl Scheduling for Cooperative {
     fn ready(&self, pid: ProcessId) -> Result<(), Error> {
         self.modify_process(pid, |proc_ref| {
             proc_ref.write().set_state(State::Ready);
-        });
+        })?;
 
         self.inner.lock().ready_list.push_back(pid);
         Ok(())
@@ -141,7 +158,7 @@ impl Scheduling for Cooperative {
             self.ticks.store(0, Ordering::SeqCst);
 
             interrupts::disable_then_execute(|| unsafe {
-                self.resched();
+                self.resched().unwrap();
             });
         }
     }
@@ -179,7 +196,6 @@ impl Cooperative {
             context: Context::empty(),
             kstack: Some(Vec::new()),
             priority: 0,
-            intr_mask: (0, 0),
         };
 
         self.inner

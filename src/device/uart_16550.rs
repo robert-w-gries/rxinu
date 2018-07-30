@@ -1,4 +1,4 @@
-use alloc::vec_deque::VecDeque;
+use alloc::collections::VecDeque;
 use core::fmt::{self, Write};
 use device::{BufferedDevice, InputDevice};
 use sync::IrqLock;
@@ -48,7 +48,7 @@ pub fn init() {
 pub fn read(len: usize) {
     let bytes = COM1.lock().read(len);
     for &byte in bytes.iter() {
-        kprint!("{}", byte);
+        serial_print!("{}", byte);
     }
 }
 

@@ -8,19 +8,23 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 bit_field = "0.7.0"
 bitflags = "1.0.1"
-linked_list_allocator = { git = "https://github.com/dancrossnyc/linked-list-allocator" }
+bootloader_precompiled = "0.2.0"
+linked_list_allocator = "0.6.0"
 once = "0.3.2"
 os_bootinfo = "0.2.0"
 rlibc = "1.0.0"
 spin = "0.4.6"
 volatile = "0.1.0"
-x86_64 = { git = "https://github.com/robert-w-gries/x86_64", branch = "frame_alloc_fix" }
+x86_64 = "0.2.0"
 
 [dependencies.lazy_static]
-version = "0.2.4"
+version = "1.0.1"
 features = ["spin_no_std"]
 
 [features]
 default = ["serial", "vga"]
 serial = []
 vga = []
+
+[package.metadata.bootimage]
+default-target = "x86_64-rxinu.json"

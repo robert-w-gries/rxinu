@@ -1,12 +1,10 @@
-use alloc::arc::Arc;
-use alloc::btree_map::BTreeMap;
-use alloc::String;
-use alloc::Vec;
+use alloc::string::String;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use arch::context::Context;
 use core::cmp;
 use core::fmt;
 use spin::{RwLock, RwLockReadGuard, RwLockWriteGuard};
-use syscall::error::Error;
 
 /// Once the process it completed, kill it
 ///
@@ -16,18 +14,20 @@ pub unsafe extern "C" fn process_ret() {
     use task::scheduler::{global_sched, Scheduling};
 
     let curr_id: ProcessId = global_sched().get_pid();
-    global_sched().kill(curr_id);
+    global_sched().kill(curr_id).unwrap();
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum State {
-    Free,
     Current,
-    Suspended,
+    Free,
     Ready,
+    Suspended,
+    Wait,
 }
 
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+// TODO: Remove the 'pub'
 pub struct ProcessId(pub usize);
 
 impl fmt::Debug for ProcessId {
@@ -48,26 +48,26 @@ const PROCESS_STACK_SIZE: usize = 1024 * 4;
 
 #[derive(Clone)]
 pub struct Process {
-    pub pid: ProcessId,
-    pub name: String,
-    pub state: State,
     pub context: Context,
     pub kstack: Option<Vec<usize>>,
+    pub pid: ProcessId,
     pub priority: usize,
-    pub intr_mask: (u8, u8),
+    pub name: String,
+    pub state: State,
 }
 
 impl fmt::Debug for Process {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = f.debug_struct("Process");
-        s.field("pid", &self.pid);
-        s.field("name", &self.name);
         s.field("context", &self.context);
         match self.kstack {
             Some(ref stk) => s.field("kstack", &(stk.as_ptr() as usize)),
             None => s.field("kstack", &self.kstack),
         };
+        s.field("pid", &self.pid);
         s.field("priority", &self.priority);
+        s.field("name", &self.name);
+        s.field("state", &self.state);
         s.finish()
     }
 }
@@ -84,13 +84,12 @@ impl Process {
         let stack_top = unsafe { stack.as_mut_ptr().add(PROCESS_STACK_SIZE) };
 
         Process {
-            pid: id,
-            state: State::Suspended,
             context: Context::new(stack_top as *mut u8, proc_entry as usize),
             kstack: Some(stack),
-            name: name,
+            pid: id,
             priority: priority,
-            intr_mask: (0, 0),
+            name: name,
+            state: State::Suspended,
         }
     }
 
@@ -103,65 +102,8 @@ impl Process {
     }
 }
 
-pub struct ProcessTable {
-    pub map: BTreeMap<ProcessId, ProcessRef>,
-    next_pid: usize,
-}
-
-impl ProcessTable {
-    pub fn new() -> ProcessTable {
-        ProcessTable {
-            map: BTreeMap::new(),
-            next_pid: 1,
-        }
-    }
-
-    pub fn add(&mut self, proc: Process) -> Result<ProcessId, Error> {
-        let pid = proc.pid;
-        match self
-            .map
-            .insert(pid, ProcessRef(Arc::new(RwLock::new(proc))))
-        {
-            // PID already used
-            Some(_) => Err(Error::BadPid),
-            None => Ok(pid),
-        }
-    }
-
-    pub fn get(&self, pid: ProcessId) -> Option<&ProcessRef> {
-        self.map.get(&pid)
-    }
-
-    pub fn get_next_pid(&mut self) -> Result<ProcessId, Error> {
-        use task::MAX_PID;
-
-        while self.map.contains_key(&ProcessId(self.next_pid)) && self.next_pid < MAX_PID {
-            self.next_pid += 1;
-        }
-
-        match self.next_pid {
-            MAX_PID => {
-                self.next_pid = 1;
-                Err(Error::TryAgain)
-            }
-            pid => {
-                self.next_pid += 1;
-                Ok(ProcessId(pid))
-            }
-        }
-    }
-
-    pub fn insert(&mut self, pid: ProcessId, proc: ProcessRef) -> Option<ProcessRef> {
-        self.map.insert(pid, proc)
-    }
-
-    pub fn remove(&mut self, pid: ProcessId) -> Option<ProcessRef> {
-        self.map.remove(&pid)
-    }
-}
-
 #[derive(Clone, Debug)]
-pub struct ProcessRef(Arc<RwLock<Process>>);
+pub struct ProcessRef(pub Arc<RwLock<Process>>);
 
 impl ProcessRef {
     pub fn new(proc: Process) -> ProcessRef {
@@ -175,11 +117,19 @@ impl ProcessRef {
     pub fn write<'a>(&'a self) -> RwLockWriteGuard<'a, Process> {
         self.0.write()
     }
+
+    pub fn set_state(&self, state: State) {
+        self.write().state = state;
+    }
+
+    pub fn state(&self) -> State {
+        self.read().state
+    }
 }
 
 impl Ord for ProcessRef {
     fn cmp(&self, other: &ProcessRef) -> cmp::Ordering {
-        self.0.read().priority.cmp(&other.0.read().priority)
+        self.read().priority.cmp(&other.read().priority)
     }
 }
 
@@ -193,6 +143,6 @@ impl Eq for ProcessRef {}
 
 impl PartialEq for ProcessRef {
     fn eq(&self, other: &ProcessRef) -> bool {
-        self.0.read().priority == other.0.read().priority
+        self.read().priority == other.0.read().priority
     }
 }

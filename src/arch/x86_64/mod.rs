@@ -1,12 +1,9 @@
 use os_bootinfo::BootInfo;
 use x86_64::structures::paging::{PageTable, RecursivePageTable};
 
-#[macro_use]
-pub mod console;
 pub mod context;
 mod device;
-mod gdt;
-mod idt;
+pub mod idt;
 pub mod interrupts;
 pub mod memory;
 

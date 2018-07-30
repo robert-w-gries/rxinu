@@ -57,8 +57,13 @@ exception!(device_not_available, _stack, {
     kprintln!("\nDevice Not Available Fault");
 });
 
-exception!(double_fault, stack, error, {
-    kprintln!("\nDouble Fault: {}|{:#?}", error, stack);
+exception!(double_fault, stack, _error, {
+    kprintln!("\nDouble Fault: {:#?}", stack);
+    loop {
+        unsafe {
+            x86_64::interrupts::halt();
+        }
+    }
 });
 
 exception!(invalid_tss, _stack, _error, {
