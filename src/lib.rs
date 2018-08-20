@@ -5,15 +5,10 @@
     alloc_error_handler,
     asm,
     const_fn,
-    const_max_value,
-    const_unique_new,
-    const_atomic_usize_new,
-    const_fn,
     global_asm,
     lang_items,
     naked_functions,
     ptr_internals,
-    unique
 )]
 #![no_std]
 
