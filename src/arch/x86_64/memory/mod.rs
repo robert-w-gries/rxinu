@@ -1,4 +1,4 @@
-use os_bootinfo::BootInfo;
+use bootloader_precompiled::bootinfo::BootInfo;
 use x86_64::structures::paging::{
     FrameAllocator, MapToError, Mapper, Page, PageTableFlags, RecursivePageTable, Size4KiB,
 };

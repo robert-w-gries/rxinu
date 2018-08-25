@@ -1,4 +1,4 @@
-use os_bootinfo::{FrameRange, MemoryMap, MemoryRegionType};
+use bootloader_precompiled::bootinfo::{FrameRange, MemoryMap, MemoryRegionType};
 use x86_64::structures::paging::{
     FrameAllocator, FrameDeallocator, PhysFrame, PhysFrameRange, Size4KiB,
 };
