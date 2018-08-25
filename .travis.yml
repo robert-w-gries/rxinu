@@ -17,4 +17,5 @@ before_script:
 
 script:
   - cargo +nightly fmt -- --check
-  - bootimage build --target x86_64-rxinu.json
+  - bootimage build
+  - bootimage test
