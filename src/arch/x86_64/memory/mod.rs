@@ -17,9 +17,7 @@ pub fn init<'a>(
 ) -> MemoryController<'a> {
     assert_has_not_been_called!("memory::init must be called only once");
 
-    kprintln!("TEST");
     let mut frame_allocator = AreaFrameAllocator::new(&boot_info.memory_map);
-    kprintln!("DONE");
 
     use self::heap::{HEAP_SIZE, HEAP_START};
 
