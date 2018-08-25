@@ -25,8 +25,8 @@ extern crate lazy_static;
 extern crate once;
 
 extern crate bit_field;
+extern crate bootloader_precompiled;
 extern crate linked_list_allocator;
-extern crate os_bootinfo;
 extern crate rlibc;
 extern crate spin;
 extern crate volatile;
@@ -59,17 +59,6 @@ pub unsafe fn exit_qemu() {
 
     let mut port = Port::<u32>::new(0xf4);
     port.write(0);
-}
-
-#[cfg(not(test))]
-#[lang = "eh_personality"]
-#[no_mangle]
-pub extern "C" fn eh_personality() {}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn _Unwind_Resume() -> ! {
-    loop {}
 }
 
 #[alloc_error_handler]

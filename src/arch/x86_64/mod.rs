@@ -1,4 +1,4 @@
-use os_bootinfo::BootInfo;
+use bootloader_precompiled::bootinfo::BootInfo;
 use x86_64::structures::paging::{PageTable, RecursivePageTable};
 
 pub mod context;
@@ -9,10 +9,6 @@ pub mod memory;
 
 pub fn init(boot_info_address: usize) {
     let boot_info: &BootInfo = unsafe { &*(boot_info_address as *mut BootInfo) };
-
-    if boot_info.check_version().is_err() {
-        panic!("os_bootinfo version passed by bootloader does not match crate version!");
-    }
 
     for region in boot_info.memory_map.iter() {
         kprintln!("{:?}", region);
