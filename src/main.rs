@@ -1,4 +1,4 @@
-#![feature(alloc, alloc_error_handler, lang_items, panic_implementation)]
+#![feature(alloc, alloc_error_handler, lang_items, panic_handler)]
 #![no_std]
 #![cfg_attr(not(test), no_main)]
 #![cfg_attr(test, allow(dead_code, unused_macros, unused_imports))]
@@ -48,7 +48,7 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
 }
 
 #[cfg(not(test))]
-#[panic_implementation]
+#[panic_handler]
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
     kprintln!("{}", info);

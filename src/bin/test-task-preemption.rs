@@ -1,4 +1,4 @@
-#![feature(alloc, panic_implementation)]
+#![feature(alloc, panic_handler)]
 #![feature(const_fn)]
 #![no_std]
 #![cfg_attr(not(test), no_main)]
@@ -50,7 +50,7 @@ pub extern "C" fn loop_process() {
 }
 
 #[cfg(not(test))]
-#[panic_implementation]
+#[panic_handler]
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
     unsafe {
