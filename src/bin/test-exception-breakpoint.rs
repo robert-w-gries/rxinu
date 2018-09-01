@@ -1,4 +1,4 @@
-#![feature(panic_implementation)]
+#![feature(panic_handler)]
 #![feature(abi_x86_interrupt)]
 #![no_std]
 #![cfg_attr(not(test), no_main)]
@@ -45,7 +45,7 @@ pub extern "C" fn _start() -> ! {
 
 /// This function is called on panic.
 #[cfg(not(test))]
-#[panic_implementation]
+#[panic_handler]
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
     serial_println!("failed");
