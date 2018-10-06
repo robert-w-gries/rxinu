@@ -1,4 +1,3 @@
-#![feature(panic_handler)]
 #![feature(abi_x86_interrupt)]
 #![no_std]
 #![cfg_attr(not(test), no_main)]
