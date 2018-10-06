@@ -26,7 +26,8 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
         alloc::string::String::from("test process!"),
         0,
         test_process,
-    ).unwrap();
+    )
+    .unwrap();
 
     let _ = rxinu::syscall::yield_cpu().unwrap();
 

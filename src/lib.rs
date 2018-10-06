@@ -8,7 +8,7 @@
     global_asm,
     lang_items,
     naked_functions,
-    ptr_internals,
+    ptr_internals
 )]
 #![no_std]
 
