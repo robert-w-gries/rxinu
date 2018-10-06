@@ -1,4 +1,3 @@
-#![feature(panic_handler)] // required for defining the panic handler
 #![feature(const_fn)]
 #![no_std] // don't link the Rust standard library
 #![cfg_attr(not(test), no_main)] // disable all Rust-level entry points
