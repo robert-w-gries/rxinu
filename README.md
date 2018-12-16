@@ -11,14 +11,15 @@ rustup default nightly
 rustup component add rust-src
 cargo install cargo-xbuild
 cargo install bootimage
+bootimage run
 ```
 
 ## Running
 
-### Quick Run (Qemu)
+### qemu
 
 ```bash
-bootimage run --target x86_64-rxinu
+bootimage run
 ```
 
 ### Other methods
@@ -46,6 +47,7 @@ rust-gdb target/x86_64-rxinu/debug/rxinu -ex "target remote :1234"
   * IRQ
 * Scheduling
   * Cooperative Scheduler
+  * Preemptive Scheduler
 * Device Drivers
   * PIC
   * PIT
