@@ -2,7 +2,7 @@
 
 use core::fmt;
 use core::ptr::Unique;
-use sync::IrqLock;
+use crate::sync::IrqLock;
 use volatile::Volatile;
 
 const MAX_HEIGHT: usize = 25;

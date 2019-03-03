@@ -1,5 +1,5 @@
 use spin::Mutex;
-use syscall::io::{Io, Port};
+use crate::syscall::io::{Io, Port};
 
 /// Our global keyboard state, protected by a mutex.
 static CONTROLLER: Mutex<Port<u8>> = Mutex::new(Port::new(0x64));

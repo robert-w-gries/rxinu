@@ -10,6 +10,7 @@ extern crate rxinu;
 extern crate alloc;
 extern crate spin;
 
+use bootloader::bootinfo::BootInfo;
 use alloc::string::String;
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -19,11 +20,11 @@ static SUSPENDED_PROC: AtomicBool = AtomicBool::new(false);
 
 #[cfg(not(test))]
 #[no_mangle]
-pub extern "C" fn _start(boot_info_address: usize) -> ! {
+pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     use rxinu::syscall;
 
     unsafe {
-        rxinu::arch::init(boot_info_address);
+        rxinu::arch::init(boot_info);
         rxinu::task::scheduler::init();
     }
 

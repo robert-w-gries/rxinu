@@ -9,6 +9,7 @@ extern crate alloc;
 #[macro_use]
 extern crate rxinu;
 
+use bootloader::bootinfo::BootInfo;
 use core::panic::PanicInfo;
 use rxinu::exit_qemu;
 
@@ -16,9 +17,9 @@ use rxinu::exit_qemu;
 /// named `_start` by default.
 #[cfg(not(test))]
 #[no_mangle] // don't mangle the name of this function
-pub extern "C" fn _start(boot_info_address: usize) -> ! {
+pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     unsafe {
-        rxinu::arch::init(boot_info_address);
+        rxinu::arch::init(boot_info);
         rxinu::task::scheduler::init();
     }
 

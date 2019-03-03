@@ -4,7 +4,7 @@ pub mod bump_allocator;
 use core::alloc::{Alloc, GlobalAlloc, Layout};
 use core::ptr::NonNull;
 use linked_list_allocator::Heap;
-use sync::IrqLock;
+use crate::sync::IrqLock;
 
 pub const HEAP_START: u64 = 0o_000_001_000_000_0000;
 pub const HEAP_SIZE: u64 = 1024 * 1024; // 1 MB

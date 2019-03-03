@@ -1,25 +1,26 @@
-#![feature(alloc, alloc_error_handler, lang_items)]
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 #![cfg_attr(not(test), no_main)]
-#![cfg_attr(test, allow(dead_code, unused_macros, unused_imports))]
+#![cfg_attr(test, allow(unused_imports))]
+#![feature(alloc)]
 
 #[macro_use]
 extern crate rxinu;
 extern crate alloc;
 
 use alloc::string::String;
+use bootloader::{bootinfo::BootInfo, entry_point};
 use core::panic::PanicInfo;
 use rxinu::{arch, device, syscall, task};
 
+entry_point!(kernel_main);
+
 #[cfg(not(test))]
 #[no_mangle]
-/// Entry point for rust code
-pub extern "C" fn _start(boot_info_address: usize) -> ! {
+fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use arch::memory::heap::{HEAP_SIZE, HEAP_START};
 
-    arch::init(boot_info_address);
-
     unsafe {
+        arch::init(boot_info);
         task::scheduler::init();
         arch::interrupts::clear_mask();
     }
@@ -49,7 +50,6 @@ pub extern "C" fn _start(boot_info_address: usize) -> ! {
 
 #[cfg(not(test))]
 #[panic_handler]
-#[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
     kprintln!("{}", info);
 
@@ -58,15 +58,4 @@ pub fn panic(info: &PanicInfo) -> ! {
             arch::interrupts::halt();
         }
     }
-}
-
-#[cfg(not(test))]
-#[lang = "eh_personality"]
-#[no_mangle]
-pub extern "C" fn eh_personality() {}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn _Unwind_Resume() -> ! {
-    loop {}
 }

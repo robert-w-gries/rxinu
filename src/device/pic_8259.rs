@@ -1,5 +1,5 @@
 use spin::Mutex;
-use syscall::io::{Io, Port};
+use crate::syscall::io::{Io, Port};
 
 pub static MASTER: Mutex<Pic> = Mutex::new(Pic::new(0x20));
 pub static SLAVE: Mutex<Pic> = Mutex::new(Pic::new(0xA0));

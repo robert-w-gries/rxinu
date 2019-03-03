@@ -1,20 +1,19 @@
 [package]
-
 name = "rxinu"
 version = "0.1.0"
 authors = [ "robert.w.gries@gmail.com" ]
 license = "MIT OR Apache-2.0"
+edition = "2018"
 
 [dependencies]
 bit_field = "0.7.0"
 bitflags = "1.0.1"
-bootloader_precompiled = "0.3.0"
+bootloader= "0.3.0"
 linked_list_allocator = "0.6.0"
-once = "0.3.2"
 rlibc = "1.0.0"
 spin = "0.4.6"
 volatile = "0.1.0"
-x86_64 = "0.2.0"
+x86_64 = "0.4.0"
 
 [dependencies.lazy_static]
 version = "1.0.1"

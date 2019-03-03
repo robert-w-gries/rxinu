@@ -1,4 +1,4 @@
-use arch::x86_64::interrupts::{exception, irq};
+use crate::arch::x86_64::interrupts::{exception, irq};
 use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector};
 use x86_64::structures::idt::InterruptDescriptorTable;
 use x86_64::structures::tss::TaskStateSegment;

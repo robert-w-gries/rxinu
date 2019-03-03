@@ -1,51 +1,50 @@
-use bootloader_precompiled::bootinfo::{FrameRange, MemoryMap, MemoryRegionType};
+use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use x86_64::PhysAddr;
 use x86_64::structures::paging::{
-    FrameAllocator, FrameDeallocator, PhysFrame, PhysFrameRange, Size4KiB,
+    FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB,
 };
 
-pub struct AreaFrameAllocator {
-    memory_map: MemoryMap,
+pub struct AreaFrameAllocator<I>
+where
+    I: Iterator<Item = PhysFrame>
+{
+    frames: I,
 }
 
-impl AreaFrameAllocator {
-    pub fn new(memory_map: &MemoryMap) -> Self {
-        let mut mm = MemoryMap::new();
-        for reg in memory_map.iter() {
-            mm.add_region(reg.clone());
-        }
+pub fn init_frame_allocator(
+    memory_map: &'static MemoryMap
+) -> AreaFrameAllocator<impl Iterator<Item = PhysFrame>> {
+    let regions = memory_map
+        .iter()
+        .filter(|r| r.region_type == MemoryRegionType::Usable);
 
-        AreaFrameAllocator { memory_map: mm }
+    // map each region to its address range
+    let addr_ranges = regions.map(|r| r.range.start_addr()..r.range.end_addr());
+
+    // transform to an iterator of frame start addresses
+    let frame_addresses = addr_ranges.flat_map(|r| r.into_iter().step_by(4096));
+
+    // create `PhysFrame` types from the start addresses
+    let frames = frame_addresses.map(|addr| PhysFrame::containing_address(PhysAddr::new(addr)));
+
+    AreaFrameAllocator { frames }
+}
+
+impl<I> FrameAllocator<Size4KiB> for AreaFrameAllocator<I>
+where
+    I: Iterator<Item = PhysFrame>
+{
+    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
+        self.frames.next()
     }
 }
 
-impl FrameAllocator<Size4KiB> for AreaFrameAllocator {
-    fn alloc(&mut self) -> Option<PhysFrame<Size4KiB>> {
-        let region = &mut self
-            .memory_map
-            .iter_mut()
-            .filter(|region| region.region_type == MemoryRegionType::Usable)
-            .next();
-
-        let frame_range: &mut FrameRange = &mut region
-            .as_mut()
-            .expect("Could not find usable memory region")
-            .range;
-
-        let mut phys_range = PhysFrameRange::<Size4KiB>::from(*frame_range);
-
-        if let Some(frame) = phys_range.next() {
-            frame_range.start_frame_number =
-                phys_range.start.start_address().as_u64() / frame.size();
-            Some(frame)
-        } else {
-            None
-        }
-    }
-}
-
-impl FrameDeallocator<Size4KiB> for AreaFrameAllocator {
+impl<I> FrameDeallocator<Size4KiB> for AreaFrameAllocator<I>
+where
+    I: Iterator<Item = PhysFrame>
+{
     #[allow(unused)]
-    fn dealloc(&mut self, frame: PhysFrame<Size4KiB>) {
+    fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
         unimplemented!()
     }
 }

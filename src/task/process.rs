@@ -1,18 +1,18 @@
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use arch::context::Context;
 use core::cmp;
 use core::fmt;
 use spin::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+
+use crate::arch::context::Context;
+use crate::task::scheduler::{global_sched, Scheduling};
 
 /// Once the process it completed, kill it
 ///
 /// When a process returns, it pops an instruction pointer off the stack then jumps to it
 /// The instruction pointer on the stack points to this function
 pub unsafe extern "C" fn process_ret() {
-    use task::scheduler::{global_sched, Scheduling};
-
     let curr_id: ProcessId = global_sched().get_pid();
     global_sched().kill(curr_id).unwrap();
 }

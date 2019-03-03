@@ -1,7 +1,8 @@
-use arch::interrupts;
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut, Drop};
-use core::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
+use core::sync::atomic::{AtomicBool, Ordering};
+
+use crate::arch::interrupts;
 
 pub struct IrqLock<T: ?Sized> {
     data: UnsafeCell<T>,
@@ -105,7 +106,7 @@ unsafe impl<T: ?Sized + Send> Send for IrqSpinLock<T> {}
 impl<T> IrqSpinLock<T> {
     pub const fn new(data: T) -> IrqSpinLock<T> {
         IrqSpinLock {
-            lock: ATOMIC_BOOL_INIT,
+            lock: AtomicBool::new(false),
             data: UnsafeCell::new(data),
         }
     }

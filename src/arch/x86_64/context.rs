@@ -1,6 +1,8 @@
 use core::mem;
 use x86_64::registers::rflags::RFlags;
 
+use crate::task::process::process_ret;
+
 global_asm!(include_str!("context_switch.asm"));
 
 extern "C" {
@@ -47,7 +49,7 @@ impl Context {
         };
 
         unsafe {
-            ctx.push_stack(::task::process::process_ret as usize);
+            ctx.push_stack(process_ret as usize);
             ctx.push_stack(proc_entry);
         }
 

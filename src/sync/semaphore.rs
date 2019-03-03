@@ -1,8 +1,9 @@
 use alloc::collections::VecDeque;
-use arch::interrupts;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use syscall::error::Error;
-use task::{global_sched, ProcessId, Scheduling, State};
+
+use crate::arch::interrupts;
+use crate::syscall::error::Error;
+use crate::task::{global_sched, ProcessId, Scheduling, State};
 
 #[derive(Debug)]
 pub struct Semaphore {
