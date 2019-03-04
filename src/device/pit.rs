@@ -1,5 +1,5 @@
-use spin::Mutex;
 use crate::syscall::io::{Io, Port};
+use spin::Mutex;
 
 /// Operate in channel 0. Use mode 3, and operate with lobyte/hibyte.
 const PIT_SET: u8 = 0x36;

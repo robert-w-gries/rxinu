@@ -1,8 +1,8 @@
-use alloc::collections::VecDeque;
-use core::fmt::{self, Write};
 use crate::device::{BufferedDevice, InputDevice};
 use crate::sync::IrqLock;
 use crate::syscall::io::{Io, Port, ReadOnly};
+use alloc::collections::VecDeque;
+use core::fmt::{self, Write};
 
 const SERIAL_PORT1: u16 = 0x3F8;
 const SERIAL_PORT2: u16 = 0x2F8;

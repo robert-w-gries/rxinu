@@ -1,6 +1,7 @@
 use bootloader::bootinfo::BootInfo;
 use x86_64::structures::paging::{
-    FrameAllocator, MapToError, Mapper, Page, PageTable, PageTableFlags, PhysFrame, RecursivePageTable, Size4KiB,
+    FrameAllocator, MapToError, Mapper, Page, PageTable, PageTableFlags, PhysFrame,
+    RecursivePageTable, Size4KiB,
 };
 use x86_64::VirtAddr;
 

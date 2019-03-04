@@ -10,8 +10,8 @@ extern crate rxinu;
 extern crate alloc;
 extern crate spin;
 
-use bootloader::bootinfo::BootInfo;
 use alloc::string::String;
+use bootloader::bootinfo::BootInfo;
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicBool, Ordering};
 use rxinu::exit_qemu;

@@ -1,14 +1,8 @@
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
+use crate::device::keyboard::{Key, Key::*, KeyEvent, Modifier::*, STATE};
 use crate::device::{ps2_controller_8042, BufferedDevice, InputDevice};
-use crate::device::keyboard::{
-    Key::*,
-    Modifier::*,
-    Key,
-    KeyEvent,
-    STATE,
-};
 use crate::sync::IrqLock;
 
 pub static PS2_KEYBOARD: IrqLock<Ps2> = IrqLock::new(Ps2::new());

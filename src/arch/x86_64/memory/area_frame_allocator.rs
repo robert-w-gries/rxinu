@@ -1,18 +1,16 @@
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
 use x86_64::PhysAddr;
-use x86_64::structures::paging::{
-    FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB,
-};
 
 pub struct AreaFrameAllocator<I>
 where
-    I: Iterator<Item = PhysFrame>
+    I: Iterator<Item = PhysFrame>,
 {
     frames: I,
 }
 
 pub fn init_frame_allocator(
-    memory_map: &'static MemoryMap
+    memory_map: &'static MemoryMap,
 ) -> AreaFrameAllocator<impl Iterator<Item = PhysFrame>> {
     let regions = memory_map
         .iter()
@@ -32,7 +30,7 @@ pub fn init_frame_allocator(
 
 impl<I> FrameAllocator<Size4KiB> for AreaFrameAllocator<I>
 where
-    I: Iterator<Item = PhysFrame>
+    I: Iterator<Item = PhysFrame>,
 {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
         self.frames.next()
@@ -41,7 +39,7 @@ where
 
 impl<I> FrameDeallocator<Size4KiB> for AreaFrameAllocator<I>
 where
-    I: Iterator<Item = PhysFrame>
+    I: Iterator<Item = PhysFrame>,
 {
     #[allow(unused)]
     fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {

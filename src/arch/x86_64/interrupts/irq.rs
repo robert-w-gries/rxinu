@@ -1,10 +1,6 @@
 use x86_64::structures::idt::ExceptionStackFrame;
 
-use crate::device::{
-    keyboard::ps2::PS2_KEYBOARD,
-    pic_8259 as pic,
-    uart_16550 as serial,
-};
+use crate::device::{keyboard::ps2::PS2_KEYBOARD, pic_8259 as pic, uart_16550 as serial};
 use crate::task::scheduler::{global_sched, Scheduling};
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
