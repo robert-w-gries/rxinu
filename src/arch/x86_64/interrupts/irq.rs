@@ -1,8 +1,7 @@
-use device::keyboard::ps2::PS2_KEYBOARD;
-use device::pic_8259 as pic;
-use device::uart_16550 as serial;
-use task::scheduler::{global_sched, Scheduling};
 use x86_64::structures::idt::ExceptionStackFrame;
+
+use crate::device::{keyboard::ps2::PS2_KEYBOARD, pic_8259 as pic, uart_16550 as serial};
+use crate::task::scheduler::{global_sched, Scheduling};
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
     pic::MASTER.lock().ack();
@@ -10,8 +9,7 @@ pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStackFrame) {
-    use device::ps2_controller_8042;
-    use device::BufferedDevice;
+    use crate::device::{ps2_controller_8042, BufferedDevice};
 
     // Read a single scancode off our keyboard port.
     let code = ps2_controller_8042::key_read();

@@ -4,7 +4,7 @@ macro_rules! kprint {
             #[cfg(feature = "vga")]
             {
                 use core::fmt::Write;
-                use $crate::device::vga::VGA;
+                use crate::device::vga::VGA;
 
                 let _ = VGA.lock().write_fmt(format_args!($($arg)*));
             }
@@ -21,13 +21,13 @@ macro_rules! kprintln {
 pub fn clear_screen() {
     #[cfg(feature = "serial")]
     {
-        use device::uart_16550::COM1;
+        use crate::device::uart_16550::COM1;
         COM1.lock().clear_screen();
     }
 
     #[cfg(feature = "vga")]
     {
-        use device::vga::VGA;
+        use crate::device::vga::VGA;
         VGA.lock().clear_screen();
     }
 }

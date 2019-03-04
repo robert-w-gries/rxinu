@@ -1,14 +1,15 @@
 use alloc::collections::BinaryHeap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use arch::context::Context;
-use arch::interrupts;
 use core::ops::DerefMut;
-use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use sync::IrqSpinLock;
-use syscall::error::Error;
-use task::scheduler::{ProcessTable, Scheduling};
-use task::{Process, ProcessId, ProcessRef, State};
+use core::sync::atomic::{AtomicUsize, Ordering};
+
+use crate::arch::context::Context;
+use crate::arch::interrupts;
+use crate::sync::IrqSpinLock;
+use crate::syscall::error::Error;
+use crate::task::scheduler::{ProcessTable, Scheduling};
+use crate::task::{Process, ProcessId, ProcessRef, State};
 
 pub struct Preemptive {
     current_pid: AtomicUsize,
@@ -194,7 +195,7 @@ impl Preemptive {
                 proc_table: ProcessTable::new(),
                 ready_list: BinaryHeap::<ProcessRef>::new(),
             }),
-            ticks: ATOMIC_USIZE_INIT,
+            ticks: AtomicUsize::new(0),
         }
     }
 

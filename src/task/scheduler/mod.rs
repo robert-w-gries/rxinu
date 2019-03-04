@@ -1,9 +1,9 @@
+use crate::syscall::error::Error;
+use crate::task::process::{Process, ProcessId, ProcessRef};
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::sync::Arc;
 use spin::{Once, RwLock};
-use syscall::error::Error;
-use task::process::{Process, ProcessId, ProcessRef};
 
 mod cooperative;
 mod preemptive;
@@ -65,7 +65,7 @@ impl ProcessTable {
     }
 
     pub fn next_pid(&mut self) -> Result<ProcessId, Error> {
-        use task::MAX_PID;
+        use crate::task::MAX_PID;
 
         while self.map.contains_key(&ProcessId(self.next_pid)) && self.next_pid < MAX_PID {
             self.next_pid += 1;

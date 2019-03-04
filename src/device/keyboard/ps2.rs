@@ -1,10 +1,9 @@
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
-use device::keyboard::Key::*;
-use device::keyboard::Modifier::*;
-use device::keyboard::{Key, KeyEvent, STATE};
-use device::{BufferedDevice, InputDevice};
-use sync::IrqLock;
+
+use crate::device::keyboard::{Key, Key::*, KeyEvent, Modifier::*, STATE};
+use crate::device::{ps2_controller_8042, BufferedDevice, InputDevice};
+use crate::sync::IrqLock;
 
 pub static PS2_KEYBOARD: IrqLock<Ps2> = IrqLock::new(Ps2::new());
 
@@ -52,7 +51,6 @@ fn retrieve_bytes(scancode: u8) -> u64 {
     // if byte is start of sequence, start reading bytes until end of sequence
     // TODO: Design system that reads more than two bytes
     if scancode == 0xE0 || scancode == 0xE1 {
-        use device::ps2_controller_8042;
         let check_byte: u8 = ps2_controller_8042::key_read();
         if let Some(byte) = is_special_key(check_byte) {
             byte_sequence.push(byte);

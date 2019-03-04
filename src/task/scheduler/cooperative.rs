@@ -2,13 +2,15 @@
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
-use arch::context::Context;
 use core::ops::DerefMut;
-use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use sync::IrqSpinLock;
-use syscall::error::Error;
-use task::scheduler::{ProcessTable, Scheduling};
-use task::{Process, ProcessId, ProcessRef, State};
+use core::sync::atomic::{AtomicUsize, Ordering};
+
+use crate::arch::context::Context;
+use crate::arch::interrupts;
+use crate::sync::IrqSpinLock;
+use crate::syscall::error::Error;
+use crate::task::scheduler::{ProcessTable, Scheduling};
+use crate::task::{Process, ProcessId, ProcessRef, State};
 
 pub struct Cooperative {
     current_pid: AtomicUsize,
@@ -150,17 +152,7 @@ impl Scheduling for Cooperative {
     }
 
     fn tick(&self) {
-        use arch::interrupts;
-
-        //This counter variable is updated every time an timer interrupt occurs. The timer is set to
-        //interrupt every 2ms, so this means a reschedule will occur if 20ms have passed.
-        if self.ticks.fetch_add(1, Ordering::SeqCst) >= 10 {
-            self.ticks.store(0, Ordering::SeqCst);
-
-            interrupts::disable_then_execute(|| unsafe {
-                self.resched().unwrap();
-            });
-        }
+        // ticks don't matter for cooperative scheduling
     }
 
     fn unready(&self, pid: ProcessId) -> Result<(), Error> {
@@ -183,7 +175,7 @@ impl Cooperative {
                 proc_table: ProcessTable::new(),
                 ready_list: VecDeque::<ProcessId>::new(),
             }),
-            ticks: ATOMIC_USIZE_INIT,
+            ticks: AtomicUsize::new(0),
         }
     }
 

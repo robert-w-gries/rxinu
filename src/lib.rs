@@ -21,17 +21,6 @@ extern crate bitflags;
 #[macro_use]
 extern crate lazy_static;
 
-#[macro_use]
-extern crate once;
-
-extern crate bit_field;
-extern crate bootloader_precompiled;
-extern crate linked_list_allocator;
-extern crate rlibc;
-extern crate spin;
-extern crate volatile;
-extern crate x86_64;
-
 #[cfg(test)]
 extern crate array_init;
 #[cfg(test)]

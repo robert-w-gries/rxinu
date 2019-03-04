@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
+use crate::sync::IrqLock;
 use core::fmt;
 use core::ptr::Unique;
-use sync::IrqLock;
 use volatile::Volatile;
 
 const MAX_HEIGHT: usize = 25;

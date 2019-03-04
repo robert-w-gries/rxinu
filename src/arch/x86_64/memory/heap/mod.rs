@@ -1,10 +1,10 @@
 /// Use allocator wrapper, similar to what le-jzr/sisyphos-kernel-uefi-x86_64 uses
 pub mod bump_allocator;
 
+use crate::sync::IrqLock;
 use core::alloc::{Alloc, GlobalAlloc, Layout};
 use core::ptr::NonNull;
 use linked_list_allocator::Heap;
-use sync::IrqLock;
 
 pub const HEAP_START: u64 = 0o_000_001_000_000_0000;
 pub const HEAP_SIZE: u64 = 1024 * 1024; // 1 MB

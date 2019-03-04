@@ -1,6 +1,7 @@
-use bootloader_precompiled::bootinfo::BootInfo;
+use bootloader::bootinfo::BootInfo;
 use x86_64::structures::paging::{
-    FrameAllocator, MapToError, Mapper, Page, PageTableFlags, RecursivePageTable, Size4KiB,
+    FrameAllocator, MapToError, Mapper, Page, PageTable, PageTableFlags, PhysFrame,
+    RecursivePageTable, Size4KiB,
 };
 use x86_64::VirtAddr;
 
@@ -11,13 +12,12 @@ mod area_frame_allocator;
 pub mod heap;
 mod stack_allocator;
 
-pub fn init<'a>(
-    boot_info: &BootInfo,
-    mut rec_page_table: RecursivePageTable<'a>,
-) -> MemoryController<'a> {
-    assert_has_not_been_called!("memory::init must be called only once");
+pub fn init(boot_info: &'static BootInfo) -> MemoryController<impl Iterator<Item = PhysFrame>> {
+    let level_4_table_ptr = boot_info.p4_table_addr as usize as *mut PageTable;
+    let level_4_table = unsafe { &mut *level_4_table_ptr };
+    let mut rec_page_table = RecursivePageTable::new(level_4_table).unwrap();
 
-    let mut frame_allocator = AreaFrameAllocator::new(&boot_info.memory_map);
+    let mut frame_allocator = area_frame_allocator::init_frame_allocator(&boot_info.memory_map);
 
     use self::heap::{HEAP_SIZE, HEAP_START};
 
@@ -54,23 +54,31 @@ where
     A: FrameAllocator<Size4KiB>,
 {
     let frame = frame_allocator
-        .alloc()
+        .allocate_frame()
         .expect("OOM - Cannot allocate frame");
 
-    page_table
-        .map_to(page, frame, flags, frame_allocator)?
-        .flush();
+    unsafe {
+        page_table
+            .map_to(page, frame, flags, frame_allocator)?
+            .flush();
+    }
 
     Ok(())
 }
 
-pub struct MemoryController<'a> {
+pub struct MemoryController<'a, I>
+where
+    I: Iterator<Item = PhysFrame>,
+{
     page_table: RecursivePageTable<'a>,
-    frame_allocator: AreaFrameAllocator,
+    frame_allocator: AreaFrameAllocator<I>,
     stack_allocator: stack_allocator::StackAllocator,
 }
 
-impl<'a> MemoryController<'a> {
+impl<'a, I> MemoryController<'a, I>
+where
+    I: Iterator<Item = PhysFrame>,
+{
     pub fn alloc_stack(&mut self, size_in_pages: usize) -> Option<Stack> {
         let &mut MemoryController {
             ref mut page_table,

@@ -10,6 +10,7 @@ extern crate rxinu;
 extern crate alloc;
 extern crate spin;
 
+use bootloader::bootinfo::BootInfo;
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use rxinu::exit_qemu;
@@ -18,18 +19,18 @@ static EXECUTED: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(not(test))]
 #[no_mangle]
-pub extern "C" fn _start(boot_info_address: usize) -> ! {
+pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     use rxinu::syscall;
 
     unsafe {
-        rxinu::arch::init(boot_info_address);
+        rxinu::arch::init(boot_info);
         rxinu::task::scheduler::init();
         rxinu::arch::interrupts::clear_mask();
     }
 
     // Scheduler task selection => process1, process2, NULL_PROCESS
-    let _ = syscall::create(alloc::string::String::from("process1"), 1, loop_process).unwrap();
-    let _ = syscall::create(alloc::string::String::from("process2"), 1, loop_process).unwrap();
+    let _ = syscall::create(alloc::string::String::from("process1"), 11, loop_process).unwrap();
+    let _ = syscall::create(alloc::string::String::from("process2"), 10, loop_process).unwrap();
 
     let _ = syscall::yield_cpu().unwrap();
 

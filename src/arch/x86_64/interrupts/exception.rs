@@ -1,5 +1,6 @@
-use arch::x86_64;
 use x86_64::structures::idt::{ExceptionStackFrame, PageFaultErrorCode};
+
+use crate::arch::x86_64::interrupts::halt;
 
 macro_rules! exception {
     ($x:ident, $stack:ident, $func:block) => {
@@ -48,7 +49,7 @@ exception!(invalid_opcode, _stack, {
     kprintln!("\nInvalid Opcode Fault");
     loop {
         unsafe {
-            x86_64::interrupts::halt();
+            halt();
         }
     }
 });
@@ -61,7 +62,7 @@ exception!(double_fault, stack, _error, {
     kprintln!("\nDouble Fault: {:#?}", stack);
     loop {
         unsafe {
-            x86_64::interrupts::halt();
+            halt();
         }
     }
 });
@@ -82,7 +83,7 @@ exception!(general_protection_fault, _stack, _error, {
     kprintln!("\nGeneral Protection Fault");
     loop {
         unsafe {
-            x86_64::interrupts::halt();
+            halt();
         }
     }
 });
@@ -103,7 +104,7 @@ exception!(page_fault, stack, err, PageFaultErrorCode, {
 
     loop {
         unsafe {
-            x86_64::interrupts::halt();
+            halt();
         }
     }
 });

@@ -1,8 +1,8 @@
+use crate::arch::interrupts;
+use crate::syscall::error::Error;
+use crate::task::scheduler::{global_sched, Scheduling};
+use crate::task::{ProcessId, State};
 use alloc::string::String;
-use arch::interrupts;
-use syscall::error::Error;
-use task::scheduler::{global_sched, Scheduling};
-use task::{ProcessId, State};
 
 /// Wrapper around scheduler.create() and ready() that can be called in processes
 pub fn create(name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
