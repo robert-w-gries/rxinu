@@ -15,7 +15,6 @@ use rxinu::{arch, device, syscall, task};
 entry_point!(kernel_main);
 
 #[cfg(not(test))]
-#[no_mangle]
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use arch::memory::heap::{HEAP_SIZE, HEAP_START};
 

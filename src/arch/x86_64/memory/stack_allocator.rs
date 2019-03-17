@@ -1,7 +1,7 @@
 use crate::arch::x86_64::memory::map_page;
 use x86_64::structures::paging::{
-    FrameAllocator, Page, PageRangeInclusive, PageSize, PageTableFlags, RecursivePageTable,
-    Size4KiB,
+    page::PageRangeInclusive,
+    FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
 };
 
 pub struct StackAllocator {
@@ -17,7 +17,7 @@ impl StackAllocator {
 impl StackAllocator {
     pub fn alloc_stack(
         &mut self,
-        page_table: &mut RecursivePageTable,
+        mapper: &mut impl Mapper<Size4KiB>,
         frame_allocator: &mut impl FrameAllocator<Size4KiB>,
         size_in_pages: usize,
     ) -> Option<Stack> {
@@ -50,7 +50,7 @@ impl StackAllocator {
                         | PageTableFlags::WRITABLE
                         | PageTableFlags::NO_EXECUTE;
 
-                    map_page(page, flags, page_table, frame_allocator)
+                    map_page(mapper, page, flags, frame_allocator)
                         .expect("Stack page mapping failed");
                 }
 

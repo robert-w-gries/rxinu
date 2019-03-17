@@ -1,14 +1,14 @@
-use x86_64::structures::idt::ExceptionStackFrame;
+use x86_64::structures::idt::InterruptStackFrame;
 
 use crate::device::{keyboard::ps2::PS2_KEYBOARD, pic_8259 as pic, uart_16550 as serial};
 use crate::task::scheduler::{global_sched, Scheduling};
 
-pub extern "x86-interrupt" fn timer(_stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn timer(_stack_frame: &mut InterruptStackFrame) {
     pic::MASTER.lock().ack();
     global_sched().tick();
 }
 
-pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut InterruptStackFrame) {
     use crate::device::{ps2_controller_8042, BufferedDevice};
 
     // Read a single scancode off our keyboard port.
@@ -21,16 +21,16 @@ pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut ExceptionStackFrame) {
 }
 
 #[allow(unused_variables)]
-pub extern "x86-interrupt" fn cascade(_stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn cascade(_stack_frame: &mut InterruptStackFrame) {
     pic::MASTER.lock().ack();
 }
 
-pub extern "x86-interrupt" fn com1(_stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn com1(_stack_frame: &mut InterruptStackFrame) {
     serial::COM1.lock().receive();
     pic::MASTER.lock().ack();
 }
 
-pub extern "x86-interrupt" fn com2(_stack_frame: &mut ExceptionStackFrame) {
+pub extern "x86-interrupt" fn com2(_stack_frame: &mut InterruptStackFrame) {
     serial::COM2.lock().receive();
     pic::MASTER.lock().ack();
 }
