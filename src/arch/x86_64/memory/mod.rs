@@ -76,7 +76,7 @@ where
 pub unsafe fn active_level_4_table(physical_memory_offset: u64)
     -> &'static mut PageTable
 {
-    use x86_64::{registers::control::Cr3, VirtAddr};
+    use x86_64::registers::control::Cr3;
 
     let (level_4_table_frame, _) = Cr3::read();
 
