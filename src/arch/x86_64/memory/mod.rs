@@ -3,7 +3,7 @@ use x86_64::structures::paging::{
     mapper::MapToError,
     FrameAllocator, Mapper, MappedPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size4KiB,
 };
-use x86_64::{PhysAddr, VirtAddr};
+use x86_64::VirtAddr;
 
 pub use self::area_frame_allocator::AreaFrameAllocator;
 pub use self::stack_allocator::Stack;

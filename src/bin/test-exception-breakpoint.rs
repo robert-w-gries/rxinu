@@ -57,7 +57,7 @@ pub fn panic(info: &PanicInfo) -> ! {
     loop {}
 }
 
-use x86_64::structures::idt::{ExceptionStackFrame, InterruptDescriptorTable};
+use x86_64::structures::idt::{InterruptStackFrame, InterruptDescriptorTable};
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
@@ -71,6 +71,6 @@ pub fn init_idt() {
     IDT.load();
 }
 
-extern "x86-interrupt" fn breakpoint_handler(_stack_frame: &mut ExceptionStackFrame) {
+extern "x86-interrupt" fn breakpoint_handler(_stack_frame: &mut InterruptStackFrame) {
     BREAKPOINT_HANDLER_CALLED.fetch_add(1, Ordering::SeqCst);
 }
