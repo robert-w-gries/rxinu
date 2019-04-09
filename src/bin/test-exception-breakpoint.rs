@@ -57,7 +57,7 @@ pub fn panic(info: &PanicInfo) -> ! {
     loop {}
 }
 
-use x86_64::structures::idt::{InterruptStackFrame, InterruptDescriptorTable};
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {

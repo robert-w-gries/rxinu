@@ -1,7 +1,7 @@
 use bootloader::bootinfo::BootInfo;
 use x86_64::structures::paging::{
-    mapper::MapToError,
-    FrameAllocator, Mapper, MappedPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size4KiB,
+    mapper::MapToError, FrameAllocator, MappedPageTable, Mapper, Page, PageTable, PageTableFlags,
+    PhysFrame, Size4KiB,
 };
 use x86_64::VirtAddr;
 
@@ -33,8 +33,7 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
 
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-        map_page(&mut mapper, page, flags, &mut frame_allocator)
-            .expect("Heap page mapping failed");
+        map_page(&mut mapper, page, flags, &mut frame_allocator).expect("Heap page mapping failed");
     }
 
     let _stack_allocator = {
@@ -59,9 +58,7 @@ where
         .expect("OOM - Cannot allocate frame");
 
     unsafe {
-        mapper
-            .map_to(page, frame, flags, frame_allocator)?
-            .flush();
+        mapper.map_to(page, frame, flags, frame_allocator)?.flush();
     }
 
     Ok(())
@@ -73,9 +70,7 @@ where
 /// complete physical memory is mapped to virtual memory at the passed
 /// `physical_memory_offset`. Also, this function must be only called once
 /// to avoid aliasing `&mut` references (which is undefined behavior).
-pub unsafe fn active_level_4_table(physical_memory_offset: u64)
-    -> &'static mut PageTable
-{
+pub unsafe fn active_level_4_table(physical_memory_offset: u64) -> &'static mut PageTable {
     use x86_64::registers::control::Cr3;
 
     let (level_4_table_frame, _) = Cr3::read();

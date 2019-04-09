@@ -1,7 +1,6 @@
 use crate::arch::x86_64::memory::map_page;
 use x86_64::structures::paging::{
-    page::PageRangeInclusive,
-    FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
+    page::PageRangeInclusive, FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
 };
 
 pub struct StackAllocator {
