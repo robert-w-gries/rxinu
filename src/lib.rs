@@ -55,6 +55,12 @@ pub fn rust_oom(info: core::alloc::Layout) -> ! {
     panic!("{:?}", info);
 }
 
+#[lang = "eh_personality"]
+#[no_mangle]
+pub extern "C" fn eh_personality() {
+    loop {}
+}
+
 use arch::memory::heap::HeapAllocator;
 
 #[global_allocator]

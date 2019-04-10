@@ -1,20 +1,20 @@
-use x86_64::structures::idt::{ExceptionStackFrame, PageFaultErrorCode};
+use x86_64::structures::idt::{InterruptStackFrame, PageFaultErrorCode};
 
 use crate::arch::x86_64::interrupts::halt;
 
 macro_rules! exception {
     ($x:ident, $stack:ident, $func:block) => {
-        pub extern "x86-interrupt" fn $x($stack: &mut ExceptionStackFrame) {
+        pub extern "x86-interrupt" fn $x($stack: &mut InterruptStackFrame) {
             $func;
         }
     };
     ($x:ident, $stack:ident, $err:ident, $func:block) => {
-        pub extern "x86-interrupt" fn $x($stack: &mut ExceptionStackFrame, $err: u64) {
+        pub extern "x86-interrupt" fn $x($stack: &mut InterruptStackFrame, $err: u64) {
             $func;
         }
     };
     ($x:ident, $stack:ident, $err:ident, $err_type:ty, $func:block) => {
-        pub extern "x86-interrupt" fn $x($stack: &mut ExceptionStackFrame, $err: $err_type) {
+        pub extern "x86-interrupt" fn $x($stack: &mut InterruptStackFrame, $err: $err_type) {
             $func;
         }
     };

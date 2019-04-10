@@ -1,7 +1,7 @@
 use bootloader::bootinfo::BootInfo;
 use x86_64::structures::paging::{
-    FrameAllocator, MapToError, Mapper, Page, PageTable, PageTableFlags, PhysFrame,
-    RecursivePageTable, Size4KiB,
+    mapper::MapToError, FrameAllocator, MappedPageTable, Mapper, Page, PageTable, PageTableFlags,
+    PhysFrame, Size4KiB,
 };
 use x86_64::VirtAddr;
 
@@ -12,10 +12,17 @@ mod area_frame_allocator;
 pub mod heap;
 mod stack_allocator;
 
-pub fn init(boot_info: &'static BootInfo) -> MemoryController<impl Iterator<Item = PhysFrame>> {
-    let level_4_table_ptr = boot_info.p4_table_addr as usize as *mut PageTable;
-    let level_4_table = unsafe { &mut *level_4_table_ptr };
-    let mut rec_page_table = RecursivePageTable::new(level_4_table).unwrap();
+pub unsafe fn init(boot_info: &'static BootInfo) {
+    let mut mapper = {
+        let physical_memory_offset = boot_info.physical_memory_offset;
+        let level_4_table = active_level_4_table(physical_memory_offset);
+        let phys_to_virt = move |frame: PhysFrame| -> *mut PageTable {
+            let phys = frame.start_address().as_u64();
+            let virt = VirtAddr::new(phys + physical_memory_offset);
+            virt.as_mut_ptr()
+        };
+        MappedPageTable::new(level_4_table, phys_to_virt)
+    };
 
     let mut frame_allocator = area_frame_allocator::init_frame_allocator(&boot_info.memory_map);
 
@@ -26,28 +33,21 @@ pub fn init(boot_info: &'static BootInfo) -> MemoryController<impl Iterator<Item
 
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-        map_page(page, flags, &mut rec_page_table, &mut frame_allocator)
-            .expect("Heap page mapping failed");
+        map_page(&mut mapper, page, flags, &mut frame_allocator).expect("Heap page mapping failed");
     }
 
-    let stack_allocator = {
+    let _stack_allocator = {
         let stack_alloc_start = heap_end_page + 1;
         let stack_alloc_end = stack_alloc_start + 100;
         let stack_alloc_range = Page::range_inclusive(stack_alloc_start, stack_alloc_end);
         stack_allocator::StackAllocator::new(stack_alloc_range)
     };
-
-    MemoryController {
-        page_table: rec_page_table,
-        frame_allocator: frame_allocator,
-        stack_allocator: stack_allocator,
-    }
 }
 
 pub fn map_page<'a, A>(
+    mapper: &mut impl Mapper<Size4KiB>,
     page: Page<Size4KiB>,
     flags: PageTableFlags,
-    page_table: &mut RecursivePageTable<'a>,
     frame_allocator: &mut A,
 ) -> Result<(), MapToError>
 where
@@ -58,46 +58,26 @@ where
         .expect("OOM - Cannot allocate frame");
 
     unsafe {
-        page_table
-            .map_to(page, frame, flags, frame_allocator)?
-            .flush();
+        mapper.map_to(page, frame, flags, frame_allocator)?.flush();
     }
 
     Ok(())
 }
 
-pub struct MemoryController<'a, I>
-where
-    I: Iterator<Item = PhysFrame>,
-{
-    page_table: RecursivePageTable<'a>,
-    frame_allocator: AreaFrameAllocator<I>,
-    stack_allocator: stack_allocator::StackAllocator,
-}
+/// Returns a mutable reference to the active level 4 table.
+///
+/// This function is unsafe because the caller must guarantee that the
+/// complete physical memory is mapped to virtual memory at the passed
+/// `physical_memory_offset`. Also, this function must be only called once
+/// to avoid aliasing `&mut` references (which is undefined behavior).
+pub unsafe fn active_level_4_table(physical_memory_offset: u64) -> &'static mut PageTable {
+    use x86_64::registers::control::Cr3;
 
-impl<'a, I> MemoryController<'a, I>
-where
-    I: Iterator<Item = PhysFrame>,
-{
-    pub fn alloc_stack(&mut self, size_in_pages: usize) -> Option<Stack> {
-        let &mut MemoryController {
-            ref mut page_table,
-            ref mut frame_allocator,
-            ref mut stack_allocator,
-        } = self;
-        stack_allocator.alloc_stack(page_table, frame_allocator, size_in_pages)
-    }
-}
+    let (level_4_table_frame, _) = Cr3::read();
 
-#[cfg(test)]
-mod tests {
+    let phys = level_4_table_frame.start_address();
+    let virt = VirtAddr::new(phys.as_u64() + physical_memory_offset);
+    let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
 
-    #[test]
-    #[should_panic]
-    // Stack overflow test that could corrupt memory below stack
-    // Issue: Use stack probes to check required stack pages before function
-    // Tracking: https://github.com/rust-lang/rust/issues/16012
-    fn stack_overflow() {
-        let x = [0; 99999];
-    }
+    &mut *page_table_ptr // unsafe
 }

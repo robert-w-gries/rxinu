@@ -78,7 +78,6 @@ impl ModifierState {
     /// Apply all of our modifiers to character and convert to String
     pub fn apply_to(&self, ascii: u8) -> u8 {
         if self.is_uppercase() {
-            use self::layout;
             layout::us_std::map_to_upper(ascii)
         } else {
             ascii

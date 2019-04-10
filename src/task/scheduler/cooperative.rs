@@ -6,7 +6,6 @@ use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::arch::context::Context;
-use crate::arch::interrupts;
 use crate::sync::IrqSpinLock;
 use crate::syscall::error::Error;
 use crate::task::scheduler::{ProcessTable, Scheduling};

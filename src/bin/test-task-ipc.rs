@@ -22,8 +22,8 @@ use rxinu::task::scheduler::global_sched;
 use rxinu::task::{ProcessId, Scheduling, State};
 
 lazy_static! {
-    static ref SEM: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(2));
     static ref COUNT: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(0));
+    static ref READY: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(0));
 }
 
 #[cfg(not(test))]
@@ -39,17 +39,19 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
 
     let check_state = |p: ProcessId, s: State| global_sched().get_process(p).unwrap().state() == s;
 
-    // Run Process1
+    // Run Process1 - will wait until we signal that we are ready
     let _ = syscall::yield_cpu().unwrap();
 
+    // Ensure that Process1 is waiting then acquire current count
     assert!(check_state(p1, State::Wait));
-    let sem_count = COUNT.lock().count();
+    assert_eq!(COUNT.lock().count(), 0);
 
-    // Process1 runs again then enters WAIT state again
-    SEM.lock().signal().unwrap();
+    // Signal that we are ready and increment count in Process1
+    let _ = READY.lock().signal().unwrap();
 
+    // Process1 should have ran, incremented COUNT, then waited for READY again
     assert!(check_state(p1, State::Wait));
-    assert!(sem_count < COUNT.lock().count());
+    assert_eq!(COUNT.lock().count(), 1);
 
     serial_println!("ok");
     unsafe {
@@ -61,8 +63,8 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
 
 pub extern "C" fn loop_process() {
     loop {
+        let _ = READY.lock().wait().unwrap();
         let _ = COUNT.lock().signal().unwrap();
-        let _ = SEM.lock().wait().unwrap();
     }
 }
 
