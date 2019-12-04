@@ -1,7 +1,6 @@
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(not(test), no_main)]
 #![cfg_attr(test, allow(unused_imports))]
-#![feature(alloc)]
 
 #[macro_use]
 extern crate rxinu;

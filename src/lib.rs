@@ -1,6 +1,5 @@
 #![feature(
     abi_x86_interrupt,
-    alloc,
     allocator_api,
     alloc_error_handler,
     asm,
