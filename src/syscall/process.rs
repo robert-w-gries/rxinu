@@ -2,16 +2,6 @@ use crate::arch::interrupts;
 use crate::syscall::error::Error;
 use crate::task::scheduler::{global_sched, Scheduling};
 use crate::task::{ProcessId, State};
-use alloc::string::String;
-
-/// Wrapper around scheduler.create() and ready() that can be called in processes
-pub fn create(name: String, prio: usize, proc_entry: extern "C" fn()) -> Result<ProcessId, Error> {
-    let pid = global_sched()
-        .create(name, prio, proc_entry)
-        .expect("Could not create new process!");
-    global_sched().ready(pid)?;
-    Ok(pid)
-}
 
 /// Wrapper around scheduler.kill()
 pub fn kill(pid: ProcessId) -> Result<(), Error> {

@@ -24,18 +24,16 @@ struct PreemptiveInner {
 
 impl Scheduling for Preemptive {
     /// Add process to process table
-    fn create(
+    fn add_process(
         &self,
-        name: String,
-        prio: usize,
-        proc_entry: extern "C" fn(),
+        mut proc: Process,
     ) -> Result<ProcessId, Error> {
         let mut inner = self.inner.lock();
 
+        // Allocate stack
         let pid = inner.proc_table.next_pid()?;
-        let proc: Process = Process::new(pid, name, prio, proc_entry);
+        proc.pid = Some(pid);
         inner.proc_table.add(proc)?;
-
         Ok(pid)
     }
 
@@ -120,7 +118,8 @@ impl Scheduling for Preemptive {
                     let mut next_lock = next_ref.write();
 
                     assert!(next_lock.kstack.is_some());
-                    assert!(curr_id != next_lock.pid);
+                    // TODO: don't use unwrap()!
+                    assert!(curr_id != next_lock.pid().unwrap());
 
                     next_lock.set_state(State::Current);
 
@@ -153,7 +152,8 @@ impl Scheduling for Preemptive {
 
             let current_proc: *mut Process = current_ref.write().deref_mut() as *mut Process;
 
-            self.current_pid.store((*next_proc).pid.0, Ordering::SeqCst);
+            // TODO: dont unwrap!
+            self.current_pid.store((*next_proc).pid().unwrap().0, Ordering::SeqCst);
 
             (*current_proc).switch_to(&*next_proc);
 
@@ -180,7 +180,7 @@ impl Scheduling for Preemptive {
             .ready_list
             .clone()
             .into_iter()
-            .filter(|proc_ref| proc_ref.read().pid != pid)
+            .filter(|proc_ref| proc_ref.read().pid().unwrap() != pid) // TODO: dont unwrap!
             .collect();
 
         Ok(())
@@ -202,7 +202,7 @@ impl Preemptive {
     /// Safety: Interrupts must be disabled during this initialization
     pub unsafe fn init(&self) {
         let null_process = Process {
-            pid: ProcessId::NULL_PROCESS,
+            pid: Some(ProcessId::NULL_PROCESS),
             name: String::from("NULL"),
             state: State::Current,
             context: Context::empty(),

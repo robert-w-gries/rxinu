@@ -6,10 +6,9 @@
 extern crate rxinu;
 extern crate alloc;
 
-use alloc::string::String;
 use bootloader::{bootinfo::BootInfo, entry_point};
 use core::panic::PanicInfo;
-use rxinu::{arch, device, syscall, task};
+use rxinu::{arch, device, task};
 
 entry_point!(kernel_main);
 
@@ -26,7 +25,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
-    let _ = syscall::create(String::from("rxinu_main"), 0, rxinu::rxinu_main);
+    task::Process::new("rxinu_main", 0, rxinu::rxinu_main).spawn().expect("Could not spawn process");
 
     loop {
         #[cfg(feature = "serial")]

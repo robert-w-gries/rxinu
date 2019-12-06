@@ -1,11 +1,10 @@
 use crate::syscall::error::Error;
 use crate::task::process::{Process, ProcessId, ProcessRef};
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::sync::Arc;
 use spin::{Once, RwLock};
 
-mod cooperative;
+//mod cooperative;
 mod preemptive;
 
 pub type GlobalScheduler = preemptive::Preemptive;
@@ -13,7 +12,7 @@ pub type GlobalScheduler = preemptive::Preemptive;
 static SCHEDULER: Once<GlobalScheduler> = Once::new();
 
 pub trait Scheduling {
-    fn create(&self, name: String, prio: usize, func: extern "C" fn()) -> Result<ProcessId, Error>;
+    fn add_process(&self, proc: Process) -> Result<ProcessId, Error>;
     fn get_pid(&self) -> ProcessId;
     fn get_process(&self, pid: ProcessId) -> Result<ProcessRef, Error>;
     fn kill(&self, pid: ProcessId) -> Result<(), Error>;
@@ -49,7 +48,7 @@ impl ProcessTable {
     }
 
     pub fn add(&mut self, proc: Process) -> Result<ProcessId, Error> {
-        let pid = proc.pid;
+        let pid = proc.pid().unwrap();
         match self
             .map
             .insert(pid, ProcessRef(Arc::new(RwLock::new(proc))))

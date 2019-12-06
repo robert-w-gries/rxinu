@@ -1,4 +1,5 @@
-use alloc::string::String;
+use alloc::boxed::Box;
+use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::cmp;
@@ -6,6 +7,7 @@ use core::fmt;
 use spin::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::arch::context::Context;
+use crate::syscall::error::Error;
 use crate::task::scheduler::{global_sched, Scheduling};
 
 /// Once the process it completed, kill it
@@ -44,13 +46,13 @@ impl ProcessId {
     }
 }
 
-const PROCESS_STACK_SIZE: usize = 1024 * 4;
+pub const PROCESS_STACK_SIZE: usize = 1024 * 4;
 
 #[derive(Clone)]
 pub struct Process {
     pub context: Context,
     pub kstack: Option<Vec<usize>>,
-    pub pid: ProcessId,
+    pub pid: Option<ProcessId>,
     pub priority: usize,
     pub name: String,
     pub state: State,
@@ -60,10 +62,10 @@ impl fmt::Debug for Process {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = f.debug_struct("Process");
         s.field("context", &self.context);
-        match self.kstack {
-            Some(ref stk) => s.field("kstack", &(stk.as_ptr() as usize)),
-            None => s.field("kstack", &self.kstack),
-        };
+        s.field("kstack", &match self.kstack {
+            Some(ref stk) => Some(stk.as_ptr() as usize),
+            None => None,
+        });
         s.field("pid", &self.pid);
         s.field("priority", &self.priority);
         s.field("name", &self.name);
@@ -74,27 +76,35 @@ impl fmt::Debug for Process {
 
 impl Process {
     pub fn new(
-        id: ProcessId,
-        name: String,
+        name: &str,
         priority: usize,
         proc_entry: extern "C" fn(),
-    ) -> Process {
-        // Allocate stack
+    ) -> Box<Process> {
         let mut stack: Vec<usize> = vec![0; PROCESS_STACK_SIZE];
         let stack_top = unsafe { stack.as_mut_ptr().add(PROCESS_STACK_SIZE) };
 
-        Process {
+        Box::new(Process {
             context: Context::new(stack_top as *mut u8, proc_entry as usize),
             kstack: Some(stack),
-            pid: id,
+            pid: None,
             priority: priority,
-            name: name,
+            name: name.to_string(),
             state: State::Suspended,
-        }
+        })
+    }
+
+    pub fn pid(&self) -> Option<ProcessId> {
+        self.pid
     }
 
     pub fn set_state(&mut self, new_state: State) {
         self.state = new_state;
+    }
+
+    pub fn spawn(self) -> Result<(), Error> {
+        // TODO don't unwrap!
+        let pid = global_sched().add_process(self)?;
+        global_sched().ready(pid)
     }
 
     pub unsafe fn switch_to(&mut self, next: &Process) {
