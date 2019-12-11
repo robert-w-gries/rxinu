@@ -8,14 +8,16 @@ extern crate alloc;
 
 use bootloader::{bootinfo::BootInfo, entry_point};
 use core::panic::PanicInfo;
-use rxinu::{arch, device, task};
+use rxinu::{
+    arch::{self, memory::{HEAP_SIZE, HEAP_START}},
+    device,
+    task
+};
 
 entry_point!(kernel_main);
 
 #[cfg(not(test))]
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
-    use arch::memory::heap::{HEAP_SIZE, HEAP_START};
-
     unsafe {
         arch::init(boot_info);
         task::scheduler::init();
@@ -25,7 +27,8 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
     kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
 
-    task::Process::new("rxinu_main", 0, rxinu::rxinu_main).spawn().expect("Could not spawn process");
+    // TODO: Do we care if the rxinu_main process doesn't run?
+    let _ = task::Process::new("rxinu_main", 0, rxinu::rxinu_main).spawn();
 
     loop {
         #[cfg(feature = "serial")]

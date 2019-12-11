@@ -6,6 +6,7 @@ use x86_64::structures::paging::{
 use x86_64::VirtAddr;
 
 pub use self::area_frame_allocator::AreaFrameAllocator;
+pub use self::heap::{HEAP_SIZE, HEAP_START};
 pub use self::stack_allocator::Stack;
 
 mod area_frame_allocator;
@@ -26,13 +27,11 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
 
     let mut frame_allocator = area_frame_allocator::init_frame_allocator(&boot_info.memory_map);
 
-    use self::heap::{HEAP_SIZE, HEAP_START};
-
     let heap_start_page = Page::containing_address(VirtAddr::new(HEAP_START));
     let heap_end_page = Page::containing_address(VirtAddr::new(HEAP_START + HEAP_SIZE - 1));
 
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
         map_page(&mut mapper, page, flags, &mut frame_allocator).expect("Heap page mapping failed");
     }
 

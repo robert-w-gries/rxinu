@@ -35,7 +35,7 @@ pub unsafe fn init() {
 }
 
 pub struct ProcessTable {
-    pub map: BTreeMap<ProcessId, ProcessRef>,
+    map: BTreeMap<ProcessId, ProcessRef>,
     next_pid: usize,
 }
 

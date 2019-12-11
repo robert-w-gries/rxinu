@@ -7,17 +7,9 @@ use core::fmt;
 use spin::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::arch::context::Context;
+use crate::arch::memory::{HEAP_SIZE, HEAP_START};
 use crate::syscall::error::Error;
 use crate::task::scheduler::{global_sched, Scheduling};
-
-/// Once the process it completed, kill it
-///
-/// When a process returns, it pops an instruction pointer off the stack then jumps to it
-/// The instruction pointer on the stack points to this function
-pub unsafe extern "C" fn process_ret() {
-    let curr_id: ProcessId = global_sched().get_pid();
-    global_sched().kill(curr_id).unwrap();
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum State {
@@ -28,15 +20,20 @@ pub enum State {
     Wait,
 }
 
-#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
-// TODO: Remove the 'pub'
-pub struct ProcessId(pub usize);
+/// Safety: context_switch will jump here
+unsafe extern "C" fn process_entry<F: FnOnce()>(proc_addr: usize) {
+    // We stored the process function pointer on the heap, so the address should within the bounds
+    // of the heap
+    assert!(proc_addr > HEAP_START as usize && proc_addr < (HEAP_START + HEAP_SIZE) as usize);
 
-impl fmt::Debug for ProcessId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "ProcessId({})", self.0)
-    }
+    let proc = Box::from_raw(proc_addr as *mut F);
+    proc();
+    let _ = global_sched().kill(global_sched().get_pid());
+    unreachable!();
 }
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct ProcessId(pub usize);
 
 impl ProcessId {
     pub const NULL_PROCESS: ProcessId = ProcessId(0);
@@ -78,13 +75,15 @@ impl Process {
     pub fn new(
         name: &str,
         priority: usize,
-        proc_entry: extern "C" fn(),
+        proc: extern "C" fn(),
     ) -> Box<Process> {
         let mut stack: Vec<usize> = vec![0; PROCESS_STACK_SIZE];
         let stack_top = unsafe { stack.as_mut_ptr().add(PROCESS_STACK_SIZE) };
+        let process_entry = process_entry::<fn()> as *const () as usize;
+        let proc_addr = Box::into_raw(Box::new(proc)) as *const () as usize;
 
         Box::new(Process {
-            context: Context::new(stack_top as *mut u8, proc_entry as usize),
+            context: Context::new(stack_top as *mut u8, process_entry, proc_addr),
             kstack: Some(stack),
             pid: None,
             priority: priority,
@@ -102,7 +101,6 @@ impl Process {
     }
 
     pub fn spawn(self) -> Result<(), Error> {
-        // TODO don't unwrap!
         let pid = global_sched().add_process(self)?;
         global_sched().ready(pid)
     }

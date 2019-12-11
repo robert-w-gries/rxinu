@@ -1,8 +1,6 @@
 use core::mem;
 use x86_64::registers::rflags::RFlags;
 
-use crate::task::process::process_ret;
-
 global_asm!(include_str!("context_switch.asm"));
 
 extern "C" {
@@ -13,6 +11,12 @@ extern "C" {
 #[repr(C)]
 pub struct Context {
     rflags: usize,
+    rdi: usize,
+    rsi: usize,
+    rdx: usize,
+    rcx: usize,
+    r8: usize,
+    r9: usize,
     rbx: usize,
     r12: usize,
     r13: usize,
@@ -26,6 +30,12 @@ impl Context {
     pub const fn empty() -> Context {
         Context {
             rflags: 0,
+            rdi: 0,
+            rsi: 0,
+            rdx: 0,
+            rcx: 0,
+            r8: 0,
+            r9: 0,
             rbx: 0,
             r12: 0,
             r13: 0,
@@ -36,9 +46,15 @@ impl Context {
         }
     }
 
-    pub fn new(stack_top: *mut u8, proc_entry: usize) -> Context {
+    pub fn new(stack_top: *mut u8, proc_entry: usize, proc: usize) -> Context {
         let mut ctx = Context {
             rflags: RFlags::INTERRUPT_FLAG.bits() as usize,
+            rdi: proc,
+            rsi: 0,
+            rdx: 0,
+            rcx: 0,
+            r8: 0,
+            r9: 0,
             rbx: 0,
             r12: 0,
             r13: 0,
@@ -49,7 +65,6 @@ impl Context {
         };
 
         unsafe {
-            ctx.push_stack(process_ret as usize);
             ctx.push_stack(proc_entry);
         }
 

@@ -15,7 +15,7 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
 
     memory::init(boot_info);
 
-    use self::memory::heap::{HEAP_SIZE, HEAP_START};
+    use self::memory::{HEAP_SIZE, HEAP_START};
     HEAP_ALLOCATOR.init(HEAP_START as usize, HEAP_SIZE as usize);
 
     idt::init();
