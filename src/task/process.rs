@@ -21,7 +21,7 @@ pub enum State {
 }
 
 /// Safety: context_switch will jump here
-unsafe extern "C" fn process_entry<F: FnOnce()>(proc_addr: usize) {
+unsafe extern "C" fn process_entry<F: FnOnce() + Send + 'static>(proc_addr: usize) {
     // We stored the process function pointer on the heap, so the address should within the bounds
     // of the heap
     assert!(proc_addr > HEAP_START as usize && proc_addr < (HEAP_START + HEAP_SIZE) as usize);
