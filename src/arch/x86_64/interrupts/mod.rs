@@ -11,13 +11,13 @@ pub const DOUBLE_FAULT_IST_INDEX: usize = 0;
 /// Disable interrupts
 #[inline(always)]
 pub unsafe fn disable() {
-    asm!("cli" : : : : "intel", "volatile");
+    llvm_asm!("cli" : : : : "intel", "volatile");
 }
 
 /// Enable interrupts
 #[inline(always)]
 pub unsafe fn enable() {
-    asm!("sti; nop" : : : : "intel", "volatile");
+    llvm_asm!("sti; nop" : : : : "intel", "volatile");
 }
 
 pub fn enabled() -> bool {
@@ -105,13 +105,13 @@ pub fn restore_mask(saved_masks: (u8, u8)) {
 
 #[inline(always)]
 pub unsafe fn halt() {
-    asm!("hlt");
+    llvm_asm!("hlt");
 }
 
 #[inline(always)]
 pub fn pause() {
     unsafe {
-        asm!("pause");
+        llvm_asm!("pause");
     }
 }
 
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn breakpoint_exception() {
         unsafe {
-            asm!("int3");
+            llvm_asm!("int3");
         }
     }
 }

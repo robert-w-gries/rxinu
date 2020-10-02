@@ -46,7 +46,7 @@ lazy_static! {
     static ref IDT: InterruptDescriptorTable  = {
         let mut idt = InterruptDescriptorTable::new();
 
-        idt.divide_by_zero.set_handler_fn(exception::divide_by_zero);
+        idt.divide_error.set_handler_fn(exception::divide_error);
         idt.debug.set_handler_fn(exception::debug);
         idt.non_maskable_interrupt.set_handler_fn(exception::non_maskable_interrupt);
         idt.breakpoint.set_handler_fn(exception::breakpoint);

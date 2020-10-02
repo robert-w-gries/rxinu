@@ -21,7 +21,7 @@ macro_rules! exception {
 }
 
 // TODO: Implement actual error handling for each exception
-exception!(divide_by_zero, _stack, {
+exception!(divide_error, _stack, {
     kprintln!("\nDivide By Zero Fault");
 });
 
@@ -58,14 +58,12 @@ exception!(device_not_available, _stack, {
     kprintln!("\nDevice Not Available Fault");
 });
 
-exception!(double_fault, stack, _error, {
-    kprintln!("\nDouble Fault: {:#?}", stack);
-    loop {
-        unsafe {
-            halt();
-        }
-    }
-});
+pub extern "x86-interrupt" fn double_fault(
+    stack: &mut InterruptStackFrame,
+    _error_code: u64,
+) -> ! {
+    panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack);
+}
 
 exception!(invalid_tss, _stack, _error, {
     kprintln!("\nInvalid TSS Fault");
@@ -91,7 +89,7 @@ exception!(general_protection_fault, _stack, _error, {
 exception!(page_fault, stack, err, PageFaultErrorCode, {
     let cr2: u64 = unsafe {
         let reg: u64;
-        asm!("mov %cr2, $0" : "=r"(reg));
+        llvm_asm!("mov %cr2, $0" : "=r"(reg));
         reg
     };
 
@@ -117,9 +115,11 @@ exception!(alignment_check, _stack, _error, {
     kprintln!("\nAlignment Check Fault");
 });
 
-exception!(machine_check, _stack, {
-    kprintln!("\nMachine Check Abort");
-});
+pub extern "x86-interrupt" fn machine_check(
+    _stack: &mut InterruptStackFrame
+) -> ! {
+    panic!("\nMachine Check Abort");
+}
 
 exception!(simd_floating_point, _stack, {
     kprintln!("\nSIMD Floating Point Exception");

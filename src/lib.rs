@@ -2,10 +2,12 @@
     abi_x86_interrupt,
     allocator_api,
     alloc_error_handler,
-    asm,
     const_fn,
+    const_in_array_repeat_expressions,
+    const_mut_refs,
     global_asm,
     lang_items,
+    llvm_asm,
     naked_functions,
     ptr_internals
 )]
@@ -59,8 +61,3 @@ pub fn rust_oom(info: core::alloc::Layout) -> ! {
 pub extern "C" fn eh_personality() {
     loop {}
 }
-
-use arch::memory::heap::HeapAllocator;
-
-#[global_allocator]
-static HEAP_ALLOCATOR: HeapAllocator = HeapAllocator::new();

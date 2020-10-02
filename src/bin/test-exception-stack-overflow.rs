@@ -76,7 +76,7 @@ pub fn init_idt() {
 extern "x86-interrupt" fn double_fault_handler(
     _stack_frame: &mut InterruptStackFrame,
     _error_code: u64,
-) {
+) -> ! {
     serial_println!("ok");
 
     unsafe {

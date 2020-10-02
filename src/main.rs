@@ -17,8 +17,9 @@ entry_point!(kernel_main);
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use arch::memory::heap::{HEAP_SIZE, HEAP_START};
 
+    arch::init(boot_info);
+
     unsafe {
-        arch::init(boot_info);
         task::scheduler::init();
         arch::interrupts::clear_mask();
     }
