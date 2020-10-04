@@ -58,10 +58,7 @@ exception!(device_not_available, _stack, {
     kprintln!("\nDevice Not Available Fault");
 });
 
-pub extern "x86-interrupt" fn double_fault(
-    stack: &mut InterruptStackFrame,
-    _error_code: u64,
-) -> ! {
+pub extern "x86-interrupt" fn double_fault(stack: &mut InterruptStackFrame, _error_code: u64) -> ! {
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack);
 }
 
@@ -115,9 +112,7 @@ exception!(alignment_check, _stack, _error, {
     kprintln!("\nAlignment Check Fault");
 });
 
-pub extern "x86-interrupt" fn machine_check(
-    _stack: &mut InterruptStackFrame
-) -> ! {
+pub extern "x86-interrupt" fn machine_check(_stack: &mut InterruptStackFrame) -> ! {
     panic!("\nMachine Check Abort");
 }
 

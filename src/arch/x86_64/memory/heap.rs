@@ -1,3 +1,4 @@
+use crate::arch::memory::allocators::FixedSizeBlockAllocator;
 use crate::sync::{IrqGuard, IrqLock};
 use x86_64::{
     structures::paging::{
@@ -5,7 +6,6 @@ use x86_64::{
     },
     VirtAddr,
 };
-use crate::arch::memory::allocators::FixedSizeBlockAllocator;
 
 pub const HEAP_START: usize = 0o_000_001_000_000_0000;
 pub const HEAP_SIZE: usize = 1024 * 1024; // 1 MB
