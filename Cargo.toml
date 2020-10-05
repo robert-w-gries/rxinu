@@ -5,6 +5,10 @@ authors = [ "robert.w.gries@gmail.com" ]
 license = "MIT OR Apache-2.0"
 edition = "2018"
 
+[[test]]
+name = "panic"
+harness = false
+
 [dependencies]
 bit_field = "0.7.0"
 bitflags = "1.0.1"

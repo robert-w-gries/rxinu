@@ -1,20 +1,16 @@
-#![feature(const_fn)]
 #![no_std]
-#![cfg_attr(not(test), no_main)]
-#![cfg_attr(test, allow(dead_code, unused_macros, unused_imports))]
-
-#[macro_use]
-extern crate rxinu;
+#![no_main]
+#![feature(custom_test_frameworks)]
+#![test_runner(rxinu::test::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 #[macro_use]
 extern crate lazy_static;
 
 extern crate alloc;
-extern crate spin;
 
-use bootloader::bootinfo::BootInfo;
+use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use rxinu::exit_qemu;
 use rxinu::sync::{IrqLock, Semaphore};
 use rxinu::syscall;
 use rxinu::task::scheduler::global_sched;
@@ -25,15 +21,21 @@ lazy_static! {
     static ref READY: IrqLock<Semaphore> = IrqLock::new(Semaphore::new(0));
 }
 
-#[cfg(not(test))]
-#[no_mangle]
-pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
+entry_point!(kernel_main);
+
+fn kernel_main(boot_info: &'static BootInfo) -> ! {
+    rxinu::arch::init(boot_info);
     unsafe {
-        rxinu::arch::init(boot_info);
         rxinu::task::scheduler::init();
         rxinu::arch::interrupts::clear_mask();
     }
 
+    test_main();
+    loop {}
+}
+
+#[test_case]
+fn ipc() {
     let p1 = syscall::create(alloc::string::String::from("process1"), 100, loop_process).unwrap();
 
     let check_state = |p: ProcessId, s: State| global_sched().get_process(p).unwrap().state() == s;
@@ -51,13 +53,6 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     // Process1 should have ran, incremented COUNT, then waited for READY again
     assert!(check_state(p1, State::Wait));
     assert_eq!(COUNT.lock().count(), 1);
-
-    serial_println!("ok");
-    unsafe {
-        exit_qemu();
-    }
-
-    loop {}
 }
 
 pub extern "C" fn loop_process() {
@@ -67,15 +62,7 @@ pub extern "C" fn loop_process() {
     }
 }
 
-#[cfg(not(test))]
 #[panic_handler]
-#[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
-    serial_println!("failed");
-
-    serial_println!("{}", info);
-    unsafe {
-        exit_qemu();
-    }
-    loop {}
+    rxinu::test::test_panic_handler(info);
 }

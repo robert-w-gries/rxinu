@@ -18,5 +18,6 @@ before_script:
   - cargo install-update -a
 
 script:
-  - cargo bootimage
+  - cargo build
+  - cargo test
   - cargo +nightly fmt -- --check

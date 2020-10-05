@@ -115,13 +115,9 @@ pub fn pause() {
     }
 }
 
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn breakpoint_exception() {
-        unsafe {
-            llvm_asm!("int3");
-        }
+#[test_case]
+fn breakpoint_exception() {
+    unsafe {
+        llvm_asm!("int3");
     }
 }

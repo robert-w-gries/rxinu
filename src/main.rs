@@ -1,9 +1,9 @@
-#![cfg_attr(not(test), no_std)]
-#![cfg_attr(not(test), no_main)]
-#![cfg_attr(test, allow(unused_imports))]
+#![no_std]
+#![no_main]
+#![feature(custom_test_frameworks)]
+#![test_runner(rxinu::test::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
-#[macro_use]
-extern crate rxinu;
 extern crate alloc;
 
 use alloc::string::String;
@@ -13,10 +13,7 @@ use rxinu::{arch, device, syscall, task};
 
 entry_point!(kernel_main);
 
-#[cfg(not(test))]
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
-    use arch::memory::heap::{HEAP_SIZE, HEAP_START};
-
     arch::init(boot_info);
 
     unsafe {
@@ -24,8 +21,8 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         arch::interrupts::clear_mask();
     }
 
-    kprintln!("\nHEAP START = 0x{:x}", HEAP_START);
-    kprintln!("HEAP END = 0x{:x}\n", HEAP_START + HEAP_SIZE);
+    #[cfg(test)]
+    test_main();
 
     let _ = syscall::create(String::from("rxinu_main"), 0, rxinu::rxinu_main);
 
@@ -50,6 +47,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 #[panic_handler]
 pub fn panic(info: &PanicInfo) -> ! {
+    use rxinu::kprintln;
     kprintln!("{}", info);
 
     loop {
@@ -57,4 +55,10 @@ pub fn panic(info: &PanicInfo) -> ! {
             arch::interrupts::halt();
         }
     }
+}
+
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    rxinu::test::test_panic_handler(info)
 }

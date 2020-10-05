@@ -4,18 +4,16 @@ macro_rules! kprint {
             #[cfg(feature = "vga")]
             {
                 use core::fmt::Write;
-                use crate::device::vga::VGA;
-
-                let _ = VGA.lock().write_fmt(format_args!($($arg)*));
+                let _ = $crate::device::vga::VGA.lock().write_fmt(format_args!($($arg)*));
             }
     });
 }
 
 #[macro_export]
 macro_rules! kprintln {
-    () => (kprint!("\n"));
-    ($fmt:expr) => (kprint!(concat!($fmt, "\n")));
-    ($fmt:expr, $($arg:tt)*) => (kprint!(concat!($fmt, "\n"), $($arg)*));
+    () => ($crate::kprint!("\n"));
+    ($fmt:expr) => ($crate::kprint!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => ($crate::kprint!(concat!($fmt, "\n"), $($arg)*));
 }
 
 pub fn clear_screen() {
@@ -38,16 +36,14 @@ macro_rules! serial_print {
             #[cfg(feature = "serial")]
             {
                 use core::fmt::Write;
-                use $crate::device::uart_16550::COM1;
-
-                let _ = COM1.lock().write_fmt(format_args!($($arg)*));
+                let _ = $crate::device::uart_16550::COM1.lock().write_fmt(format_args!($($arg)*));
             }
     });
 }
 
 #[macro_export]
 macro_rules! serial_println {
-    () => (serial_print!("\n"));
-    ($fmt:expr) => (serial_print!(concat!($fmt, "\n")));
-    ($fmt:expr, $($arg:tt)*) => (serial_print!(concat!($fmt, "\n"), $($arg)*));
+    () => ($crate::serial_print!("\n"));
+    ($fmt:expr) => ($crate::serial_print!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => ($crate::serial_print!(concat!($fmt, "\n"), $($arg)*));
 }
