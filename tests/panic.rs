@@ -3,7 +3,7 @@
 
 use core::panic::PanicInfo;
 use rxinu::serial_println;
-use rxinu::test::{QemuExitCode, exit_qemu};
+use rxinu::test::{exit_qemu, QemuExitCode};
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {

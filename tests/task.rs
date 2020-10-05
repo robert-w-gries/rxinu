@@ -51,7 +51,8 @@ fn create_and_run() {
         alloc::string::String::from("test process!"),
         0,
         test_process,
-    ).is_ok());
+    )
+    .is_ok());
 
     let _ = rxinu::syscall::yield_cpu().unwrap();
 

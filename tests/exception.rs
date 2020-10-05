@@ -12,7 +12,7 @@ use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use rxinu::serial_println;
-use rxinu::test::{QemuExitCode, exit_qemu};
+use rxinu::test::{exit_qemu, QemuExitCode};
 
 static BREAKPOINT_HANDLER_CALLED: AtomicUsize = AtomicUsize::new(0);
 
@@ -75,7 +75,6 @@ lazy_static! {
         idt.breakpoint.set_handler_fn(breakpoint_handler);
         idt
     };
-
     static ref DOUBLE_FAULT_IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         unsafe {
