@@ -28,7 +28,7 @@ serial = []
 vga = []
 
 [package.metadata.bootimage]
-run-command = ["qemu-system-x86_64", "-drive", "format=raw,file={}", "-curses"]
+run-command = ["qemu-system-x86_64", "-drive", "format=raw,file={}"]
 test-args = [
     "-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio",
     "-display", "none"
