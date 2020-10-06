@@ -16,6 +16,13 @@ cargo run # run kernel using qemu
 
 ## Running
 
+### Docker
+
+```
+docker build -t rxinu .
+docker run -v ${PWD}:/rxinu -i -t rxinu
+```
+
 ### QEMU headless mode
 
 There are multiple methods of running QEMU in headless mode. To use the `curses` option, use the following:
