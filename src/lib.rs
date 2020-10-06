@@ -1,15 +1,21 @@
+#![no_std]
+#![cfg_attr(test, no_main)]
 #![feature(
     abi_x86_interrupt,
     allocator_api,
     alloc_error_handler,
-    asm,
     const_fn,
+    const_in_array_repeat_expressions,
+    const_mut_refs,
+    custom_test_frameworks,
     global_asm,
     lang_items,
+    llvm_asm,
     naked_functions,
     ptr_internals
 )]
-#![no_std]
+#![test_runner(crate::test::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 #[macro_use]
 extern crate alloc;
@@ -20,11 +26,6 @@ extern crate bitflags;
 #[macro_use]
 extern crate lazy_static;
 
-#[cfg(test)]
-extern crate array_init;
-#[cfg(test)]
-extern crate std;
-
 #[macro_use]
 pub mod device;
 
@@ -34,6 +35,7 @@ pub mod arch;
 pub mod sync;
 pub mod syscall;
 pub mod task;
+pub mod test;
 
 /// Main initialization process for rxinu
 pub extern "C" fn rxinu_main() {
@@ -42,25 +44,28 @@ pub extern "C" fn rxinu_main() {
     serial_println!("In main process!\n");
 }
 
-pub unsafe fn exit_qemu() {
-    use x86_64::instructions::port::Port;
-
-    let mut port = Port::<u32>::new(0xf4);
-    port.write(0);
-}
-
 #[alloc_error_handler]
 pub fn rust_oom(info: core::alloc::Layout) -> ! {
     panic!("{:?}", info);
 }
 
-#[lang = "eh_personality"]
-#[no_mangle]
-pub extern "C" fn eh_personality() {
-    loop {}
+#[cfg(test)]
+bootloader::entry_point!(test_kernel_main);
+
+#[cfg(test)]
+fn test_kernel_main(boot_info: &'static bootloader::bootinfo::BootInfo) -> ! {
+    arch::init(boot_info);
+    test_main();
+
+    loop {
+        unsafe {
+            arch::interrupts::halt();
+        }
+    }
 }
 
-use arch::memory::heap::HeapAllocator;
-
-#[global_allocator]
-static HEAP_ALLOCATOR: HeapAllocator = HeapAllocator::new();
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    test::test_panic_handler(info)
+}

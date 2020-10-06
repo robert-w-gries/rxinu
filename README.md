@@ -10,17 +10,25 @@ export PATH="${PATH}:$HOME/.cargo/bin"
 rustup default nightly
 rustup component add rust-src
 rustup component add llvm-tools-preview
-cargo install cargo-xbuild
 cargo install bootimage
-bootimage run
+cargo run # run kernel using qemu
 ```
 
 ## Running
 
-### qemu
+### Docker
 
-```bash
-bootimage run
+```
+docker build -t rxinu .
+docker run -v ${PWD}:/rxinu -i -t rxinu
+```
+
+### QEMU headless mode
+
+There are multiple methods of running QEMU in headless mode. To use the `curses` option, use the following:
+
+```
+cargo run -- -curses
 ```
 
 ### Other methods
