@@ -17,21 +17,10 @@
 #![test_runner(crate::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-#[macro_use]
 extern crate alloc;
 
-#[macro_use]
-extern crate bitflags;
-
-#[macro_use]
-extern crate lazy_static;
-
-#[macro_use]
-pub mod device;
-
-#[macro_use]
 pub mod arch;
-
+pub mod device;
 pub mod sync;
 pub mod syscall;
 pub mod task;

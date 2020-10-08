@@ -5,12 +5,10 @@
 #![test_runner(rxinu::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-#[macro_use]
-extern crate lazy_static;
-
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use lazy_static::lazy_static;
 use rxinu::serial_println;
 use rxinu::test::{exit_qemu, QemuExitCode};
 

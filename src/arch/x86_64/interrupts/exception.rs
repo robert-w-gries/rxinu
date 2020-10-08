@@ -1,6 +1,7 @@
 use x86_64::structures::idt::{InterruptStackFrame, PageFaultErrorCode};
 
 use crate::arch::x86_64::interrupts::halt;
+use crate::kprintln;
 
 macro_rules! exception {
     ($x:ident, $stack:ident, $func:block) => {

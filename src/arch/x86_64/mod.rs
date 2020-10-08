@@ -1,3 +1,4 @@
+use crate::kprintln;
 use bootloader::bootinfo::BootInfo;
 use x86_64::VirtAddr;
 

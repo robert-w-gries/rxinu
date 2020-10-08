@@ -1,4 +1,5 @@
 use alloc::collections::VecDeque;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::device::keyboard::{Key, Key::*, KeyEvent, Modifier::*, STATE};

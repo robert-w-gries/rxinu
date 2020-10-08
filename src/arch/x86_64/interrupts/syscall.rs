@@ -1,3 +1,4 @@
+use crate::kprintln;
 use core::fmt;
 use x86_64::structures::idt::InterruptStackFrame;
 
