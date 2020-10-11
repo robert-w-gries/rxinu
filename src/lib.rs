@@ -12,7 +12,8 @@
     lang_items,
     llvm_asm,
     naked_functions,
-    ptr_internals
+    ptr_internals,
+    wake_trait
 )]
 #![test_runner(crate::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]
@@ -25,13 +26,6 @@ pub mod sync;
 pub mod syscall;
 pub mod task;
 pub mod test;
-
-/// Main initialization process for rxinu
-pub extern "C" fn rxinu_main() {
-    device::console::clear_screen();
-    kprintln!("In main process!\n");
-    serial_println!("In main process!\n");
-}
 
 #[alloc_error_handler]
 pub fn rust_oom(info: core::alloc::Layout) -> ! {

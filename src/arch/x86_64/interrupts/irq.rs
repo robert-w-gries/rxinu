@@ -1,21 +1,18 @@
 use x86_64::structures::idt::InterruptStackFrame;
 
-use crate::device::{keyboard::ps2::PS2_KEYBOARD, pic_8259 as pic, uart_16550 as serial};
-use crate::task::scheduler::{global_sched, Scheduling};
+use crate::device::{pic_8259 as pic, uart_16550 as serial};
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut InterruptStackFrame) {
     pic::MASTER.lock().ack();
-    global_sched().tick();
+    // TODO: Pre-empt tasks
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut InterruptStackFrame) {
-    use crate::device::{ps2_controller_8042, BufferedDevice};
+    use crate::device::{ps2_controller_8042};
 
     // Read a single scancode off our keyboard port.
     let code = ps2_controller_8042::key_read();
-
-    // Pass scan code to ps2 driver buffer
-    PS2_KEYBOARD.lock().buffer_mut().push_back(code);
+    crate::device::keyboard::add_scancode(code);
 
     pic::MASTER.lock().ack();
 }
