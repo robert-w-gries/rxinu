@@ -19,7 +19,7 @@ pub struct SerialStream {
 impl SerialStream {
     pub fn new() -> Self {
         SERIAL_QUEUE.try_init_once(|| ArrayQueue::new(1024))
-            .expect("ScancodeStream::new should only be called once");
+            .expect("SerialStream::new should only be called once");
             SerialStream { _private: () }
     }
 }
@@ -47,12 +47,12 @@ impl Stream for SerialStream {
 pub fn add_byte(byte: u8) {
     if let Ok(queue) = SERIAL_QUEUE.try_get() {
         if let Err(_) = queue.push(byte) {
-            kprintln!("WARNING: scancode queue full; dropping keyboard input");
+            kprintln!("WARNING: serial queue full; dropping keyboard input");
         } else {
             WAKER.wake();
         }
     } else {
-        kprintln!("WARNING: scancode queue uninitialized");
+        kprintln!("WARNING: serial queue uninitialized");
     }
 }
 
