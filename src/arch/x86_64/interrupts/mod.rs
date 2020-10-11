@@ -1,5 +1,4 @@
-use crate::device::pic_8259::{MASTER, SLAVE};
-use crate::syscall::io::Io;
+use crate::device::pic_8259::{MAIN, WORKER};
 use x86_64::registers::rflags::{self, RFlags};
 
 pub mod exception;
@@ -63,13 +62,13 @@ pub fn mask() -> (u8, u8) {
         disable();
     }
 
-    let saved_mask1 = MASTER.lock().data.read();
-    let saved_mask2 = SLAVE.lock().data.read();
-
-    MASTER.lock().data.write(0xff);
-    SLAVE.lock().data.write(0xff);
-
-    (saved_mask1, saved_mask2)
+    unsafe {
+        let saved_mask1 = MAIN.lock().data.read();
+        let saved_mask2 = WORKER.lock().data.read();
+        MAIN.lock().data.write(0xff);
+        WORKER.lock().data.write(0xff);
+        (saved_mask1, saved_mask2)
+    }
 }
 
 /// Unmask all interrupts
@@ -79,8 +78,10 @@ pub fn clear_mask() {
     }
 
     // Clear all masks from interrupt line so that all interrupts fire
-    MASTER.lock().data.write(0);
-    SLAVE.lock().data.write(0);
+    unsafe {
+        MAIN.lock().data.write(0);
+        WORKER.lock().data.write(0);
+    }
 
     unsafe {
         enable();
@@ -95,8 +96,10 @@ pub fn restore_mask(saved_masks: (u8, u8)) {
 
     let (saved_mask1, saved_mask2) = saved_masks;
 
-    MASTER.lock().data.write(saved_mask1);
-    SLAVE.lock().data.write(saved_mask2);
+    unsafe {
+        MAIN.lock().data.write(saved_mask1);
+        WORKER.lock().data.write(saved_mask2);
+    }
 
     unsafe {
         enable();

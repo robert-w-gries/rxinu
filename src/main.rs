@@ -19,6 +19,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     let mut executor = CooperativeExecutor::new();
     let _ = executor.spawn(Task::new(device::keyboard::print_keypresses()));
+    let _ = executor.spawn(Task::new(device::serial::print_serial()));
     executor.run();
 }
 
