@@ -3,7 +3,7 @@ use x86_64::VirtAddr;
 
 mod device;
 pub mod gdt;
-mod idt;
+pub mod idt;
 pub mod interrupts;
 pub mod memory;
 

@@ -19,6 +19,7 @@ pub trait Scheduler {
     fn run(&mut self) -> !;
     fn spawn(&mut self, task: Task) -> Result<(), Error>;
     fn kill(&mut self, task_id: TaskId) -> Result<(), Error>;
+    // fn yield_now(&mut self, task_id: TaskId) -> Result<(), Error>;
 }
 
 struct TaskWaker {
