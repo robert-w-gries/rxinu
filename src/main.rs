@@ -8,7 +8,10 @@ extern crate alloc;
 
 use bootloader::{bootinfo::BootInfo, entry_point};
 use core::panic::PanicInfo;
-use rxinu::{arch, device, task::{CooperativeExecutor, Scheduler, Task}};
+use rxinu::{
+    arch, device,
+    task::{CooperativeExecutor, Scheduler, Task},
+};
 
 entry_point!(kernel_main);
 
@@ -20,8 +23,12 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     rxinu::test::exit_qemu(rxinu::test::QemuExitCode::Success);
 
     let mut executor = CooperativeExecutor::new();
-    executor.spawn(Task::new(device::keyboard::print_keypresses())).unwrap();
-    executor.spawn(Task::new(device::serial::print_serial())).unwrap();
+    executor
+        .spawn(Task::new(device::keyboard::print_keypresses()))
+        .unwrap();
+    executor
+        .spawn(Task::new(device::serial::print_serial()))
+        .unwrap();
     executor.run();
 }
 

@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
-use core::{future::Future, pin::Pin};
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::{Context, Poll};
+use core::{future::Future, pin::Pin};
 
 pub mod scheduler;
 

@@ -15,19 +15,15 @@ pub fn init() {
     // The Linux kernel seems to think it is free for use
     let mut wait_port: Port<u8> = Port::new(0x80);
 
-    let mut write_then_wait = |port: &mut Port<u8>, data: u8| {
-        unsafe {
-            port.write(data);
-            wait_port.write(0);
-        }
+    let mut write_then_wait = |port: &mut Port<u8>, data: u8| unsafe {
+        port.write(data);
+        wait_port.write(0);
     };
 
     let mut main = MAIN.lock();
     let mut worker = WORKER.lock();
 
-    let (saved_mask1, saved_mask2) = unsafe {
-        (main.data.read(), worker.data.read())
-    };
+    let (saved_mask1, saved_mask2) = unsafe { (main.data.read(), worker.data.read()) };
 
     // Start initialization
     let init_value: u8 = (ICW1::INIT as u8) + (ICW1::ICW4_NOT_NEEDED as u8);

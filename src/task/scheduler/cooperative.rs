@@ -71,7 +71,9 @@ impl Scheduler for CooperativeExecutor {
         if self.tasks.insert(task.id, task).is_some() {
             return Err(Error::DuplicateId);
         }
-        self.task_queue.push(task_id).map_err(|_| Error::TaskQueueFull)
+        self.task_queue
+            .push(task_id)
+            .map_err(|_| Error::TaskQueueFull)
     }
 
     fn kill(&mut self, task_id: TaskId) -> Result<(), Error> {

@@ -8,7 +8,7 @@ pub extern "x86-interrupt" fn timer(_stack_frame: &mut InterruptStackFrame) {
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut InterruptStackFrame) {
-    use crate::device::{ps2_controller_8042};
+    use crate::device::ps2_controller_8042;
 
     // Read a single scancode off our keyboard port.
     let code = ps2_controller_8042::key_read();

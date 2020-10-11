@@ -1,6 +1,9 @@
 use crate::kprintln;
 use conquer_once::spin::OnceCell;
-use core::{pin::Pin, task::{Poll, Context}};
+use core::{
+    pin::Pin,
+    task::{Context, Poll},
+};
 use crossbeam_queue::ArrayQueue;
 use futures_util::{
     stream::{Stream, StreamExt},
@@ -18,9 +21,10 @@ pub struct SerialStream {
 
 impl SerialStream {
     pub fn new() -> Self {
-        SERIAL_QUEUE.try_init_once(|| ArrayQueue::new(1024))
+        SERIAL_QUEUE
+            .try_init_once(|| ArrayQueue::new(1024))
             .expect("SerialStream::new should only be called once");
-            SerialStream { _private: () }
+        SerialStream { _private: () }
     }
 }
 

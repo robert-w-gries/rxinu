@@ -44,68 +44,70 @@ impl Ps2Keyboard {
 
     fn decode(&mut self, code: u8) -> Result<Option<KeyEvent>, Error> {
         match self.scancode_state {
-            ScancodeState::Start => {
-                match code {
-                    EXTENDED_KEY_CODE => {
-                        self.scancode_state = ScancodeState::Extended;
-                        Ok(None)
-                    },
-                    0x80..=0xFF => {
-                        let key = match_scancode(code-0x80)?;
-                        Ok(Some(KeyEvent::Released(key)))
-                    },
-                    _ => {
-                        let key = match_scancode(code)?;
-                        Ok(Some(KeyEvent::Pressed(key)))
-                    },
+            ScancodeState::Start => match code {
+                EXTENDED_KEY_CODE => {
+                    self.scancode_state = ScancodeState::Extended;
+                    Ok(None)
+                }
+                0x80..=0xFF => {
+                    let key = match_scancode(code - 0x80)?;
+                    Ok(Some(KeyEvent::Released(key)))
+                }
+                _ => {
+                    let key = match_scancode(code)?;
+                    Ok(Some(KeyEvent::Pressed(key)))
                 }
             },
             ScancodeState::Extended => {
                 self.scancode_state = ScancodeState::Start;
                 match code {
                     0x80..=0xFF => {
-                        let key = match_extended_scancode(code-0x80)?;
+                        let key = match_extended_scancode(code - 0x80)?;
                         Ok(Some(KeyEvent::Released(key)))
-                    },
+                    }
                     _ => {
                         let key = match_extended_scancode(code)?;
                         Ok(Some(KeyEvent::Pressed(key)))
-                    },
+                    }
                 }
-            },
+            }
         }
     }
 
-    pub fn process_keyevent(&mut self, key_event: KeyEvent) -> Option<Key>  {
+    pub fn process_keyevent(&mut self, key_event: KeyEvent) -> Option<Key> {
         let mut result = None;
         match key_event {
-            KeyEvent::Pressed(key) => {
-                match key {
-                    Meta(Modifier::AltLeft) => self.modifier_state.alt.0 = true,
-                    Meta(Modifier::AltRight) => self.modifier_state.alt.1 = true,
-                    Meta(Modifier::CapsLock) => self.modifier_state.caps_lock = !self.modifier_state.caps_lock,
-                    Meta(Modifier::ControlLeft) => self.modifier_state.control.0 = true,
-                    Meta(Modifier::ControlRight) => self.modifier_state.control.1 = true,
-                    Meta(Modifier::NumLock) => self.modifier_state.num_lock = !self.modifier_state.num_lock,
-                    Meta(Modifier::ScrollLock) => self.modifier_state.scroll_lock = !self.modifier_state.scroll_lock,
-                    Meta(Modifier::ShiftLeft) => self.modifier_state.shift.0 = true,
-                    Meta(Modifier::ShiftRight) => self.modifier_state.shift.1 = true,
-                    Ascii(ascii) => result = Some(super::layout::us_std::map_key(ascii, self.modifier_state)),
+            KeyEvent::Pressed(key) => match key {
+                Meta(Modifier::AltLeft) => self.modifier_state.alt.0 = true,
+                Meta(Modifier::AltRight) => self.modifier_state.alt.1 = true,
+                Meta(Modifier::CapsLock) => {
+                    self.modifier_state.caps_lock = !self.modifier_state.caps_lock
+                }
+                Meta(Modifier::ControlLeft) => self.modifier_state.control.0 = true,
+                Meta(Modifier::ControlRight) => self.modifier_state.control.1 = true,
+                Meta(Modifier::NumLock) => {
+                    self.modifier_state.num_lock = !self.modifier_state.num_lock
+                }
+                Meta(Modifier::ScrollLock) => {
+                    self.modifier_state.scroll_lock = !self.modifier_state.scroll_lock
+                }
+                Meta(Modifier::ShiftLeft) => self.modifier_state.shift.0 = true,
+                Meta(Modifier::ShiftRight) => self.modifier_state.shift.1 = true,
+                Ascii(ascii) => {
+                    result = Some(super::layout::us_std::map_key(ascii, self.modifier_state))
                 }
             },
-            KeyEvent::Released(key) => {
-                match key {
-                    Meta(Modifier::AltLeft) => self.modifier_state.alt.0 = false,
-                    Meta(Modifier::AltRight) => self.modifier_state.alt.1 = false,
-                    Meta(Modifier::CapsLock) => (),
-                    Meta(Modifier::ControlLeft) => self.modifier_state.control.0 = false,
-                    Meta(Modifier::ControlRight) => self.modifier_state.control.1 = false,
-                    Meta(Modifier::NumLock) => (),
-                    Meta(Modifier::ScrollLock) => (),
-                    Meta(Modifier::ShiftLeft) => self.modifier_state.shift.0 = false,
-                    Meta(Modifier::ShiftRight) => self.modifier_state.shift.1 = false,
-                    Ascii(_) => (),
-                }
+            KeyEvent::Released(key) => match key {
+                Meta(Modifier::AltLeft) => self.modifier_state.alt.0 = false,
+                Meta(Modifier::AltRight) => self.modifier_state.alt.1 = false,
+                Meta(Modifier::CapsLock) => (),
+                Meta(Modifier::ControlLeft) => self.modifier_state.control.0 = false,
+                Meta(Modifier::ControlRight) => self.modifier_state.control.1 = false,
+                Meta(Modifier::NumLock) => (),
+                Meta(Modifier::ScrollLock) => (),
+                Meta(Modifier::ShiftLeft) => self.modifier_state.shift.0 = false,
+                Meta(Modifier::ShiftRight) => self.modifier_state.shift.1 = false,
+                Ascii(_) => (),
             },
         };
         return result;

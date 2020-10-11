@@ -6,10 +6,8 @@ use x86_64::instructions::port::Port;
 const SERIAL_PORT1: u16 = 0x3F8;
 const SERIAL_PORT2: u16 = 0x2F8;
 
-pub static COM1: IrqLock<SerialPort> =
-    IrqLock::new(SerialPort::new(SERIAL_PORT1));
-pub static COM2: IrqLock<SerialPort> =
-    IrqLock::new(SerialPort::new(SERIAL_PORT2));
+pub static COM1: IrqLock<SerialPort> = IrqLock::new(SerialPort::new(SERIAL_PORT1));
+pub static COM2: IrqLock<SerialPort> = IrqLock::new(SerialPort::new(SERIAL_PORT2));
 
 // TODO: Replace arbitrary value for clearing rows
 const BUF_MAX_HEIGHT: usize = 25;
@@ -114,9 +112,7 @@ impl SerialPort {
     }
 
     pub fn receive(&mut self) -> u8 {
-        unsafe {
-            self.data.read()
-        }
+        unsafe { self.data.read() }
     }
 
     pub fn send(&mut self, data: u8) {

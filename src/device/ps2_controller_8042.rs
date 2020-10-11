@@ -71,7 +71,5 @@ pub unsafe fn init() {
 }
 
 pub fn key_read() -> u8 {
-    unsafe {
-        DEVICE.lock().read()
-    }
+    unsafe { DEVICE.lock().read() }
 }

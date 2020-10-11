@@ -1,6 +1,9 @@
 use crate::{kprint, kprintln};
 use conquer_once::spin::OnceCell;
-use core::{pin::Pin, task::{Poll, Context}};
+use core::{
+    pin::Pin,
+    task::{Context, Poll},
+};
 use crossbeam_queue::ArrayQueue;
 use futures_util::{
     stream::{Stream, StreamExt},
@@ -60,7 +63,8 @@ pub struct ScancodeStream {
 
 impl ScancodeStream {
     pub fn new() -> Self {
-        SCANCODE_QUEUE.try_init_once(|| ArrayQueue::new(1024))
+        SCANCODE_QUEUE
+            .try_init_once(|| ArrayQueue::new(1024))
             .expect("ScancodeStream::new should only be called once");
         ScancodeStream { _private: () }
     }

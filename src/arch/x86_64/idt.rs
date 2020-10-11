@@ -1,5 +1,5 @@
-use crate::arch::x86_64::interrupts::{exception, irq};
 use crate::arch::x86_64::gdt;
+use crate::arch::x86_64::interrupts::{exception, irq};
 use lazy_static::lazy_static;
 use x86_64::structures::idt::InterruptDescriptorTable;
 
