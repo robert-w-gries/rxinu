@@ -7,10 +7,11 @@
 
 extern crate alloc;
 
+use alloc::sync::Arc;
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicBool, Ordering};
-use rxinu::task::{CooperativeExecutor, Scheduler, Task};
+use rxinu::task::{self, CooperativeExecutor, Scheduler, Task};
 
 entry_point!(kernel_main);
 
@@ -22,14 +23,15 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
 #[test_case]
 fn create_and_run() {
-    let has_run = AtomicBool::new(false);
+    let has_run1 = Arc::new(AtomicBool::new(false));
+    let has_run2 = has_run1.clone();
     let test_process = async move || {
-        has_run.store(true, Ordering::SeqCst);
-        assert!(has_run.load(Ordering::SeqCst));
+        has_run1.store(true, Ordering::SeqCst);
     };
     let mut executor = CooperativeExecutor::new();
     executor.spawn(Task::new(test_process())).unwrap();
     executor.run_ready_tasks();
+    assert!(has_run2.load(Ordering::SeqCst));
 }
 
 #[test_case]
@@ -42,6 +44,27 @@ fn kill() {
     let pid = task.id();
     executor.spawn(task).unwrap();
     executor.kill(pid).unwrap();
+    executor.run_ready_tasks();
+}
+
+/// Spawn Task1 then spawn Task2
+/// Task1 yields
+/// Task2 sets has_run to true and finishes
+/// Task1 returns to yield point and asserts has_run is true
+#[test_case]
+fn yield_now() {
+    let has_run1 = Arc::new(AtomicBool::new(false));
+    let has_run2 = has_run1.clone();
+    let task1 = async move || {
+        task::yield_now().await;
+        assert!(has_run1.load(Ordering::SeqCst));
+    };
+    let task2 = async move || {
+        has_run2.store(true, Ordering::SeqCst);
+    };
+    let mut executor = CooperativeExecutor::new();
+    executor.spawn(Task::new(task1())).unwrap();
+    executor.spawn(Task::new(task2())).unwrap();
     executor.run_ready_tasks();
 }
 
