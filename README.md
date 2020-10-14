@@ -20,7 +20,7 @@ cargo run # run kernel using qemu
 
 ```
 docker build -t rxinu .
-docker run -v ${PWD}:/rxinu -i -t rxinu
+docker run -v ${PWD}:/home/rxinu/rxinu -i -t rxinu
 ```
 
 ### QEMU headless mode
