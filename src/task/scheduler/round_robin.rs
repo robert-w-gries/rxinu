@@ -1,17 +1,18 @@
-use super::{Error, Scheduler, Task, TaskId, TaskWaker};
+use super::{Error, Scheduler, TaskWaker};
+use crate::task::{TaskFuture, TaskId};
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::task::{Context, Poll, Waker};
 use crossbeam_queue::ArrayQueue;
 
-pub struct CooperativeExecutor {
-    tasks: BTreeMap<TaskId, Task>,
+pub struct RoundRobinScheduler<T: TaskFuture> {
+    tasks: BTreeMap<TaskId, T>,
     task_queue: Arc<ArrayQueue<TaskId>>,
     waker_cache: BTreeMap<TaskId, Waker>,
 }
 
-impl CooperativeExecutor {
+impl<T: TaskFuture> RoundRobinScheduler<T> {
     pub fn new() -> Self {
-        CooperativeExecutor {
+        RoundRobinScheduler {
             tasks: BTreeMap::new(),
             task_queue: Arc::new(ArrayQueue::new(1024)),
             waker_cache: BTreeMap::new(),
@@ -58,7 +59,7 @@ impl CooperativeExecutor {
     }
 }
 
-impl Scheduler for CooperativeExecutor {
+impl<T: TaskFuture> Scheduler<T> for RoundRobinScheduler<T> {
     fn run(&mut self) -> ! {
         loop {
             self.run_ready_tasks();
@@ -66,9 +67,9 @@ impl Scheduler for CooperativeExecutor {
         }
     }
 
-    fn spawn(&mut self, task: Task) -> Result<(), Error> {
-        let task_id = task.id;
-        if self.tasks.insert(task.id, task).is_some() {
+    fn spawn(&mut self, task: T) -> Result<(), Error> {
+        let task_id = task.id();
+        if self.tasks.insert(task_id, task).is_some() {
             return Err(Error::DuplicateId);
         }
         self.task_queue

@@ -1,12 +1,14 @@
-use crate::task::{Task, TaskId};
+use crate::task::{TaskFuture, TaskId};
 use alloc::sync::Arc;
 use alloc::task::Wake;
 use core::task::Waker;
 use crossbeam_queue::ArrayQueue;
 
-pub use self::cooperative::CooperativeExecutor;
+pub use self::round_robin::RoundRobinScheduler;
+pub use self::priority::PriorityScheduler;
 
-mod cooperative;
+mod priority;
+mod round_robin;
 
 #[derive(Debug)]
 pub enum Error {
@@ -15,9 +17,9 @@ pub enum Error {
     UnknownId,
 }
 
-pub trait Scheduler {
+pub trait Scheduler<T: TaskFuture> {
     fn run(&mut self) -> !;
-    fn spawn(&mut self, task: Task) -> Result<(), Error>;
+    fn spawn(&mut self, task: T) -> Result<(), Error>;
     fn kill(&mut self, task_id: TaskId) -> Result<(), Error>;
 }
 

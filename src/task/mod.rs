@@ -4,8 +4,9 @@ use core::task::{Context, Poll};
 use core::{future::Future, pin::Pin};
 
 pub mod scheduler;
+pub mod yield_now;
 
-pub use self::scheduler::{CooperativeExecutor, Scheduler};
+pub use self::yield_now::yield_now;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TaskId(u64);
@@ -17,20 +18,27 @@ impl TaskId {
     }
 }
 
+pub trait TaskFuture {
+    fn id(&self) -> TaskId;
+    fn poll(&mut self, context: &mut Context) -> Poll<()>;
+}
+
 pub struct Task {
     id: TaskId,
     future: Pin<Box<dyn Future<Output = ()>>>,
 }
 
 impl Task {
-    pub fn new(future: impl Future<Output = ()> + 'static) -> Task {
+    pub fn new(future: impl Future<Output = ()> + 'static) -> Self {
         Task {
             id: TaskId::new(),
             future: Box::pin(future),
         }
     }
+}
 
-    pub fn id(&self) -> TaskId {
+impl TaskFuture for Task {
+    fn id(&self) -> TaskId {
         self.id
     }
 
@@ -39,23 +47,37 @@ impl Task {
     }
 }
 
-struct YieldNow(bool);
-
-pub async fn yield_now() {
-    YieldNow(true).await;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Priority {
+    Low,
+    Medium,
+    High,
 }
 
-impl Future for YieldNow {
-    type Output = ();
+pub struct PriorityTask {
+    priority: Priority,
+    inner: Task,
+}
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-        match self.0 {
-            false => Poll::Ready(()),
-            true => {
-                self.0 = false;
-                cx.waker().wake_by_ref();
-                Poll::Pending
-            }
+impl PriorityTask {
+    pub fn new(priority: Priority, future: impl Future<Output = ()> + 'static) -> Self {
+        PriorityTask {
+            priority,
+            inner: Task::new(future),
         }
+    }
+
+    pub fn priority(&self) -> Priority {
+        self.priority
+    }
+}
+
+impl TaskFuture for PriorityTask {
+    fn id(&self) -> TaskId {
+        self.inner.id
+    }
+
+    fn poll(&mut self, context: &mut Context) -> Poll<()> {
+        self.inner.future.as_mut().poll(context)
     }
 }

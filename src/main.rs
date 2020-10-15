@@ -10,7 +10,8 @@ use bootloader::{bootinfo::BootInfo, entry_point};
 use core::panic::PanicInfo;
 use rxinu::{
     arch, device,
-    task::{CooperativeExecutor, Scheduler, Task},
+    task::{Priority, PriorityTask},
+    task::scheduler::{PriorityScheduler, Scheduler},
 };
 
 entry_point!(kernel_main);
@@ -22,13 +23,11 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     #[cfg(test)]
     rxinu::test::exit_qemu(rxinu::test::QemuExitCode::Success);
 
-    let mut executor = CooperativeExecutor::new();
-    executor
-        .spawn(Task::new(device::keyboard::print_keypresses()))
-        .unwrap();
-    executor
-        .spawn(Task::new(device::serial::print_serial()))
-        .unwrap();
+    let mut executor = PriorityScheduler::new();
+    let keyboard_task = PriorityTask::new(Priority::High, device::keyboard::print_keypresses());
+    let serial_task = PriorityTask::new(Priority::High, device::serial::print_serial());
+    executor.spawn(keyboard_task).unwrap();
+    executor.spawn(serial_task).unwrap();
     executor.run();
 }
 
