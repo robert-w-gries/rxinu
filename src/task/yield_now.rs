@@ -1,5 +1,5 @@
-use core::{future::Future, pin::Pin};
 use core::task::{Context, Poll};
+use core::{future::Future, pin::Pin};
 
 pub async fn yield_now() {
     YieldNow(true).await;

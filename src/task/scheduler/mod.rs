@@ -4,8 +4,8 @@ use alloc::task::Wake;
 use core::task::Waker;
 use crossbeam_queue::ArrayQueue;
 
-pub use self::round_robin::RoundRobinScheduler;
 pub use self::priority::PriorityScheduler;
+pub use self::round_robin::RoundRobinScheduler;
 
 mod priority;
 mod round_robin;

@@ -37,9 +37,7 @@ impl PriorityScheduler {
 
     fn execute_priority_task(&mut self, task_id: TaskId, task_queue: Arc<ArrayQueue<TaskId>>) {
         let Self {
-            tasks,
-            waker_cache,
-            ..
+            tasks, waker_cache, ..
         } = self;
 
         if let Some(task) = tasks.get_mut(&task_id) {
@@ -69,8 +67,10 @@ impl PriorityScheduler {
         }
     }
 
-    fn is_idle(&self) -> bool{
-        return self.high_queue.is_empty() && self.medium_queue.is_empty() && self.low_queue.is_empty()
+    fn is_idle(&self) -> bool {
+        return self.high_queue.is_empty()
+            && self.medium_queue.is_empty()
+            && self.low_queue.is_empty();
     }
 }
 
@@ -89,9 +89,18 @@ impl Scheduler<PriorityTask> for PriorityScheduler {
             return Err(Error::DuplicateId);
         }
         match priority {
-            Priority::High => self.high_queue.push(task_id).map_err(|_| Error::TaskQueueFull),
-            Priority::Medium => self.medium_queue.push(task_id).map_err(|_| Error::TaskQueueFull),
-            Priority::Low => self.low_queue.push(task_id).map_err(|_| Error::TaskQueueFull),
+            Priority::High => self
+                .high_queue
+                .push(task_id)
+                .map_err(|_| Error::TaskQueueFull),
+            Priority::Medium => self
+                .medium_queue
+                .push(task_id)
+                .map_err(|_| Error::TaskQueueFull),
+            Priority::Low => self
+                .low_queue
+                .push(task_id)
+                .map_err(|_| Error::TaskQueueFull),
         }
     }
 

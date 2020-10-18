@@ -1,10 +1,10 @@
 extern crate alloc;
 
-use alloc::vec;
 use alloc::sync::Arc;
+use alloc::vec;
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use rxinu::task::{self, Priority, PriorityTask, TaskFuture};
 use rxinu::task::scheduler::{PriorityScheduler, Scheduler};
+use rxinu::task::{self, Priority, PriorityTask, TaskFuture};
 
 #[test_case]
 fn priority() {
@@ -12,28 +12,37 @@ fn priority() {
     let med_prio = Arc::new(AtomicBool::new(false));
     let low_prio = Arc::new(AtomicBool::new(false));
     let mut scheduler = PriorityScheduler::new();
-    for prio in vec![Priority::Low, Priority::Low, Priority::Medium, Priority::Medium, Priority::High, Priority::High] {
+    for prio in vec![
+        Priority::Low,
+        Priority::Low,
+        Priority::Medium,
+        Priority::Medium,
+        Priority::High,
+        Priority::High,
+    ] {
         let (h, m, l) = (high_prio.clone(), med_prio.clone(), low_prio.clone());
 
-        scheduler.spawn(PriorityTask::new(prio, async move {
-            match prio {
-                Priority::High => {
-                    h.store(true, Ordering::SeqCst);
-                    assert!(!m.load(Ordering::SeqCst));
-                    assert!(!l.load(Ordering::SeqCst));
-                },
-                Priority::Medium => {
-                    assert!(h.load(Ordering::SeqCst));
-                    m.store(true, Ordering::SeqCst);
-                    assert!(!l.load(Ordering::SeqCst));
-                },
-                Priority::Low => {
-                    assert!(h.load(Ordering::SeqCst));
-                    assert!(m.load(Ordering::SeqCst));
-                    l.store(true, Ordering::SeqCst);
-                },
-            }
-        })).unwrap();
+        scheduler
+            .spawn(PriorityTask::new(prio, async move {
+                match prio {
+                    Priority::High => {
+                        h.store(true, Ordering::SeqCst);
+                        assert!(!m.load(Ordering::SeqCst));
+                        assert!(!l.load(Ordering::SeqCst));
+                    }
+                    Priority::Medium => {
+                        assert!(h.load(Ordering::SeqCst));
+                        m.store(true, Ordering::SeqCst);
+                        assert!(!l.load(Ordering::SeqCst));
+                    }
+                    Priority::Low => {
+                        assert!(h.load(Ordering::SeqCst));
+                        assert!(m.load(Ordering::SeqCst));
+                        l.store(true, Ordering::SeqCst);
+                    }
+                }
+            }))
+            .unwrap();
     }
     scheduler.run_ready_tasks();
     assert!(high_prio.load(Ordering::SeqCst));
@@ -48,10 +57,12 @@ fn run() {
     let num_tasks = 5;
     for _ in 0..num_tasks {
         let c = counter.clone();
-        
-        scheduler.spawn(PriorityTask::new(Priority::High, async move {
-            c.fetch_add(1, Ordering::SeqCst);
-        })).unwrap();
+
+        scheduler
+            .spawn(PriorityTask::new(Priority::High, async move {
+                c.fetch_add(1, Ordering::SeqCst);
+            }))
+            .unwrap();
     }
     scheduler.run_ready_tasks();
     assert_eq!(counter.load(Ordering::SeqCst), num_tasks);
@@ -85,7 +96,11 @@ fn yield_now() {
         has_run.store(true, Ordering::SeqCst);
     };
     let mut executor = PriorityScheduler::new();
-    executor.spawn(PriorityTask::new(Priority::High, task1)).unwrap();
-    executor.spawn(PriorityTask::new(Priority::High, task2)).unwrap();
+    executor
+        .spawn(PriorityTask::new(Priority::High, task1))
+        .unwrap();
+    executor
+        .spawn(PriorityTask::new(Priority::High, task2))
+        .unwrap();
     executor.run_ready_tasks();
 }

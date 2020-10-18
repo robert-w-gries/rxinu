@@ -10,8 +10,8 @@ use bootloader::{bootinfo::BootInfo, entry_point};
 use core::panic::PanicInfo;
 use rxinu::{
     arch, device,
-    task::{Priority, PriorityTask},
     task::scheduler::{PriorityScheduler, Scheduler},
+    task::{Priority, PriorityTask},
 };
 
 entry_point!(kernel_main);

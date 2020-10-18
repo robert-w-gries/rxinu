@@ -2,8 +2,8 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use rxinu::task::{self, Task, TaskFuture};
 use rxinu::task::scheduler::{RoundRobinScheduler, Scheduler};
+use rxinu::task::{self, Task, TaskFuture};
 
 #[test_case]
 fn run() {
@@ -12,10 +12,12 @@ fn run() {
     let num_tasks = 5;
     for _ in 0..num_tasks {
         let c = counter.clone();
-        
-        scheduler.spawn(Task::new(async move {
-            c.fetch_add(1, Ordering::SeqCst);
-        })).unwrap();
+
+        scheduler
+            .spawn(Task::new(async move {
+                c.fetch_add(1, Ordering::SeqCst);
+            }))
+            .unwrap();
     }
     scheduler.run_ready_tasks();
     assert_eq!(counter.load(Ordering::SeqCst), num_tasks);
