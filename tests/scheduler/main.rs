@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-#![feature(async_closure)]
 #![feature(custom_test_frameworks)]
 #![test_runner(rxinu::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]

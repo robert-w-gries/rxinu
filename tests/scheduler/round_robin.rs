@@ -23,11 +23,10 @@ fn run() {
 
 #[test_case]
 fn kill() {
-    let kill_process = async move || {
-        panic!("Process should have been killed");
-    };
     let mut scheduler = RoundRobinScheduler::new();
-    let task = Task::new(kill_process());
+    let task = Task::new(async move {
+        panic!("Process should have been killed");
+    });
     let pid = task.id();
     scheduler.spawn(task).unwrap();
     scheduler.kill(pid).unwrap();
@@ -42,15 +41,15 @@ fn kill() {
 fn yield_now() {
     let has_run = Arc::new(AtomicBool::new(false));
     let ref1 = has_run.clone();
-    let task1 = async move || {
+    let task1 = async move {
         task::yield_now().await;
         assert!(ref1.load(Ordering::SeqCst));
     };
-    let task2 = async move || {
+    let task2 = async move {
         has_run.store(true, Ordering::SeqCst);
     };
     let mut executor = RoundRobinScheduler::new();
-    executor.spawn(Task::new(task1())).unwrap();
-    executor.spawn(Task::new(task2())).unwrap();
+    executor.spawn(Task::new(task1)).unwrap();
+    executor.spawn(Task::new(task2)).unwrap();
     executor.run_ready_tasks();
 }

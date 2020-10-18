@@ -12,7 +12,7 @@ fn priority() {
     let med_prio = Arc::new(AtomicBool::new(false));
     let low_prio = Arc::new(AtomicBool::new(false));
     let mut scheduler = PriorityScheduler::new();
-    for prio in vec![Priority::Low, Priority::Medium, Priority::High] {
+    for prio in vec![Priority::Low, Priority::Low, Priority::Medium, Priority::Medium, Priority::High, Priority::High] {
         let (h, m, l) = (high_prio.clone(), med_prio.clone(), low_prio.clone());
 
         scheduler.spawn(PriorityTask::new(prio, async move {
@@ -77,15 +77,15 @@ fn kill() {
 fn yield_now() {
     let has_run = Arc::new(AtomicBool::new(false));
     let ref1 = has_run.clone();
-    let task1 = async move || {
+    let task1 = async move {
         task::yield_now().await;
         assert!(ref1.load(Ordering::SeqCst));
     };
-    let task2 = async move || {
+    let task2 = async move {
         has_run.store(true, Ordering::SeqCst);
     };
     let mut executor = PriorityScheduler::new();
-    executor.spawn(PriorityTask::new(Priority::High, task1())).unwrap();
-    executor.spawn(PriorityTask::new(Priority::High, task2())).unwrap();
+    executor.spawn(PriorityTask::new(Priority::High, task1)).unwrap();
+    executor.spawn(PriorityTask::new(Priority::High, task2)).unwrap();
     executor.run_ready_tasks();
 }
