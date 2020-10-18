@@ -1,4 +1,5 @@
 use super::{Error, Scheduler, TaskWaker};
+use crate::arch::interrupts;
 use crate::task::{Priority, PriorityTask, TaskFuture, TaskId};
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::task::{Context, Poll, Waker};
@@ -57,11 +58,9 @@ impl PriorityScheduler {
     }
 
     fn sleep_if_idle(&self) {
-        use x86_64::instructions::interrupts::{self, enable_interrupts_and_hlt};
-
         interrupts::disable();
         if self.is_idle() {
-            enable_interrupts_and_hlt();
+            interrupts::enable_and_hlt();
         } else {
             interrupts::enable();
         }

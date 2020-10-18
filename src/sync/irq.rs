@@ -26,9 +26,7 @@ impl<T> IrqLock<T> {
     pub fn lock(&self) -> IrqGuard<T> {
         let was_enabled = interrupts::enabled();
         if was_enabled {
-            unsafe {
-                interrupts::disable();
-            }
+            interrupts::disable();
         }
 
         IrqGuard {
@@ -43,9 +41,7 @@ impl<T> IrqLock<T> {
     {
         let was_enabled = interrupts::enabled();
         if was_enabled {
-            unsafe {
-                interrupts::disable();
-            }
+            interrupts::disable();
         }
 
         let data = f(unsafe { &mut *self.data.get() });
@@ -81,9 +77,7 @@ impl<'a, T: ?Sized> DerefMut for IrqGuard<'a, T> {
 impl<'a, T: ?Sized> Drop for IrqGuard<'a, T> {
     fn drop(&mut self) {
         if self.was_enabled {
-            unsafe {
-                interrupts::enable();
-            }
+            interrupts::enable();
         }
     }
 }
@@ -124,9 +118,7 @@ impl<T> IrqSpinLock<T> {
 
         let was_enabled = interrupts::enabled();
         if was_enabled {
-            unsafe {
-                interrupts::disable();
-            }
+            interrupts::disable();
         }
 
         IrqSpinGuard {
@@ -140,9 +132,7 @@ impl<T> IrqSpinLock<T> {
         if self.lock.compare_and_swap(false, true, Ordering::Acquire) == false {
             let was_enabled = interrupts::enabled();
             if was_enabled {
-                unsafe {
-                    interrupts::disable();
-                }
+                interrupts::disable();
             }
             Some(IrqSpinGuard {
                 lock: &self.lock,
@@ -183,9 +173,7 @@ impl<'a, T: ?Sized> Drop for IrqSpinGuard<'a, T> {
     fn drop(&mut self) {
         self.lock.store(false, Ordering::Release);
         if self.was_enabled {
-            unsafe {
-                interrupts::enable();
-            }
+            interrupts::enable();
         }
     }
 }

@@ -9,14 +9,24 @@ pub const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
 /// Disable interrupts
 #[inline(always)]
-pub unsafe fn disable() {
-    llvm_asm!("cli" : : : : "intel", "volatile");
+pub fn disable() {
+    unsafe {
+        llvm_asm!("cli" : : : : "intel", "volatile");
+    }
 }
 
 /// Enable interrupts
 #[inline(always)]
-pub unsafe fn enable() {
-    llvm_asm!("sti; nop" : : : : "intel", "volatile");
+pub fn enable() {
+    unsafe {
+        llvm_asm!("sti; nop" : : : : "intel", "volatile");
+    }
+}
+
+/// Enable interrupts
+#[inline(always)]
+pub fn enable_and_hlt() {
+    x86_64::instructions::interrupts::enable_interrupts_and_hlt();
 }
 
 pub fn enabled() -> bool {
@@ -29,17 +39,13 @@ where
 {
     let interrupts_enabled = enabled();
     if interrupts_enabled == true {
-        unsafe {
-            disable();
-        }
+        disable();
     }
 
     let result: T = uninterrupted_fn();
 
     if interrupts_enabled == true {
-        unsafe {
-            enable();
-        }
+        enable();
     }
 
     result
@@ -58,9 +64,7 @@ where
 
 /// Mask interrupts then return tuple of previous state for PIC1 and PIC2
 pub fn mask() -> (u8, u8) {
-    unsafe {
-        disable();
-    }
+    disable();
 
     unsafe {
         let saved_mask1 = MAIN.lock().data.read();
@@ -73,9 +77,7 @@ pub fn mask() -> (u8, u8) {
 
 /// Unmask all interrupts
 pub fn clear_mask() {
-    unsafe {
-        disable();
-    }
+    disable();
 
     // Clear all masks from interrupt line so that all interrupts fire
     unsafe {
@@ -83,16 +85,12 @@ pub fn clear_mask() {
         WORKER.lock().data.write(0);
     }
 
-    unsafe {
-        enable();
-    }
+    enable();
 }
 
 /// Enable interrupts, restoring the previously set masks
 pub fn restore_mask(saved_masks: (u8, u8)) {
-    unsafe {
-        disable();
-    }
+    disable();
 
     let (saved_mask1, saved_mask2) = saved_masks;
 
@@ -101,9 +99,7 @@ pub fn restore_mask(saved_masks: (u8, u8)) {
         WORKER.lock().data.write(saved_mask2);
     }
 
-    unsafe {
-        enable();
-    }
+    enable();
 }
 
 #[inline(always)]
