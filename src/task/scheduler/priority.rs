@@ -24,27 +24,25 @@ impl PriorityScheduler {
     }
 
     pub fn run_ready_tasks(&mut self) {
-        if !self.high_queue.is_empty() {
-            self.execute_priority_tasks(self.high_queue.clone());
-        } else if !self.medium_queue.is_empty() {
-            self.execute_priority_tasks(self.medium_queue.clone());
-        } else {
-            self.execute_priority_tasks(self.low_queue.clone());
+        while !self.is_idle() {
+            if let Ok(task_id) = self.high_queue.pop() {
+                self.execute_priority_task(task_id, self.high_queue.clone());
+            } else if let Ok(task_id) = self.medium_queue.pop() {
+                self.execute_priority_task(task_id, self.medium_queue.clone());
+            } else if let Ok(task_id) = self.low_queue.pop() {
+                self.execute_priority_task(task_id, self.low_queue.clone());
+            }
         }
     }
 
-    fn execute_priority_tasks(&mut self, task_queue: Arc<ArrayQueue<TaskId>>) {
+    fn execute_priority_task(&mut self, task_id: TaskId, task_queue: Arc<ArrayQueue<TaskId>>) {
         let Self {
             tasks,
             waker_cache,
             ..
         } = self;
 
-        while let Ok(task_id) = task_queue.pop() {
-            let task = match tasks.get_mut(&task_id) {
-                Some(task) => task,
-                None => continue, // task no longer exists
-            };
+        if let Some(task) = tasks.get_mut(&task_id) {
             let waker = waker_cache
                 .entry(task_id)
                 .or_insert_with(|| TaskWaker::new(task_id, task_queue.clone()));

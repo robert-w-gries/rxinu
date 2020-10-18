@@ -1,3 +1,5 @@
+extern crate alloc;
+
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use rxinu::task::{self, Task, TaskFuture};

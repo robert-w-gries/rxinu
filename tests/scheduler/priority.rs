@@ -1,3 +1,5 @@
+extern crate alloc;
+
 use alloc::vec;
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -34,8 +36,6 @@ fn priority() {
         })).unwrap();
     }
     scheduler.run_ready_tasks();
-    scheduler.run_ready_tasks();
-    scheduler.run_ready_tasks();
     assert!(high_prio.load(Ordering::SeqCst));
     assert!(med_prio.load(Ordering::SeqCst));
     assert!(low_prio.load(Ordering::SeqCst));
@@ -59,11 +59,10 @@ fn run() {
 
 #[test_case]
 fn kill() {
-    let kill_process = async move || {
-        panic!("Process should have been killed");
-    };
     let mut scheduler = PriorityScheduler::new();
-    let task = PriorityTask::new(Priority::High, kill_process());
+    let task = PriorityTask::new(Priority::High, async move {
+        panic!("Process should have been killed");
+    });
     let pid = task.id();
     scheduler.spawn(task).unwrap();
     scheduler.kill(pid).unwrap();

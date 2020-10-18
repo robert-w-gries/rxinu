@@ -5,8 +5,6 @@
 #![test_runner(rxinu::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-extern crate alloc;
-
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 
