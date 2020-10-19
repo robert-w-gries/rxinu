@@ -1,5 +1,5 @@
-use crate::syscall::io::{Io, Port};
 use spin::Mutex;
+use x86_64::instructions::port::Port;
 
 /// Operate in channel 0. Use mode 3, and operate with lobyte/hibyte.
 const PIT_SET: u8 = 0x36;
@@ -13,10 +13,12 @@ pub static PIT: Mutex<[Port<u8>; 2]> = Mutex::new([
 ]);
 
 pub fn init() {
-    PIT.lock()[0].write(PIT_SET);
-    // Lower 8 bytes.
-    PIT.lock()[1].write((DIVISOR & 0xFF) as u8);
-    PIT.lock()[1].write((DIVISOR >> 8) as u8);
+    unsafe {
+        PIT.lock()[0].write(PIT_SET);
+        // Lower 8 bytes.
+        PIT.lock()[1].write((DIVISOR & 0xFF) as u8);
+        PIT.lock()[1].write((DIVISOR >> 8) as u8);
+    }
 
     kprintln!("[ OK ] Programmable Interval Timer");
 }

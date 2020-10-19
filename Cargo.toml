@@ -12,15 +12,15 @@ harness = false
 [dependencies]
 bit_field = "0.7.0"
 bitflags = "1.0.1"
-bootloader = { version = "0.9.8", features = ["map_physical_memory"]}
+bootloader = { version = "0.9.8", features = ["map_physical_memory"] }
+conquer-once = { version = "0.2.0", default-features = false }
+crossbeam-queue = { version = "0.2.1", default-features = false, features = ["alloc"] }
+futures-util = { version = "0.3.4", default-features = false, features = ["alloc"] }
+lazy_static = { version = "1.0", features = ["spin_no_std"] }
 linked_list_allocator = "0.8.0"
 spin = "0.5.2"
 volatile = "0.2.6"
 x86_64 = "0.12.1"
-
-[dependencies.lazy_static]
-version = "1.0"
-features = ["spin_no_std"]
 
 [features]
 default = ["serial", "vga"]

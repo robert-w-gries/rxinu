@@ -1,8 +1,8 @@
-use crate::syscall::io::{Io, Port};
 use spin::Mutex;
+use x86_64::instructions::port::Port;
 
-pub static MASTER: Mutex<Pic> = Mutex::new(Pic::new(0x20));
-pub static SLAVE: Mutex<Pic> = Mutex::new(Pic::new(0xA0));
+pub static MAIN: Mutex<Pic> = Mutex::new(Pic::new(0x20));
+pub static WORKER: Mutex<Pic> = Mutex::new(Pic::new(0xA0));
 
 pub fn init() {
     // We need to add a delay between writes to our PICs, especially on
@@ -15,34 +15,36 @@ pub fn init() {
     // The Linux kernel seems to think it is free for use
     let mut wait_port: Port<u8> = Port::new(0x80);
 
-    let mut write_then_wait = |mut port: Port<u8>, data: u8| {
+    let mut write_then_wait = |port: &mut Port<u8>, data: u8| unsafe {
         port.write(data);
         wait_port.write(0);
     };
 
-    let saved_mask1 = MASTER.lock().data.read();
-    let saved_mask2 = SLAVE.lock().data.read();
+    let mut main = MAIN.lock();
+    let mut worker = WORKER.lock();
+
+    let (saved_mask1, saved_mask2) = unsafe { (main.data.read(), worker.data.read()) };
 
     // Start initialization
     let init_value: u8 = (ICW1::INIT as u8) + (ICW1::ICW4_NOT_NEEDED as u8);
-    write_then_wait(MASTER.lock().cmd, init_value);
-    write_then_wait(SLAVE.lock().cmd, init_value);
+    write_then_wait(&mut main.cmd, init_value);
+    write_then_wait(&mut worker.cmd, init_value);
 
     // Set offsets
-    write_then_wait(MASTER.lock().data, 0x20);
-    write_then_wait(SLAVE.lock().data, 0x28);
+    write_then_wait(&mut main.data, 0x20);
+    write_then_wait(&mut worker.data, 0x28);
 
     // Set up cascade (chaining between MASTER and SLAVE)
-    write_then_wait(MASTER.lock().data, 0x4);
-    write_then_wait(SLAVE.lock().data, 0x2);
+    write_then_wait(&mut main.data, 0x4);
+    write_then_wait(&mut worker.data, 0x2);
 
     // Set up interrupt mode (1 is 8086/88 mode, 2 is auto EOI)
-    write_then_wait(MASTER.lock().data, ICW4::MODE_8086 as u8);
-    write_then_wait(SLAVE.lock().data, ICW4::MODE_8086 as u8);
+    write_then_wait(&mut main.data, ICW4::MODE_8086 as u8);
+    write_then_wait(&mut worker.data, ICW4::MODE_8086 as u8);
 
     // Restore saved masks
-    write_then_wait(MASTER.lock().data, saved_mask1);
-    write_then_wait(SLAVE.lock().data, saved_mask2);
+    write_then_wait(&mut main.data, saved_mask1);
+    write_then_wait(&mut worker.data, saved_mask2);
 
     kprintln!("[ OK ] PIC Driver");
 }
@@ -61,23 +63,29 @@ impl Pic {
     }
 
     pub fn ack(&mut self) {
-        self.cmd.write(0x20);
+        unsafe {
+            self.cmd.write(0x20);
+        }
     }
 
     pub fn mask_set(&mut self, irq: u8) {
         assert!(irq < 8);
 
-        let mut mask = self.data.read();
-        mask |= 1 << irq;
-        self.data.write(mask);
+        unsafe {
+            let mut mask = self.data.read();
+            mask |= 1 << irq;
+            self.data.write(mask);
+        }
     }
 
     pub fn mask_clear(&mut self, irq: u8) {
         assert!(irq < 8);
 
-        let mut mask = self.data.read();
-        mask &= !(1 << irq);
-        self.data.write(mask);
+        unsafe {
+            let mut mask = self.data.read();
+            mask &= !(1 << irq);
+            self.data.write(mask);
+        }
     }
 }
 

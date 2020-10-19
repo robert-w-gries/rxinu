@@ -1,17 +1,13 @@
 use bootloader::bootinfo::BootInfo;
 use x86_64::VirtAddr;
 
-pub mod context;
 mod device;
+pub mod gdt;
 pub mod idt;
 pub mod interrupts;
 pub mod memory;
 
 pub fn init(boot_info: &'static BootInfo) {
-    for region in boot_info.memory_map.iter() {
-        kprintln!("{:?}", region);
-    }
-
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
     let mut frame_allocator =
@@ -19,6 +15,7 @@ pub fn init(boot_info: &'static BootInfo) {
 
     memory::heap::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
+    gdt::init();
     idt::init();
     device::init();
 }

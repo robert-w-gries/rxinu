@@ -1,93 +1,52 @@
-use crate::syscall::error::Error;
-use crate::task::process::{Process, ProcessId, ProcessRef};
-use alloc::collections::BTreeMap;
-use alloc::string::String;
+use crate::task::{TaskFuture, TaskId};
 use alloc::sync::Arc;
-use spin::{Once, RwLock};
+use alloc::task::Wake;
+use core::task::Waker;
+use crossbeam_queue::ArrayQueue;
 
-mod cooperative;
-mod preemptive;
+pub use self::priority::PriorityScheduler;
+pub use self::round_robin::RoundRobinScheduler;
 
-pub type GlobalScheduler = preemptive::Preemptive;
+mod priority;
+mod round_robin;
 
-static SCHEDULER: Once<GlobalScheduler> = Once::new();
-
-pub trait Scheduling {
-    fn create(&self, name: String, prio: usize, func: extern "C" fn()) -> Result<ProcessId, Error>;
-    fn get_pid(&self) -> ProcessId;
-    fn get_process(&self, pid: ProcessId) -> Result<ProcessRef, Error>;
-    fn kill(&self, pid: ProcessId) -> Result<(), Error>;
-    fn modify_process<F>(&self, pid: ProcessId, modify_fn: F) -> Result<ProcessRef, Error>
-    where
-        F: Fn(&ProcessRef);
-    fn ready(&self, pid: ProcessId) -> Result<(), Error>;
-    unsafe fn resched(&self) -> Result<(), Error>;
-    fn tick(&self);
-    fn unready(&self, pid: ProcessId) -> Result<(), Error>;
+#[derive(Debug)]
+pub enum Error {
+    DuplicateId,
+    TaskQueueFull,
+    UnknownId,
 }
 
-pub fn global_sched() -> &'static GlobalScheduler {
-    SCHEDULER.call_once(|| GlobalScheduler::new())
+pub trait Scheduler<T: TaskFuture> {
+    fn run(&mut self) -> !;
+    fn spawn(&mut self, task: T) -> Result<(), Error>;
+    fn kill(&mut self, task_id: TaskId) -> Result<(), Error>;
 }
 
-/// Safety: Scheduler lock is used. This function could cause deadlock if interrupted
-pub unsafe fn init() {
-    global_sched().init();
+struct TaskWaker {
+    task_id: TaskId,
+    task_queue: Arc<ArrayQueue<TaskId>>,
 }
 
-pub struct ProcessTable {
-    pub map: BTreeMap<ProcessId, ProcessRef>,
-    next_pid: usize,
+impl TaskWaker {
+    fn new(task_id: TaskId, task_queue: Arc<ArrayQueue<TaskId>>) -> Waker {
+        Waker::from(Arc::new(TaskWaker {
+            task_id,
+            task_queue,
+        }))
+    }
+
+    fn wake_task(&self) {
+        self.task_queue.push(self.task_id).expect("task_queue full");
+    }
 }
 
-impl ProcessTable {
-    pub fn new() -> ProcessTable {
-        ProcessTable {
-            map: BTreeMap::new(),
-            next_pid: 1,
-        }
+impl Wake for TaskWaker {
+    fn wake(self: Arc<Self>) {
+        self.wake_task();
     }
 
-    pub fn add(&mut self, proc: Process) -> Result<ProcessId, Error> {
-        let pid = proc.pid;
-        match self
-            .map
-            .insert(pid, ProcessRef(Arc::new(RwLock::new(proc))))
-        {
-            // PID already used
-            Some(_) => Err(Error::BadPid),
-            None => Ok(pid),
-        }
-    }
-
-    pub fn get(&self, pid: ProcessId) -> Option<&ProcessRef> {
-        self.map.get(&pid)
-    }
-
-    pub fn next_pid(&mut self) -> Result<ProcessId, Error> {
-        use crate::task::MAX_PID;
-
-        while self.map.contains_key(&ProcessId(self.next_pid)) && self.next_pid < MAX_PID {
-            self.next_pid += 1;
-        }
-
-        match self.next_pid {
-            MAX_PID => {
-                self.next_pid = 1;
-                Err(Error::TryAgain)
-            }
-            pid => {
-                self.next_pid += 1;
-                Ok(ProcessId(pid))
-            }
-        }
-    }
-
-    pub fn insert(&mut self, pid: ProcessId, proc: ProcessRef) -> Option<ProcessRef> {
-        self.map.insert(pid, proc)
-    }
-
-    pub fn remove(&mut self, pid: ProcessId) -> Option<ProcessRef> {
-        self.map.remove(&pid)
+    fn wake_by_ref(self: &Arc<Self>) {
+        self.wake_task();
     }
 }

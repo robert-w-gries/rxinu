@@ -5,12 +5,10 @@
 #![test_runner(rxinu::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-#[macro_use]
-extern crate lazy_static;
-
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use lazy_static::lazy_static;
 use rxinu::serial_println;
 use rxinu::test::{exit_qemu, QemuExitCode};
 
@@ -19,8 +17,8 @@ static BREAKPOINT_HANDLER_CALLED: AtomicUsize = AtomicUsize::new(0);
 entry_point!(main);
 
 fn main(_boot_info: &'static BootInfo) -> ! {
-    // idt::init() loads both GDT and IDT
     rxinu::arch::idt::init();
+    rxinu::arch::gdt::init();
     test_main();
     loop {}
 }
@@ -80,7 +78,7 @@ lazy_static! {
         unsafe {
             idt.double_fault
                 .set_handler_fn(double_fault_handler)
-                .set_stack_index(rxinu::arch::idt::DOUBLE_FAULT_IST_INDEX);
+                .set_stack_index(rxinu::arch::gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt
     };

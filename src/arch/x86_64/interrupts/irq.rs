@@ -1,36 +1,39 @@
 use x86_64::structures::idt::InterruptStackFrame;
 
-use crate::device::{keyboard::ps2::PS2_KEYBOARD, pic_8259 as pic, uart_16550 as serial};
-use crate::task::scheduler::{global_sched, Scheduling};
+use crate::device::{pic_8259 as pic, serial::uart_16550 as serial};
 
 pub extern "x86-interrupt" fn timer(_stack_frame: &mut InterruptStackFrame) {
-    pic::MASTER.lock().ack();
-    global_sched().tick();
+    pic::MAIN.lock().ack();
+    // TODO: Pre-empt tasks
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: &mut InterruptStackFrame) {
-    use crate::device::{ps2_controller_8042, BufferedDevice};
+    use crate::device::ps2_controller_8042;
 
     // Read a single scancode off our keyboard port.
     let code = ps2_controller_8042::key_read();
+    crate::device::keyboard::add_scancode(code);
 
-    // Pass scan code to ps2 driver buffer
-    PS2_KEYBOARD.lock().buffer_mut().push_back(code);
-
-    pic::MASTER.lock().ack();
+    pic::MAIN.lock().ack();
 }
 
 #[allow(unused_variables)]
 pub extern "x86-interrupt" fn cascade(_stack_frame: &mut InterruptStackFrame) {
-    pic::MASTER.lock().ack();
+    pic::MAIN.lock().ack();
 }
 
 pub extern "x86-interrupt" fn com1(_stack_frame: &mut InterruptStackFrame) {
-    serial::COM1.lock().receive();
-    pic::MASTER.lock().ack();
+    let mut com1 = serial::COM1.lock();
+    while com1.line_sts().contains(serial::LineStsFlags::DATA_READY) {
+        crate::device::serial::add_byte(com1.receive());
+    }
+    pic::MAIN.lock().ack();
 }
 
 pub extern "x86-interrupt" fn com2(_stack_frame: &mut InterruptStackFrame) {
-    serial::COM2.lock().receive();
-    pic::MASTER.lock().ack();
+    let mut com2 = serial::COM2.lock();
+    while com2.line_sts().contains(serial::LineStsFlags::DATA_READY) {
+        crate::device::serial::add_byte(com2.receive());
+    }
+    pic::MAIN.lock().ack();
 }

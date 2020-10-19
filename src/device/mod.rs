@@ -7,7 +7,7 @@ pub mod keyboard;
 pub mod pic_8259;
 pub mod pit;
 pub mod ps2_controller_8042;
-pub mod uart_16550;
+pub mod serial;
 pub mod vga;
 
 use alloc::collections::VecDeque;

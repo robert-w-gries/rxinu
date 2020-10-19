@@ -1,42 +1,7 @@
+use crate::arch::x86_64::gdt;
 use crate::arch::x86_64::interrupts::{exception, irq};
-use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector};
+use lazy_static::lazy_static;
 use x86_64::structures::idt::InterruptDescriptorTable;
-use x86_64::structures::tss::TaskStateSegment;
-use x86_64::VirtAddr;
-
-pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
-
-lazy_static! {
-    static ref TSS: TaskStateSegment = {
-        let mut tss = TaskStateSegment::new();
-        tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
-            const STACK_SIZE: usize = 4096;
-            static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-
-            let stack_start = VirtAddr::from_ptr(unsafe { &STACK });
-            let stack_end = stack_start + STACK_SIZE;
-            stack_end
-        };
-        tss
-    };
-    static ref GDT: (GlobalDescriptorTable, Selectors) = {
-        let mut gdt = GlobalDescriptorTable::new();
-        let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
-        let tss_selector = gdt.add_entry(Descriptor::tss_segment(&TSS));
-
-        let selectors = Selectors {
-            code_selector,
-            tss_selector,
-        };
-
-        (gdt, selectors)
-    };
-}
-
-struct Selectors {
-    code_selector: SegmentSelector,
-    tss_selector: SegmentSelector,
-}
 
 const IRQ_OFFSET: usize = 32;
 #[allow(dead_code)]
@@ -56,7 +21,7 @@ lazy_static! {
         idt.device_not_available.set_handler_fn(exception::device_not_available);
         unsafe {
             idt.double_fault.set_handler_fn(exception::double_fault)
-                .set_stack_index(DOUBLE_FAULT_IST_INDEX);
+                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt.invalid_tss.set_handler_fn(exception::invalid_tss);
         idt.segment_not_present.set_handler_fn(exception::segment_not_present);
@@ -84,15 +49,5 @@ lazy_static! {
 }
 
 pub fn init() {
-    use x86_64::instructions::segmentation::set_cs;
-    use x86_64::instructions::tables::load_tss;
-
-    GDT.0.load();
-
-    unsafe {
-        set_cs(GDT.1.code_selector);
-        load_tss(GDT.1.tss_selector);
-    }
-
     IDT.load();
 }

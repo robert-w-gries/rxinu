@@ -6,49 +6,35 @@
 
 extern crate alloc;
 
-use alloc::string::String;
 use bootloader::{bootinfo::BootInfo, entry_point};
 use core::panic::PanicInfo;
-use rxinu::{arch, device, syscall, task};
+use rxinu::{
+    arch, device,
+    task::scheduler::{PriorityScheduler, Scheduler},
+    task::{Priority, PriorityTask},
+};
 
 entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     arch::init(boot_info);
-
-    unsafe {
-        task::scheduler::init();
-        arch::interrupts::clear_mask();
-    }
+    arch::interrupts::clear_mask();
 
     #[cfg(test)]
-    test_main();
+    rxinu::test::exit_qemu(rxinu::test::QemuExitCode::Success);
 
-    let _ = syscall::create(String::from("rxinu_main"), 0, rxinu::rxinu_main);
-
-    loop {
-        #[cfg(feature = "serial")]
-        {
-            use device::uart_16550 as uart;
-            uart::read(1024);
-        }
-
-        #[cfg(feature = "vga")]
-        {
-            use device::keyboard::ps2 as kbd;
-            kbd::read(1024);
-        }
-
-        // Save cycles by pausing until next interrupt
-        arch::interrupts::pause();
-    }
+    let mut executor = PriorityScheduler::new();
+    let keyboard_task = PriorityTask::new(Priority::High, device::keyboard::print_keypresses());
+    let serial_task = PriorityTask::new(Priority::High, device::serial::print_serial());
+    executor.spawn(keyboard_task).unwrap();
+    executor.spawn(serial_task).unwrap();
+    executor.run();
 }
 
 #[cfg(not(test))]
 #[panic_handler]
 pub fn panic(info: &PanicInfo) -> ! {
-    use rxinu::kprintln;
-    kprintln!("{}", info);
+    rxinu::kprintln!("{}", info);
 
     loop {
         unsafe {

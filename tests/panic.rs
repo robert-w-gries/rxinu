@@ -2,8 +2,8 @@
 #![no_main]
 
 use core::panic::PanicInfo;
-use rxinu::serial_println;
 use rxinu::test::{exit_qemu, QemuExitCode};
+use rxinu::{serial_print, serial_println};
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -14,6 +14,7 @@ pub extern "C" fn _start() -> ! {
 }
 
 fn should_panic() {
+    serial_print!("panic::should_panic...\t");
     panic!();
 }
 

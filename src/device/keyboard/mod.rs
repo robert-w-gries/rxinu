@@ -1,113 +1,116 @@
-use spin::Mutex;
-
-macro_rules! key_press {
-    ($x:expr) => {
-        Some(KeyEvent::Pressed($x))
-    };
-}
-
-macro_rules! key_release {
-    ($x:expr) => {
-        Some(KeyEvent::Released($x))
-    };
-}
+use crate::{kprint, kprintln};
+use conquer_once::spin::OnceCell;
+use core::{
+    pin::Pin,
+    task::{Context, Poll},
+};
+use crossbeam_queue::ArrayQueue;
+use futures_util::{
+    stream::{Stream, StreamExt},
+    task::AtomicWaker,
+};
 
 pub mod layout;
 pub mod ps2;
 
-pub static STATE: Mutex<ModifierState> = Mutex::new(ModifierState::new());
+static SCANCODE_QUEUE: OnceCell<ArrayQueue<u8>> = OnceCell::uninit();
+static WAKER: AtomicWaker = AtomicWaker::new();
 
 #[derive(Debug)]
-struct KeyPair {
-    left: bool,
-    right: bool,
-}
-
-impl KeyPair {
-    const fn new() -> Self {
-        KeyPair {
-            left: false,
-            right: false,
-        }
-    }
-
-    fn is_pressed(&self) -> bool {
-        self.left || self.right
-    }
-}
-
-pub enum Modifier {
-    AltLeft(bool),
-    AltRight(bool),
-    CapsLock,
-    ControlLeft(bool),
-    ControlRight(bool),
-    NumLock,
-    ScrollLock,
-    ShiftLeft(bool),
-    ShiftRight(bool),
-}
-
-/// All of our supported keyboard modifiers.
-#[derive(Debug)]
-pub struct ModifierState {
-    alt: KeyPair,
-    caps_lock: bool,
-    control: KeyPair,
-    num_lock: bool,
-    scroll_lock: bool,
-    shift: KeyPair,
-}
-
-impl ModifierState {
-    const fn new() -> Self {
-        ModifierState {
-            alt: KeyPair::new(),
-            caps_lock: false,
-            control: KeyPair::new(),
-            num_lock: false,
-            scroll_lock: false,
-            shift: KeyPair::new(),
-        }
-    }
-
-    fn is_uppercase(&self) -> bool {
-        self.shift.is_pressed() ^ self.caps_lock
-    }
-
-    /// Apply all of our modifiers to character and convert to String
-    pub fn apply_to(&self, ascii: u8) -> u8 {
-        if self.is_uppercase() {
-            layout::us_std::map_to_upper(ascii)
-        } else {
-            ascii
-        }
-    }
-
-    pub fn update(&mut self, m: Modifier) {
-        use self::Modifier::*;
-
-        match m {
-            AltLeft(state) => self.alt.left = state,
-            AltRight(state) => self.alt.right = state,
-            CapsLock => self.caps_lock = !self.caps_lock,
-            ControlLeft(state) => self.control.left = state,
-            ControlRight(state) => self.control.right = state,
-            NumLock => self.num_lock = !self.num_lock,
-            ScrollLock => self.scroll_lock = !self.scroll_lock,
-            ShiftLeft(state) => self.shift.left = state,
-            ShiftRight(state) => self.shift.right = state,
-        }
-    }
-}
-
 pub enum KeyEvent {
     Pressed(Key),
     Released(Key),
 }
 
+#[derive(Debug)]
 pub enum Key {
     Ascii(u8),
     Meta(Modifier),
-    LowerAscii(u8),
+}
+
+#[derive(Debug)]
+pub enum Modifier {
+    AltLeft,
+    AltRight,
+    CapsLock,
+    ControlLeft,
+    ControlRight,
+    NumLock,
+    ScrollLock,
+    ShiftLeft,
+    ShiftRight,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ModifierState {
+    alt: (bool, bool),
+    caps_lock: bool,
+    control: (bool, bool),
+    num_lock: bool,
+    scroll_lock: bool,
+    shift: (bool, bool),
+}
+
+impl ModifierState {
+    pub fn is_uppercase(&self) -> bool {
+        (self.shift.0 | self.shift.1) ^ self.caps_lock
+    }
+}
+
+pub struct ScancodeStream {
+    _private: (),
+}
+
+impl ScancodeStream {
+    pub fn new() -> Self {
+        SCANCODE_QUEUE
+            .try_init_once(|| ArrayQueue::new(1024))
+            .expect("ScancodeStream::new should only be called once");
+        ScancodeStream { _private: () }
+    }
+}
+
+impl Stream for ScancodeStream {
+    type Item = u8;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<u8>> {
+        let queue = SCANCODE_QUEUE.try_get().expect("not initialized");
+        if let Ok(scancode) = queue.pop() {
+            return Poll::Ready(Some(scancode));
+        }
+
+        WAKER.register(&cx.waker());
+        match queue.pop() {
+            Ok(scancode) => {
+                WAKER.take();
+                Poll::Ready(Some(scancode))
+            }
+            Err(crossbeam_queue::PopError) => Poll::Pending,
+        }
+    }
+}
+
+pub fn add_scancode(scancode: u8) {
+    if let Ok(queue) = SCANCODE_QUEUE.try_get() {
+        if let Err(_) = queue.push(scancode) {
+            kprintln!("WARNING: scancode queue full; dropping keyboard input");
+        } else {
+            WAKER.wake();
+        }
+    } else {
+        kprintln!("WARNING: scancode queue uninitialized");
+    }
+}
+
+pub async fn print_keypresses() {
+    let mut scancodes = ScancodeStream::new();
+    let mut keyboard = ps2::Ps2Keyboard::new();
+
+    while let Some(scancode) = scancodes.next().await {
+        if let Some(key_event) = keyboard.add_byte(scancode) {
+            if let Some(Key::Ascii(key)) = keyboard.process_keyevent(key_event) {
+                kprint!("{}", key as char);
+            }
+        }
+    }
 }

@@ -1,3 +1,4 @@
+use crate::{serial_print, serial_println};
 use core::panic::PanicInfo;
 
 pub trait Testable {

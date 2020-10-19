@@ -1,11 +1,11 @@
-use crate::syscall::io::{Io, Port};
 use spin::Mutex;
+use x86_64::instructions::port::Port;
 
 /// Our global keyboard state, protected by a mutex.
 static CONTROLLER: Mutex<Port<u8>> = Mutex::new(Port::new(0x64));
 static DEVICE: Mutex<Port<u8>> = Mutex::new(Port::new(0x60));
 
-pub fn init() {
+pub unsafe fn init() {
     // Poll bit 1 of Status Register "Input buffer empty/full"
     let wait_then_write = |data: u8| {
         while CONTROLLER.lock().read() & 0x2 == 1 {}
@@ -71,5 +71,5 @@ pub fn init() {
 }
 
 pub fn key_read() -> u8 {
-    DEVICE.lock().read()
+    unsafe { DEVICE.lock().read() }
 }

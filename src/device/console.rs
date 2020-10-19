@@ -19,7 +19,7 @@ macro_rules! kprintln {
 pub fn clear_screen() {
     #[cfg(feature = "serial")]
     {
-        use crate::device::uart_16550::COM1;
+        use crate::device::serial::uart_16550::COM1;
         COM1.lock().clear_screen();
     }
 
@@ -36,7 +36,7 @@ macro_rules! serial_print {
             #[cfg(feature = "serial")]
             {
                 use core::fmt::Write;
-                let _ = $crate::device::uart_16550::COM1.lock().write_fmt(format_args!($($arg)*));
+                let _ = $crate::device::serial::uart_16550::COM1.lock().write_fmt(format_args!($($arg)*));
             }
     });
 }
